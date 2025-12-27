@@ -8,6 +8,35 @@ Bu proje, İş Sağlığı ve Güvenliği süreçlerini takip etmek için geliş
 *   TCKN ve Lisans No doğrulaması.
 *   Mobil uyumlu arayüz (Türkçe).
 
+## Proje Dosya Yapısı
+
+```text
+.
+├── setup.sh                # Otomatik kurulum sihirbazı (VPS için)
+├── Dockerfile              # Python/Django uygulama imajı
+├── docker-compose.yml      # Docker servis yapılandırması
+├── requirements.txt        # Gerekli Python kütüphaneleri
+├── manage.py               # Django yönetim aracı
+├── .gitignore              # Git tarafından yok sayılacak dosyalar
+├── README.md               # Proje dokümantasyonu
+├── osha_app/               # Ana proje ayarları
+│   ├── settings.py         # Veritabanı, güvenlik ve uygulama ayarları
+│   └── urls.py             # Ana URL yönlendirmeleri
+└── core/                   # Uygulama mantığı (Modüller)
+    ├── models.py           # Veritabanı tabloları (İşyeri, Çalışan, vb.)
+    ├── views.py            # Sayfa fonksiyonları (Görüntüleme, Ekleme, Düzenleme)
+    ├── forms.py            # Giriş formları ve doğrulama kuralları (TCKN kontrolü vb.)
+    ├── urls.py             # Uygulama içi link yapıları
+    ├── tests.py            # Test senaryoları
+    ├── templatetags/       # Özel şablon filtreleri
+    │   └── core_extras.py  # Dinamik veri okuma filtresi
+    └── templates/core/     # Kullanıcı arayüzü (HTML)
+        ├── base.html       # Ana şablon (Menü, Bootstrap yapıları)
+        ├── dashboard.html  # Ana sayfa paneli
+        ├── login.html      # Giriş ekranı
+        └── ...             # Diğer listeleme ve form şablonları
+```
+
 ## Kurulum (Linux VPS)
 
 Bu uygulamayı sunucunuza kurmak için sadece Docker'a ihtiyacınız vardır.
