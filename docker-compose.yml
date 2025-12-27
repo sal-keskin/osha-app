@@ -8,7 +8,5 @@ services:
       - .:/app
     ports:
       - "8000:8000"
-    environment:
-      - DEBUG=1
-      - SECRET_KEY=django-insecure-development-key
-      - ALLOWED_HOSTS=*
+    env_file:
+      - .env

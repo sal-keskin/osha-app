@@ -2,16 +2,19 @@ from django import template
 
 register = template.Library()
 
-@register.filter
-def getattr(obj, attr_name):
+@register.filter(name='getattr')
+def get_attribute(obj, attr_name):
     """
     Custom template filter to get an attribute of an object dynamically.
     Usage: {{ object|getattr:attribute_name }}
     """
     try:
-        return obj.__getattribute__(attr_name)
-    except AttributeError:
-        # Try as dictionary lookup if object is a dict (not likely here but good practice)
+        val = getattr(obj, attr_name)
+        if callable(val):
+            return val()
+        return val
+    except (AttributeError, TypeError):
+        # Try as dictionary lookup
         try:
             return obj[attr_name]
         except (TypeError, KeyError):
