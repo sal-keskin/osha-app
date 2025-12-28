@@ -1,0 +1,51 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2>{{ title }} - Adım 2: Ayarlar</h2>
+        <div class="progress" style="height: 2px;">
+            <div class="progress-bar" role="progressbar" style="width: 50%;" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="delimiter" class="form-label">Ayırıcı (Delimiter)</label>
+                    <select class="form-select" id="delimiter" name="delimiter">
+                        <option value=";">Noktalı Virgül (;)</option>
+                        <option value=",">Virgül (,)</option>
+                        <option value="\t">Tab</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="date_format" class="form-label">Tarih Formatı</label>
+                    <select class="form-select" id="date_format" name="date_format">
+                        <option value="%Y-%m-%d">YYYY-MM-DD (2023-12-31)</option>
+                        <option value="%d.%m.%Y">DD.MM.YYYY (31.12.2023)</option>
+                        <option value="%d/%m/%Y">DD/MM/YYYY (31/12/2023)</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                     <label for="encoding" class="form-label">Karakter Seti (Encoding)</label>
+                     <select class="form-select" id="encoding" name="encoding">
+                         <option value="utf-8-sig">UTF-8 (Önerilen)</option>
+                         <option value="cp1254">Windows-1254 (Türkçe)</option>
+                         <option value="iso-8859-9">ISO-8859-9 (Türkçe)</option>
+                     </select>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-3">
+                <a href="javascript:history.back()" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Geri</a>
+                <button type="submit" class="btn btn-primary">İleri <i class="bi bi-arrow-right"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -14,6 +14,7 @@ from .forms import (
 from .models import (
     Workplace, Worker, Educator, Professional, Education, Inspection, Examination
 )
+from .import_utils import ImportHandler
 
 def login_view(request):
     if request.method == 'POST':
@@ -85,7 +86,7 @@ def apply_filters(queryset, filter_config, params):
     return queryset
 
 # Generic helper for CRUD views
-def generic_list_view(request, model_class, title, create_url_name, update_url_name, fields_to_show, bulk_delete_url_name=None, export_url_name=None, filter_config=None):
+def generic_list_view(request, model_class, title, create_url_name, update_url_name, fields_to_show, bulk_delete_url_name=None, export_url_name=None, filter_config=None, import_url_name=None):
     items = model_class.objects.all()
 
     if filter_config:
@@ -113,10 +114,100 @@ def generic_list_view(request, model_class, title, create_url_name, update_url_n
         'update_url_name': update_url_name,
         'bulk_delete_url_name': bulk_delete_url_name,
         'export_url_name': export_url_name,
+        'import_url_name': import_url_name,
         'fields': fields_to_show,
         'filter_config': filter_config,
     }
     return render(request, 'core/list_template.html', context)
+
+def generic_import_view(request, model_class, title, list_url_name, step=1):
+    handler = ImportHandler(request)
+
+    # Step 1: Upload
+    if step == 1:
+        if request.method == 'POST':
+            if 'import_file' in request.FILES:
+                handler.save_file(request.FILES['import_file'])
+                # Clear previous session data
+                if 'import_mapping' in request.session: del request.session['import_mapping']
+                if 'import_settings' in request.session: del request.session['import_settings']
+                return redirect(f'import_{model_class.__name__.lower()}_step2')
+        return render(request, 'core/import/import_step1.html', {'title': title, 'list_url_name': list_url_name})
+
+    # Step 2: Settings
+    elif step == 2:
+        if request.method == 'POST':
+            settings = {
+                'delimiter': request.POST.get('delimiter', ';'),
+                'date_format': request.POST.get('date_format', '%Y-%m-%d'),
+                'encoding': request.POST.get('encoding', 'utf-8-sig')
+            }
+            request.session['import_settings'] = settings
+            return redirect(f'import_{model_class.__name__.lower()}_step3')
+        return render(request, 'core/import/import_step2.html', {'title': title})
+
+    # Step 3: Mapping
+    elif step == 3:
+        settings = request.session.get('import_settings', {'delimiter': ';', 'encoding': 'utf-8-sig'})
+        csv_headers = handler.get_headers(delimiter=settings['delimiter'], encoding=settings['encoding'])
+
+        # Get Model Fields
+        model_fields = []
+        for field in model_class._meta.fields:
+            if field.auto_created or field.name == 'id':
+                continue
+
+            field_type = field.get_internal_type()
+            required = not field.blank and not field.null
+
+            model_fields.append({
+                'name': field.name,
+                'verbose_name': field.verbose_name,
+                'help_text': field.help_text,
+                'required': required,
+                'type': field_type
+            })
+
+        if request.method == 'POST':
+            mapping = {}
+            for field in model_fields:
+                val = request.POST.get(f'map_{field["name"]}')
+                mapping[field['name']] = val if val else None
+
+            request.session['import_mapping'] = mapping
+            return redirect(f'import_{model_class.__name__.lower()}_step4')
+
+        return render(request, 'core/import/import_step3.html', {
+            'title': title,
+            'csv_headers': csv_headers,
+            'model_fields': model_fields
+        })
+
+    # Step 4: Preview & Execute
+    elif step == 4:
+        settings = request.session.get('import_settings', {})
+        mapping = request.session.get('import_mapping', {})
+
+        if request.method == 'POST':
+            count = handler.execute_import(
+                model_class, mapping,
+                delimiter=settings.get('delimiter', ';'),
+                date_format=settings.get('date_format', '%Y-%m-%d'),
+                encoding=settings.get('encoding', 'utf-8-sig')
+            )
+            messages.success(request, f'{count} kayıt başarıyla içe aktarıldı.')
+            return redirect(list_url_name)
+
+        summary = handler.get_preview_data(
+            model_class, mapping,
+            delimiter=settings.get('delimiter', ';'),
+            date_format=settings.get('date_format', '%Y-%m-%d'),
+            encoding=settings.get('encoding', 'utf-8-sig')
+        )
+
+        return render(request, 'core/import/import_step4.html', {'title': title, 'summary': summary})
+
+    return redirect(list_url_name)
 
 def generic_bulk_delete_view(request, model_class, list_url_name):
     if request.method == 'POST':
@@ -234,7 +325,11 @@ def workplace_list(request):
     ]
     return generic_list_view(request, Workplace, "İşyerleri", 'workplace_create', 'workplace_update',
                              [('name', 'İşyeri Adı'), ('detsis_number', 'DETSİS No')],
-                             'workplace_bulk_delete', 'workplace_export', filter_config)
+                             'workplace_bulk_delete', 'workplace_export', filter_config, 'import_workplace_step1')
+
+@login_required
+def workplace_import(request, step=1):
+    return generic_import_view(request, Workplace, "İşyeri İçe Aktar", 'workplace_list', step=step)
 
 @login_required
 def workplace_bulk_delete(request):
@@ -265,7 +360,11 @@ def worker_list(request):
     ]
     return generic_list_view(request, Worker, "Çalışanlar", 'worker_create', 'worker_update',
                              [('name', 'Ad Soyad'), ('tckn', 'TCKN'), ('workplace', 'İşyeri')],
-                             'worker_bulk_delete', 'worker_export', filter_config)
+                             'worker_bulk_delete', 'worker_export', filter_config, 'import_worker_step1')
+
+@login_required
+def worker_import(request, step=1):
+    return generic_import_view(request, Worker, "Çalışan İçe Aktar", 'worker_list', step=step)
 
 @login_required
 def worker_bulk_delete(request):
@@ -296,7 +395,11 @@ def educator_list(request):
     ]
     return generic_list_view(request, Educator, "Eğiticiler", 'educator_create', 'educator_update',
                              [('name', 'Ad Soyad'), ('license_id', 'Lisans No')],
-                             'educator_bulk_delete', 'educator_export', filter_config)
+                             'educator_bulk_delete', 'educator_export', filter_config, 'import_educator_step1')
+
+@login_required
+def educator_import(request, step=1):
+    return generic_import_view(request, Educator, "Eğitici İçe Aktar", 'educator_list', step=step)
 
 @login_required
 def educator_bulk_delete(request):
@@ -326,7 +429,11 @@ def professional_list(request):
     ]
     return generic_list_view(request, Professional, "Profesyoneller", 'professional_create', 'professional_update',
                              [('name', 'Ad Soyad'), ('license_id', 'Lisans No'), ('get_role_display', 'Görevi')],
-                             'professional_bulk_delete', 'professional_export', filter_config)
+                             'professional_bulk_delete', 'professional_export', filter_config, 'import_professional_step1')
+
+@login_required
+def professional_import(request, step=1):
+    return generic_import_view(request, Professional, "Profesyonel İçe Aktar", 'professional_list', step=step)
 
 @login_required
 def professional_bulk_delete(request):
@@ -357,7 +464,11 @@ def education_list(request):
     ]
     return generic_list_view(request, Education, "İSG Eğitimleri", 'education_create', 'education_update',
                              [('date', 'Tarih'), ('topic', 'Konu'), ('workplace', 'İşyeri')],
-                             'education_bulk_delete', 'education_export', filter_config)
+                             'education_bulk_delete', 'education_export', filter_config, 'import_education_step1')
+
+@login_required
+def education_import(request, step=1):
+    return generic_import_view(request, Education, "Eğitim İçe Aktar", 'education_list', step=step)
 
 @login_required
 def education_bulk_delete(request):
@@ -389,7 +500,11 @@ def inspection_list(request):
     ]
     return generic_list_view(request, Inspection, "Denetimler", 'inspection_create', 'inspection_update',
                              [('date', 'Tarih'), ('workplace', 'İşyeri'), ('professional', 'Denetleyen')],
-                             'inspection_bulk_delete', 'inspection_export', filter_config)
+                             'inspection_bulk_delete', 'inspection_export', filter_config, 'import_inspection_step1')
+
+@login_required
+def inspection_import(request, step=1):
+    return generic_import_view(request, Inspection, "Denetim İçe Aktar", 'inspection_list', step=step)
 
 @login_required
 def inspection_bulk_delete(request):
@@ -421,7 +536,11 @@ def examination_list(request):
     ]
     return generic_list_view(request, Examination, "Sağlık Muayeneleri", 'examination_create', 'examination_update',
                              [('date', 'Tarih'), ('worker', 'Çalışan'), ('professional', 'Hekim')],
-                             'examination_bulk_delete', 'examination_export', filter_config)
+                             'examination_bulk_delete', 'examination_export', filter_config, 'import_examination_step1')
+
+@login_required
+def examination_import(request, step=1):
+    return generic_import_view(request, Examination, "Muayene İçe Aktar", 'examination_list', step=step)
 
 @login_required
 def examination_bulk_delete(request):
