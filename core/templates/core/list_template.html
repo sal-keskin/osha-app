@@ -6,6 +6,18 @@
     <div class="col d-flex justify-content-between align-items-center">
         <h2>{{ title }}</h2>
         <div>
+            {% if export_url_name %}
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-download"></i> Dışa Aktar
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url export_url_name %}?format=csv{% for key, value in request.GET.items %}{% if key != 'format' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">CSV İndir</a></li>
+                    <li><a class="dropdown-item" href="{% url export_url_name %}?format=xlsx{% for key, value in request.GET.items %}{% if key != 'format' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Excel İndir</a></li>
+                </ul>
+            </div>
+            {% endif %}
+
             {% if bulk_delete_url_name %}
             <button type="button" class="btn btn-danger me-2" id="delete-selected-btn" disabled>
                 <i class="bi bi-trash"></i> Seçilenleri Sil
@@ -17,6 +29,37 @@
         </div>
     </div>
 </div>
+
+{% if filter_config %}
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            {% for config in filter_config %}
+            <div class="col-md-3">
+                <label for="filter-{{ config.field }}" class="form-label">{{ config.label|default:config.field|title }}</label>
+
+                {% if config.type == 'select' %}
+                <select name="{{ config.field }}" id="filter-{{ config.field }}" class="form-select">
+                    <option value="">Tümü</option>
+                    {% for opt_val, opt_label in config.options %}
+                    <option value="{{ opt_val }}" {% if config.value|stringformat:"s" == opt_val|stringformat:"s" %}selected{% endif %}>{{ opt_label }}</option>
+                    {% endfor %}
+                </select>
+                {% elif config.type == 'date' %}
+                <input type="date" name="{{ config.field }}" id="filter-{{ config.field }}" class="form-control" value="{{ config.value|default:'' }}">
+                {% else %}
+                <input type="text" name="{{ config.field }}" id="filter-{{ config.field }}" class="form-control" value="{{ config.value|default:'' }}" placeholder="Ara...">
+                {% endif %}
+            </div>
+            {% endfor %}
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-secondary me-2">Filtrele</button>
+                <a href="{{ request.path }}" class="btn btn-outline-secondary">Temizle</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
 
 <div class="card">
     <div class="card-body p-0">
