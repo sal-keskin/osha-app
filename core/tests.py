@@ -1,6 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from .models import Workplace, Worker, Educator, Professional, Education, Inspection, Examination
+from core.models import Workplace, Worker, Educator, Professional, Education, Inspection, Examination
 from datetime import date
 
 class ModelTests(TestCase):
