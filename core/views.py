@@ -53,16 +53,27 @@ def dashboard(request):
     return render(request, 'core/dashboard.html', context)
 
 # Generic helper for CRUD views
-def generic_list_view(request, model_class, title, create_url_name, update_url_name, fields_to_show):
+def generic_list_view(request, model_class, title, create_url_name, update_url_name, fields_to_show, bulk_delete_url_name=None):
     items = model_class.objects.all()
     context = {
         'items': items,
         'title': title,
         'create_url_name': create_url_name,
         'update_url_name': update_url_name,
+        'bulk_delete_url_name': bulk_delete_url_name,
         'fields': fields_to_show,
     }
     return render(request, 'core/list_template.html', context)
+
+def generic_bulk_delete_view(request, model_class, list_url_name):
+    if request.method == 'POST':
+        selected_ids = request.POST.getlist('selected_items')
+        if selected_ids:
+            model_class.objects.filter(id__in=selected_ids).delete()
+            messages.success(request, f'{len(selected_ids)} kayıt silindi.')
+        else:
+            messages.warning(request, 'Silinecek kayıt seçilmedi.')
+    return redirect(list_url_name)
 
 def generic_create_view(request, form_class, title, list_url_name):
     if request.method == 'POST':
@@ -90,7 +101,11 @@ def generic_update_view(request, model_class, form_class, pk, title, list_url_na
 # Specific Views using helpers
 @login_required
 def workplace_list(request):
-    return generic_list_view(request, Workplace, "İşyerleri", 'workplace_create', 'workplace_update', [('name', 'İşyeri Adı'), ('detsis_number', 'DETSİS No')])
+    return generic_list_view(request, Workplace, "İşyerleri", 'workplace_create', 'workplace_update', [('name', 'İşyeri Adı'), ('detsis_number', 'DETSİS No')], 'workplace_bulk_delete')
+
+@login_required
+def workplace_bulk_delete(request):
+    return generic_bulk_delete_view(request, Workplace, 'workplace_list')
 
 @login_required
 def workplace_create(request):
@@ -102,7 +117,11 @@ def workplace_update(request, pk):
 
 @login_required
 def worker_list(request):
-    return generic_list_view(request, Worker, "Çalışanlar", 'worker_create', 'worker_update', [('name', 'Ad Soyad'), ('tckn', 'TCKN'), ('workplace', 'İşyeri')])
+    return generic_list_view(request, Worker, "Çalışanlar", 'worker_create', 'worker_update', [('name', 'Ad Soyad'), ('tckn', 'TCKN'), ('workplace', 'İşyeri')], 'worker_bulk_delete')
+
+@login_required
+def worker_bulk_delete(request):
+    return generic_bulk_delete_view(request, Worker, 'worker_list')
 
 @login_required
 def worker_create(request):
@@ -114,7 +133,11 @@ def worker_update(request, pk):
 
 @login_required
 def educator_list(request):
-    return generic_list_view(request, Educator, "Eğiticiler", 'educator_create', 'educator_update', [('name', 'Ad Soyad'), ('license_id', 'Lisans No')])
+    return generic_list_view(request, Educator, "Eğiticiler", 'educator_create', 'educator_update', [('name', 'Ad Soyad'), ('license_id', 'Lisans No')], 'educator_bulk_delete')
+
+@login_required
+def educator_bulk_delete(request):
+    return generic_bulk_delete_view(request, Educator, 'educator_list')
 
 @login_required
 def educator_create(request):
@@ -126,7 +149,11 @@ def educator_update(request, pk):
 
 @login_required
 def professional_list(request):
-    return generic_list_view(request, Professional, "Profesyoneller", 'professional_create', 'professional_update', [('name', 'Ad Soyad'), ('license_id', 'Lisans No'), ('get_role_display', 'Görevi')])
+    return generic_list_view(request, Professional, "Profesyoneller", 'professional_create', 'professional_update', [('name', 'Ad Soyad'), ('license_id', 'Lisans No'), ('get_role_display', 'Görevi')], 'professional_bulk_delete')
+
+@login_required
+def professional_bulk_delete(request):
+    return generic_bulk_delete_view(request, Professional, 'professional_list')
 
 @login_required
 def professional_create(request):
@@ -138,7 +165,11 @@ def professional_update(request, pk):
 
 @login_required
 def education_list(request):
-    return generic_list_view(request, Education, "İSG Eğitimleri", 'education_create', 'education_update', [('date', 'Tarih'), ('topic', 'Konu'), ('workplace', 'İşyeri')])
+    return generic_list_view(request, Education, "İSG Eğitimleri", 'education_create', 'education_update', [('date', 'Tarih'), ('topic', 'Konu'), ('workplace', 'İşyeri')], 'education_bulk_delete')
+
+@login_required
+def education_bulk_delete(request):
+    return generic_bulk_delete_view(request, Education, 'education_list')
 
 @login_required
 def education_create(request):
@@ -150,7 +181,11 @@ def education_update(request, pk):
 
 @login_required
 def inspection_list(request):
-    return generic_list_view(request, Inspection, "Denetimler", 'inspection_create', 'inspection_update', [('date', 'Tarih'), ('workplace', 'İşyeri'), ('professional', 'Denetleyen')])
+    return generic_list_view(request, Inspection, "Denetimler", 'inspection_create', 'inspection_update', [('date', 'Tarih'), ('workplace', 'İşyeri'), ('professional', 'Denetleyen')], 'inspection_bulk_delete')
+
+@login_required
+def inspection_bulk_delete(request):
+    return generic_bulk_delete_view(request, Inspection, 'inspection_list')
 
 @login_required
 def inspection_create(request):
@@ -162,7 +197,11 @@ def inspection_update(request, pk):
 
 @login_required
 def examination_list(request):
-    return generic_list_view(request, Examination, "Sağlık Muayeneleri", 'examination_create', 'examination_update', [('date', 'Tarih'), ('worker', 'Çalışan'), ('professional', 'Hekim')])
+    return generic_list_view(request, Examination, "Sağlık Muayeneleri", 'examination_create', 'examination_update', [('date', 'Tarih'), ('worker', 'Çalışan'), ('professional', 'Hekim')], 'examination_bulk_delete')
+
+@login_required
+def examination_bulk_delete(request):
+    return generic_bulk_delete_view(request, Examination, 'examination_list')
 
 @login_required
 def examination_create(request):
