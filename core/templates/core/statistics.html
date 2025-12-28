@@ -1,0 +1,282 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="row mb-3">
+    <div class="col">
+        <h2>İstatistikler</h2>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Sidebar Controls -->
+    <div class="col-md-3">
+        <div class="card mb-3">
+            <div class="card-header">Ayarlar</div>
+            <div class="card-body">
+                <form id="stats-form">
+                    <div class="mb-3">
+                        <label for="model-select" class="form-label">Veri Seti</label>
+                        <select id="model-select" class="form-select">
+                            <!-- Populated via JS -->
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="x-axis-select" class="form-label">Ana Değişken (X Ekseni)</label>
+                        <select id="x-axis-select" class="form-select"></select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="y-axis-select" class="form-label">Grupla (Opsiyonel)</label>
+                        <select id="y-axis-select" class="form-select">
+                            <option value="">-- Yok --</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="button" id="fetch-btn" class="btn btn-primary">Görüntüle</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-9">
+        <!-- View Toggles -->
+        <ul class="nav nav-tabs mb-3" id="view-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="table-tab" data-bs-toggle="tab" data-bs-target="#table-view" type="button" role="tab">
+                    <i class="bi bi-table"></i> Tablo Görünümü
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="plot-tab" data-bs-toggle="tab" data-bs-target="#plot-view" type="button" role="tab">
+                    <i class="bi bi-graph-up"></i> Grafik Görünümü
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- Table View -->
+            <div class="tab-pane fade show active" id="table-view" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive" id="table-container">
+                            <p class="text-muted text-center py-5">Lütfen veri seti seçip "Görüntüle" butonuna basınız.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Plot View -->
+            <div class="tab-pane fade" id="plot-view" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <div style="height: 400px; position: relative;">
+                            <canvas id="statsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Config Data -->
+{{ config|json_script:"stats-config" }}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const config = JSON.parse(document.getElementById('stats-config').textContent);
+    const modelSelect = document.getElementById('model-select');
+    const xSelect = document.getElementById('x-axis-select');
+    const ySelect = document.getElementById('y-axis-select');
+    const fetchBtn = document.getElementById('fetch-btn');
+    const tableContainer = document.getElementById('table-container');
+    let chartInstance = null;
+
+    // Populate Models
+    for (const model in config) {
+        const option = new Option(translateModel(model), model);
+        modelSelect.add(option);
+    }
+
+    // Initial Field Load
+    updateFields();
+
+    // Listeners
+    modelSelect.addEventListener('change', updateFields);
+    fetchBtn.addEventListener('click', fetchData);
+
+    function translateModel(modelName) {
+        const maps = {'Workplace': 'İşyerleri', 'Worker': 'Çalışanlar', 'Examination': 'Muayeneler', 'Education': 'Eğitimler'};
+        return maps[modelName] || modelName;
+    }
+
+    function updateFields() {
+        const model = modelSelect.value;
+        const fields = config[model].fields;
+
+        xSelect.innerHTML = '';
+        ySelect.innerHTML = '<option value="">-- Yok --</option>';
+
+        fields.forEach(field => {
+            xSelect.add(new Option(field.label, field.name));
+            ySelect.add(new Option(field.label, field.name));
+        });
+    }
+
+    function fetchData() {
+        const model = modelSelect.value;
+        const xField = xSelect.value;
+        const yField = ySelect.value;
+
+        const url = `{% url 'api_get_statistics' %}?model=${model}&x_field=${xField}` + (yField ? `&y_field=${yField}` : '');
+
+        // Show loading
+        tableContainer.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Hata: ' + data.error);
+                    return;
+                }
+                renderTable(data.data, xSelect.options[xSelect.selectedIndex].text, yField ? ySelect.options[ySelect.selectedIndex].text : null);
+                renderChart(data.data, xSelect.options[xSelect.selectedIndex].text, yField ? ySelect.options[ySelect.selectedIndex].text : null);
+            })
+            .catch(err => {
+                console.error(err);
+                tableContainer.innerHTML = '<p class="text-danger text-center">Veri alınırken hata oluştu.</p>';
+            });
+    }
+
+    function renderTable(data, xLabel, yLabel) {
+        if (!data || data.length === 0) {
+            tableContainer.innerHTML = '<p class="text-center py-5">Veri bulunamadı.</p>';
+            return;
+        }
+
+        let html = '<table class="table table-bordered table-striped table-hover">';
+
+        if (!yLabel) {
+            // Simple List
+            html += `<thead><tr><th>${xLabel}</th><th>Sayı</th><th>Yüzde</th></tr></thead><tbody>`;
+            const total = data.reduce((sum, item) => sum + item.count, 0);
+
+            data.forEach(item => {
+                const pct = ((item.count / total) * 100).toFixed(1);
+                html += `<tr><td>${item.x}</td><td>${item.count}</td><td>%${pct}</td></tr>`;
+            });
+            html += `<tfoot><tr class="table-dark"><td>Toplam</td><td>${total}</td><td>100%</td></tr></tfoot>`;
+        } else {
+            // Crosstab / Pivot
+            // 1. Get unique Y values (Columns)
+            const yValues = [...new Set(data.map(d => d.y))].sort();
+            // 2. Get unique X values (Rows)
+            const xValues = [...new Set(data.map(d => d.x))].sort();
+
+            // Header
+            html += `<thead><tr><th>${xLabel} \\ ${yLabel}</th>`;
+            yValues.forEach(y => html += `<th>${y}</th>`);
+            html += '<th>Toplam</th></tr></thead><tbody>';
+
+            let grandTotal = 0;
+            const colTotals = {};
+            yValues.forEach(y => colTotals[y] = 0);
+
+            xValues.forEach(x => {
+                html += `<tr><td><strong>${x}</strong></td>`;
+                let rowTotal = 0;
+
+                yValues.forEach(y => {
+                    const item = data.find(d => d.x === x && d.y === y);
+                    const val = item ? item.count : 0;
+                    rowTotal += val;
+                    colTotals[y] += val;
+                    html += `<td>${val}</td>`;
+                });
+
+                grandTotal += rowTotal;
+                html += `<td><strong>${rowTotal}</strong></td></tr>`;
+            });
+
+            // Footer
+            html += `<tr class="table-dark"><td><strong>Toplam</strong></td>`;
+            yValues.forEach(y => html += `<td><strong>${colTotals[y]}</strong></td>`);
+            html += `<td><strong>${grandTotal}</strong></td></tr></tfoot>`;
+        }
+
+        html += '</tbody></table>';
+        tableContainer.innerHTML = html;
+    }
+
+    function renderChart(data, xLabel, yLabel) {
+        const ctx = document.getElementById('statsChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+
+        const labels = [...new Set(data.map(d => d.x))]; // X-Axis Labels
+        let datasets = [];
+
+        if (!yLabel) {
+            // Single Series Bar
+            datasets.push({
+                label: 'Sayı',
+                data: labels.map(label => {
+                    const item = data.find(d => d.x === label);
+                    return item ? item.count : 0;
+                }),
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            });
+        } else {
+            // Stacked Bar
+            const yValues = [...new Set(data.map(d => d.y))]; // Groups
+            const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'];
+
+            yValues.forEach((yVal, index) => {
+                datasets.push({
+                    label: yVal,
+                    data: labels.map(xVal => {
+                        const item = data.find(d => d.x === xVal && d.y === yVal);
+                        return item ? item.count : 0;
+                    }),
+                    backgroundColor: colors[index % colors.length],
+                    stack: 'Stack 0'
+                });
+            });
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: !!yLabel },
+                    y: {
+                        stacked: !!yLabel,
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: yLabel ? `${xLabel} ve ${yLabel} Dağılımı` : `${xLabel} Dağılımı`
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

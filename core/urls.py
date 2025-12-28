@@ -7,6 +7,8 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('api/get_workers/', views.get_workers_json, name='get_workers_json'),
     path('api/create_profession/', views.api_create_profession, name='api_create_profession'),
+    path('api/statistics/', views.api_get_statistics, name='api_get_statistics'),
+    path('statistics/', views.statistics_view, name='statistics'),
     
     # Workplace
     path('workplaces/', views.workplace_list, name='workplace_list'),
