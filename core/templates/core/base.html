@@ -53,5 +53,26 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    if (submitBtn && !submitBtn.disabled) {
+                        // Check for client-side validity (if browser validation is active)
+                        if (this.checkValidity()) {
+                            const originalText = submitBtn.innerHTML;
+                            submitBtn.disabled = true;
+                            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> İşleniyor...';
+
+                            // Fallback: If page doesn't unload (e.g., download or error), re-enable after 10s?
+                            // For SPA-like behavior or HTMX this needs to be smarter, but for standard Django POST/Redirect, this is fine.
+                        }
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

@@ -76,6 +76,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function fetchWorkers(workplaceId, isInitialLoad) {
+        // Show loading
+        workersContainer.innerHTML = '<div class="text-center py-2"><span class="spinner-border text-primary" role="status"></span></div>';
+        noWorkersMsg.classList.add('d-none');
+
         fetch(`{% url 'get_workers_json' %}?workplace_id=${workplaceId}`)
             .then(response => response.json())
             .then(data => {
