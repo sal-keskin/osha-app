@@ -1,9 +1,26 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+class Profession(models.Model):
+    name = models.CharField(max_length=255, unique=True, verbose_name="Meslek Adı")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Meslek"
+        verbose_name_plural = "Meslekler"
+
+
 class Workplace(models.Model):
+    HAZARD_CHOICES = [
+        ('LOW', 'Az Tehlikeli'),
+        ('MEDIUM', 'Tehlikeli'),
+        ('HIGH', 'Çok Tehlikeli'),
+    ]
     name = models.CharField(max_length=255, verbose_name="İşyeri Adı")
     detsis_number = models.CharField(max_length=50, unique=True, verbose_name="DETSİS No")
+    hazard_class = models.CharField(max_length=10, choices=HAZARD_CHOICES, default='LOW', verbose_name="Tehlike Sınıfı")
 
     def __str__(self):
         return f"{self.name} ({self.detsis_number})"
@@ -14,9 +31,19 @@ class Workplace(models.Model):
 
 
 class Worker(models.Model):
+    GENDER_CHOICES = [
+        ('F', 'Kadın'),
+        ('M', 'Erkek'),
+    ]
     name = models.CharField(max_length=255, verbose_name="Ad Soyad")
     tckn = models.CharField(max_length=11, unique=True, verbose_name="TCKN")
     workplace = models.ForeignKey(Workplace, on_delete=models.CASCADE, related_name="workers", verbose_name="İşyeri")
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, null=True, blank=True, verbose_name="Cinsiyet")
+    birth_date = models.DateField(null=True, blank=True, verbose_name="Doğum Tarihi")
+    notes = models.TextField(null=True, blank=True, verbose_name="Notlar")
+    # Storing chronic diseases as comma-separated string for simplicity
+    chronic_diseases = models.CharField(max_length=255, null=True, blank=True, verbose_name="Kronik Hastalıklar")
+    profession = models.ForeignKey(Profession, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Meslek")
 
     def __str__(self):
         return f"{self.name} ({self.tckn})"
@@ -85,8 +112,12 @@ class Inspection(models.Model):
 
 
 class Examination(models.Model):
+    DECISION_CHOICES = [
+        ('FIT', 'Çalışmaya Elverişlidir'),
+        ('CONDITIONAL', 'Şartlı Olarak Çalışmaya Elverişlidir'),
+    ]
     date = models.DateField(verbose_name="Tarih")
-    notes = models.TextField(verbose_name="Notlar/Sonuç")
+    notes = models.TextField(verbose_name="Notlar/Sonuç", blank=True)
     worker = models.ForeignKey(Worker, on_delete=models.CASCADE, verbose_name="Çalışan")
     professional = models.ForeignKey(
         Professional, 
@@ -94,6 +125,25 @@ class Examination(models.Model):
         limit_choices_to={'role': 'DOCTOR'},
         verbose_name="Hekim"
     )
+    decision = models.CharField(max_length=20, choices=DECISION_CHOICES, default='FIT', verbose_name="Karar")
+    decision_conditions = models.TextField(null=True, blank=True, verbose_name="Şartlar")
+
+    # Checkups
+    work_accident = models.BooleanField(default=False, verbose_name="İş Kazası")
+    work_accident_date = models.DateField(null=True, blank=True, verbose_name="İş Kazası Tarihi")
+
+    tetanus_vaccine = models.BooleanField(default=False, verbose_name="Tetanoz Aşısı")
+    tetanus_date = models.DateField(null=True, blank=True, verbose_name="Tetanoz Aşısı Tarihi")
+
+    hepatitis_b_vaccine = models.BooleanField(default=False, verbose_name="Hepatit B Aşısı")
+    hepatitis_b_value = models.CharField(max_length=50, null=True, blank=True, verbose_name="Anti-HbS Değeri")
+
+    biochemistry = models.BooleanField(default=False, verbose_name="Biyokimya")
+    hemogram = models.BooleanField(default=False, verbose_name="Hemogram")
+    serology = models.BooleanField(default=False, verbose_name="Seroloji")
+    sft = models.BooleanField(default=False, verbose_name="SFT")
+    audiometry = models.BooleanField(default=False, verbose_name="Odyometri")
+    radiology = models.BooleanField(default=False, verbose_name="Radyoloji")
 
     def __str__(self):
         return f"{self.worker.name} - {self.date}"
