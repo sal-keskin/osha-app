@@ -88,6 +88,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Loading state
+        const originalText = saveBtn.innerHTML;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Kaydediliyor...';
+
         // AJAX request to create profession
         fetch('{% url "api_create_profession" %}', {
             method: 'POST',
@@ -115,6 +120,11 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             showError('Sunucu hatası: ' + error);
+        })
+        .finally(() => {
+            // Restore button
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
         });
     });
 
