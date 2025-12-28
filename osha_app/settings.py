@@ -30,6 +30,8 @@ SECRET_KEY = os.getenv('SECRET_KEY', "django-insecure-22zfh8*cc0(qv207l2d$q1ku-y
 DEBUG = os.getenv('DEBUG', '0') == '1'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+if '213.238.180.147' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('213.238.180.147')
 
 
 # Application definition
@@ -121,6 +123,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / 'static'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
