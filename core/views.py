@@ -677,3 +677,116 @@ def profession_create(request):
 @login_required
 def profession_update(request, pk):
     return generic_update_view(request, Profession, ProfessionForm, pk, "Meslek Düzenle", 'profession_list')
+
+# Statistics Configuration
+STATISTICS_CONFIG = {
+    'Workplace': {
+        'fields': [
+            {'name': 'hazard_class', 'label': 'Tehlike Sınıfı', 'type': 'category'},
+        ]
+    },
+    'Worker': {
+        'fields': [
+            {'name': 'workplace__name', 'label': 'İşyeri', 'type': 'category'},
+            {'name': 'gender', 'label': 'Cinsiyet', 'type': 'category'},
+            {'name': 'profession__name', 'label': 'Meslek', 'type': 'category'},
+        ]
+    },
+    'Examination': {
+        'fields': [
+            {'name': 'decision', 'label': 'Karar', 'type': 'category'},
+            {'name': 'worker__workplace__name', 'label': 'İşyeri', 'type': 'category'},
+            {'name': 'professional__name', 'label': 'Hekim', 'type': 'category'},
+            {'name': 'date', 'label': 'Tarih', 'type': 'date'},
+        ]
+    },
+    'Education': {
+        'fields': [
+            {'name': 'topic', 'label': 'Konu', 'type': 'category'},
+            {'name': 'educator__name', 'label': 'Eğitici', 'type': 'category'},
+            {'name': 'workplace__name', 'label': 'İşyeri', 'type': 'category'},
+            {'name': 'date', 'label': 'Tarih', 'type': 'date'},
+        ]
+    }
+}
+
+@login_required
+def statistics_view(request):
+    return render(request, 'core/statistics.html', {'config': json.dumps(STATISTICS_CONFIG)})
+
+@login_required
+def api_get_statistics(request):
+    model_name = request.GET.get('model')
+    x_field = request.GET.get('x_field')
+    y_field = request.GET.get('y_field') # Optional Grouping
+
+    if not model_name or not x_field:
+        return JsonResponse({'error': 'Missing parameters'}, status=400)
+
+    # Resolve Model
+    model_map = {
+        'Workplace': Workplace,
+        'Worker': Worker,
+        'Examination': Examination,
+        'Education': Education
+    }
+    model_class = model_map.get(model_name)
+    if not model_class:
+        return JsonResponse({'error': 'Invalid model'}, status=400)
+
+    queryset = model_class.objects.all()
+
+    # Aggregation
+    try:
+        from django.db.models import Count
+        if y_field:
+            data = list(queryset.values(x_field, y_field).annotate(count=Count('id')).order_by(x_field, y_field))
+        else:
+            data = list(queryset.values(x_field).annotate(count=Count('id')).order_by(x_field))
+
+        # Helper to find field object
+        def get_field_choices(model, field_path):
+            parts = field_path.split('__')
+            current_model = model
+            field = None
+            for part in parts:
+                try:
+                    field = current_model._meta.get_field(part)
+                    if field.is_relation and field.related_model:
+                        current_model = field.related_model
+                except: return None
+            return field.choices if field else None
+
+        x_choices = get_field_choices(model_class, x_field)
+        y_choices = get_field_choices(model_class, y_field) if y_field else None
+
+        processed_data = []
+        for row in data:
+            x_val = row[x_field]
+            y_val = row.get(y_field)
+
+            # Map X
+            if x_choices:
+                for k, v in x_choices:
+                    if str(k) == str(x_val):
+                        x_val = v; break
+
+            # Map Y
+            if y_field and y_choices:
+                for k, v in y_choices:
+                    if str(k) == str(y_val):
+                        y_val = v; break
+
+            # Handle None
+            if x_val is None: x_val = "Belirtilmemiş"
+            if y_field and y_val is None: y_val = "Belirtilmemiş"
+
+            item = {'x': x_val, 'count': row['count']}
+            if y_field:
+                item['y'] = y_val
+            processed_data.append(item)
+
+        return JsonResponse({'data': processed_data})
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
