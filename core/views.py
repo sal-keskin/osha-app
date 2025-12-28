@@ -2,6 +2,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import HttpResponse
+from django.db.models import Q
+import csv
+import openpyxl
+from datetime import datetime
 from .forms import (
     LoginForm, WorkplaceForm, WorkerForm, EducatorForm, ProfessionalForm,
     EducationForm, InspectionForm, ExaminationForm
@@ -52,16 +57,64 @@ def dashboard(request):
     }
     return render(request, 'core/dashboard.html', context)
 
+# Filtering Helper
+def apply_filters(queryset, filter_config, params):
+    """
+    Applies filters to the queryset based on configuration and request parameters.
+    """
+    for config in filter_config:
+        field_name = config['field']
+        param_value = params.get(field_name)
+
+        if param_value:
+            filter_type = config.get('type', 'text')
+
+            if filter_type == 'text':
+                # Case-insensitive containment for text
+                queryset = queryset.filter(**{f"{field_name}__icontains": param_value})
+            elif filter_type == 'select':
+                # Exact match for foreign keys or choices
+                queryset = queryset.filter(**{field_name: param_value})
+            elif filter_type == 'date':
+                # Exact match for date
+                queryset = queryset.filter(**{field_name: param_value})
+
+            # Update config with the current value to repopulate the form
+            config['value'] = param_value
+
+    return queryset
+
 # Generic helper for CRUD views
-def generic_list_view(request, model_class, title, create_url_name, update_url_name, fields_to_show, bulk_delete_url_name=None):
+def generic_list_view(request, model_class, title, create_url_name, update_url_name, fields_to_show, bulk_delete_url_name=None, export_url_name=None, filter_config=None):
     items = model_class.objects.all()
+
+    if filter_config:
+        # Populate options for select fields dynamically if not provided
+        for config in filter_config:
+            if config['type'] == 'select' and 'options' not in config:
+                # Assuming the field name refers to a related model (e.g., 'workplace')
+                # Or a field with choices
+                try:
+                    field_object = model_class._meta.get_field(config['field'])
+                    if field_object.is_relation:
+                        related_model = field_object.related_model
+                        config['options'] = [(obj.pk, str(obj)) for obj in related_model.objects.all()]
+                    elif field_object.choices:
+                        config['options'] = field_object.choices
+                except:
+                    config['options'] = []
+
+        items = apply_filters(items, filter_config, request.GET)
+
     context = {
         'items': items,
         'title': title,
         'create_url_name': create_url_name,
         'update_url_name': update_url_name,
         'bulk_delete_url_name': bulk_delete_url_name,
+        'export_url_name': export_url_name,
         'fields': fields_to_show,
+        'filter_config': filter_config,
     }
     return render(request, 'core/list_template.html', context)
 
@@ -98,14 +151,102 @@ def generic_update_view(request, model_class, form_class, pk, title, list_url_na
         form = form_class(instance=item)
     return render(request, 'core/form_template.html', {'form': form, 'title': title})
 
+def generic_export_view(request, model_class, filter_config=None):
+    queryset = model_class.objects.all()
+    if filter_config:
+         queryset = apply_filters(queryset, filter_config, request.GET)
+
+    export_format = request.GET.get('format', 'csv')
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"{model_class._meta.verbose_name_plural}_{timestamp}"
+
+    # Get all field names
+    field_names = [field.name for field in model_class._meta.fields]
+    # Make header pretty (verbose names)
+    headers = [field.verbose_name for field in model_class._meta.fields]
+
+    if export_format == 'xlsx':
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{filename}.xlsx"'
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Export"
+
+        ws.append(headers)
+
+        for obj in queryset:
+            row = []
+            for field in field_names:
+                val = getattr(obj, field)
+                # Handle relations nicely (str representation)
+                if hasattr(val, 'pk'): # It's a related object
+                    val = str(val)
+                # Handle choices nicely
+                elif hasattr(obj, f'get_{field}_display'):
+                    val = getattr(obj, f'get_{field}_display')()
+
+                # Handle dates and None
+                if val is None:
+                    val = ""
+                # Convert dates to string for Excel compatibility if needed,
+                # but openpyxl handles datetime objects well.
+                # Just ensuring timezone info is stripped if present/problematic
+                if isinstance(val, datetime):
+                     val = val.replace(tzinfo=None)
+
+                row.append(val)
+            ws.append(row)
+
+        wb.save(response)
+        return response
+
+    else: # Default to CSV
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{filename}.csv"'
+        response.write(u'\ufeff'.encode('utf8')) # BOM for Excel compatibility
+
+        writer = csv.writer(response)
+        writer.writerow(headers)
+
+        for obj in queryset:
+            row = []
+            for field in field_names:
+                val = getattr(obj, field)
+                if hasattr(val, 'pk'):
+                    val = str(val)
+                elif hasattr(obj, f'get_{field}_display'):
+                    val = getattr(obj, f'get_{field}_display')()
+                if val is None:
+                    val = ""
+                row.append(val)
+            writer.writerow(row)
+
+        return response
+
+
 # Specific Views using helpers
 @login_required
 def workplace_list(request):
-    return generic_list_view(request, Workplace, "İşyerleri", 'workplace_create', 'workplace_update', [('name', 'İşyeri Adı'), ('detsis_number', 'DETSİS No')], 'workplace_bulk_delete')
+    filter_config = [
+        {'field': 'name', 'label': 'İşyeri Adı', 'type': 'text'},
+        {'field': 'detsis_number', 'label': 'DETSİS No', 'type': 'text'},
+    ]
+    return generic_list_view(request, Workplace, "İşyerleri", 'workplace_create', 'workplace_update',
+                             [('name', 'İşyeri Adı'), ('detsis_number', 'DETSİS No')],
+                             'workplace_bulk_delete', 'workplace_export', filter_config)
 
 @login_required
 def workplace_bulk_delete(request):
     return generic_bulk_delete_view(request, Workplace, 'workplace_list')
+
+@login_required
+def workplace_export(request):
+    filter_config = [
+        {'field': 'name', 'type': 'text'},
+        {'field': 'detsis_number', 'type': 'text'},
+    ]
+    return generic_export_view(request, Workplace, filter_config)
 
 @login_required
 def workplace_create(request):
@@ -117,11 +258,27 @@ def workplace_update(request, pk):
 
 @login_required
 def worker_list(request):
-    return generic_list_view(request, Worker, "Çalışanlar", 'worker_create', 'worker_update', [('name', 'Ad Soyad'), ('tckn', 'TCKN'), ('workplace', 'İşyeri')], 'worker_bulk_delete')
+    filter_config = [
+        {'field': 'name', 'label': 'Ad Soyad', 'type': 'text'},
+        {'field': 'tckn', 'label': 'TCKN', 'type': 'text'},
+        {'field': 'workplace', 'label': 'İşyeri', 'type': 'select'},
+    ]
+    return generic_list_view(request, Worker, "Çalışanlar", 'worker_create', 'worker_update',
+                             [('name', 'Ad Soyad'), ('tckn', 'TCKN'), ('workplace', 'İşyeri')],
+                             'worker_bulk_delete', 'worker_export', filter_config)
 
 @login_required
 def worker_bulk_delete(request):
     return generic_bulk_delete_view(request, Worker, 'worker_list')
+
+@login_required
+def worker_export(request):
+    filter_config = [
+        {'field': 'name', 'type': 'text'},
+        {'field': 'tckn', 'type': 'text'},
+        {'field': 'workplace', 'type': 'select'},
+    ]
+    return generic_export_view(request, Worker, filter_config)
 
 @login_required
 def worker_create(request):
@@ -133,11 +290,25 @@ def worker_update(request, pk):
 
 @login_required
 def educator_list(request):
-    return generic_list_view(request, Educator, "Eğiticiler", 'educator_create', 'educator_update', [('name', 'Ad Soyad'), ('license_id', 'Lisans No')], 'educator_bulk_delete')
+    filter_config = [
+        {'field': 'name', 'label': 'Ad Soyad', 'type': 'text'},
+        {'field': 'license_id', 'label': 'Lisans No', 'type': 'text'},
+    ]
+    return generic_list_view(request, Educator, "Eğiticiler", 'educator_create', 'educator_update',
+                             [('name', 'Ad Soyad'), ('license_id', 'Lisans No')],
+                             'educator_bulk_delete', 'educator_export', filter_config)
 
 @login_required
 def educator_bulk_delete(request):
     return generic_bulk_delete_view(request, Educator, 'educator_list')
+
+@login_required
+def educator_export(request):
+    filter_config = [
+        {'field': 'name', 'type': 'text'},
+        {'field': 'license_id', 'type': 'text'},
+    ]
+    return generic_export_view(request, Educator, filter_config)
 
 @login_required
 def educator_create(request):
@@ -149,11 +320,25 @@ def educator_update(request, pk):
 
 @login_required
 def professional_list(request):
-    return generic_list_view(request, Professional, "Profesyoneller", 'professional_create', 'professional_update', [('name', 'Ad Soyad'), ('license_id', 'Lisans No'), ('get_role_display', 'Görevi')], 'professional_bulk_delete')
+    filter_config = [
+        {'field': 'name', 'label': 'Ad Soyad', 'type': 'text'},
+        {'field': 'role', 'label': 'Görevi', 'type': 'select'},
+    ]
+    return generic_list_view(request, Professional, "Profesyoneller", 'professional_create', 'professional_update',
+                             [('name', 'Ad Soyad'), ('license_id', 'Lisans No'), ('get_role_display', 'Görevi')],
+                             'professional_bulk_delete', 'professional_export', filter_config)
 
 @login_required
 def professional_bulk_delete(request):
     return generic_bulk_delete_view(request, Professional, 'professional_list')
+
+@login_required
+def professional_export(request):
+    filter_config = [
+        {'field': 'name', 'type': 'text'},
+        {'field': 'role', 'type': 'select'},
+    ]
+    return generic_export_view(request, Professional, filter_config)
 
 @login_required
 def professional_create(request):
@@ -165,11 +350,27 @@ def professional_update(request, pk):
 
 @login_required
 def education_list(request):
-    return generic_list_view(request, Education, "İSG Eğitimleri", 'education_create', 'education_update', [('date', 'Tarih'), ('topic', 'Konu'), ('workplace', 'İşyeri')], 'education_bulk_delete')
+    filter_config = [
+        {'field': 'topic', 'label': 'Konu', 'type': 'text'},
+        {'field': 'date', 'label': 'Tarih', 'type': 'date'},
+        {'field': 'workplace', 'label': 'İşyeri', 'type': 'select'},
+    ]
+    return generic_list_view(request, Education, "İSG Eğitimleri", 'education_create', 'education_update',
+                             [('date', 'Tarih'), ('topic', 'Konu'), ('workplace', 'İşyeri')],
+                             'education_bulk_delete', 'education_export', filter_config)
 
 @login_required
 def education_bulk_delete(request):
     return generic_bulk_delete_view(request, Education, 'education_list')
+
+@login_required
+def education_export(request):
+    filter_config = [
+        {'field': 'topic', 'type': 'text'},
+        {'field': 'date', 'type': 'date'},
+        {'field': 'workplace', 'type': 'select'},
+    ]
+    return generic_export_view(request, Education, filter_config)
 
 @login_required
 def education_create(request):
@@ -181,11 +382,27 @@ def education_update(request, pk):
 
 @login_required
 def inspection_list(request):
-    return generic_list_view(request, Inspection, "Denetimler", 'inspection_create', 'inspection_update', [('date', 'Tarih'), ('workplace', 'İşyeri'), ('professional', 'Denetleyen')], 'inspection_bulk_delete')
+    filter_config = [
+        {'field': 'date', 'label': 'Tarih', 'type': 'date'},
+        {'field': 'workplace', 'label': 'İşyeri', 'type': 'select'},
+        {'field': 'professional', 'label': 'Denetleyen', 'type': 'select'},
+    ]
+    return generic_list_view(request, Inspection, "Denetimler", 'inspection_create', 'inspection_update',
+                             [('date', 'Tarih'), ('workplace', 'İşyeri'), ('professional', 'Denetleyen')],
+                             'inspection_bulk_delete', 'inspection_export', filter_config)
 
 @login_required
 def inspection_bulk_delete(request):
     return generic_bulk_delete_view(request, Inspection, 'inspection_list')
+
+@login_required
+def inspection_export(request):
+    filter_config = [
+        {'field': 'date', 'type': 'date'},
+        {'field': 'workplace', 'type': 'select'},
+        {'field': 'professional', 'type': 'select'},
+    ]
+    return generic_export_view(request, Inspection, filter_config)
 
 @login_required
 def inspection_create(request):
@@ -197,11 +414,27 @@ def inspection_update(request, pk):
 
 @login_required
 def examination_list(request):
-    return generic_list_view(request, Examination, "Sağlık Muayeneleri", 'examination_create', 'examination_update', [('date', 'Tarih'), ('worker', 'Çalışan'), ('professional', 'Hekim')], 'examination_bulk_delete')
+    filter_config = [
+        {'field': 'date', 'label': 'Tarih', 'type': 'date'},
+        {'field': 'worker', 'label': 'Çalışan', 'type': 'select'},
+        {'field': 'professional', 'label': 'Hekim', 'type': 'select'},
+    ]
+    return generic_list_view(request, Examination, "Sağlık Muayeneleri", 'examination_create', 'examination_update',
+                             [('date', 'Tarih'), ('worker', 'Çalışan'), ('professional', 'Hekim')],
+                             'examination_bulk_delete', 'examination_export', filter_config)
 
 @login_required
 def examination_bulk_delete(request):
     return generic_bulk_delete_view(request, Examination, 'examination_list')
+
+@login_required
+def examination_export(request):
+    filter_config = [
+        {'field': 'date', 'type': 'date'},
+        {'field': 'worker', 'type': 'select'},
+        {'field': 'professional', 'type': 'select'},
+    ]
+    return generic_export_view(request, Examination, filter_config)
 
 @login_required
 def examination_create(request):
