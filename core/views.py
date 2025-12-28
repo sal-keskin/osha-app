@@ -12,9 +12,32 @@ from .forms import (
     EducationForm, InspectionForm, ExaminationForm
 )
 from .models import (
-    Workplace, Worker, Educator, Professional, Education, Inspection, Examination
+    Workplace, Worker, Educator, Professional, Education, Inspection, Examination, Profession
+)
+from .forms import (
+    LoginForm, WorkplaceForm, WorkerForm, EducatorForm, ProfessionalForm,
+    EducationForm, InspectionForm, ExaminationForm, ProfessionForm
 )
 from .import_utils import ImportHandler
+import json
+
+@login_required
+def api_create_profession(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            name = data.get('name')
+            if not name:
+                return JsonResponse({'success': False, 'error': 'Name is required'})
+
+            profession, created = Profession.objects.get_or_create(name=name)
+            return JsonResponse({
+                'success': True,
+                'profession': {'id': profession.id, 'name': profession.name}
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Invalid method'})
 
 def login_view(request):
     if request.method == 'POST':
@@ -45,6 +68,7 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
+@login_required
 def get_workers_json(request):
     workplace_id = request.GET.get('workplace_id')
     workers = []
@@ -329,9 +353,10 @@ def workplace_list(request):
     filter_config = [
         {'field': 'name', 'label': 'İşyeri Adı', 'type': 'text'},
         {'field': 'detsis_number', 'label': 'DETSİS No', 'type': 'text'},
+        {'field': 'hazard_class', 'label': 'Tehlike Sınıfı', 'type': 'select'},
     ]
     return generic_list_view(request, Workplace, "İşyerleri", 'workplace_create', 'workplace_update',
-                             [('name', 'İşyeri Adı'), ('detsis_number', 'DETSİS No')],
+                             [('name', 'İşyeri Adı'), ('detsis_number', 'DETSİS No'), ('get_hazard_class_display', 'Tehlike Sınıfı')],
                              'workplace_bulk_delete', 'workplace_export', filter_config, 'import_workplace_step1')
 
 @login_required
@@ -347,6 +372,7 @@ def workplace_export(request):
     filter_config = [
         {'field': 'name', 'type': 'text'},
         {'field': 'detsis_number', 'type': 'text'},
+        {'field': 'hazard_class', 'type': 'select'},
     ]
     return generic_export_view(request, Workplace, filter_config)
 
@@ -364,9 +390,10 @@ def worker_list(request):
         {'field': 'name', 'label': 'Ad Soyad', 'type': 'text'},
         {'field': 'tckn', 'label': 'TCKN', 'type': 'text'},
         {'field': 'workplace', 'label': 'İşyeri', 'type': 'select'},
+        {'field': 'profession', 'label': 'Meslek', 'type': 'select'},
     ]
     return generic_list_view(request, Worker, "Çalışanlar", 'worker_create', 'worker_update',
-                             [('name', 'Ad Soyad'), ('tckn', 'TCKN'), ('workplace', 'İşyeri')],
+                             [('name', 'Ad Soyad'), ('tckn', 'TCKN'), ('workplace', 'İşyeri'), ('profession', 'Meslek')],
                              'worker_bulk_delete', 'worker_export', filter_config, 'import_worker_step1')
 
 @login_required
@@ -383,16 +410,34 @@ def worker_export(request):
         {'field': 'name', 'type': 'text'},
         {'field': 'tckn', 'type': 'text'},
         {'field': 'workplace', 'type': 'select'},
+        {'field': 'profession', 'type': 'select'},
     ]
     return generic_export_view(request, Worker, filter_config)
 
 @login_required
 def worker_create(request):
-    return generic_create_view(request, WorkerForm, "Yeni Çalışan", 'worker_list')
+    if request.method == 'POST':
+        form = WorkerForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Kayıt başarıyla oluşturuldu.')
+            return redirect('worker_list')
+    else:
+        form = WorkerForm()
+    return render(request, 'core/worker_form.html', {'form': form, 'title': "Yeni Çalışan"})
 
 @login_required
 def worker_update(request, pk):
-    return generic_update_view(request, Worker, WorkerForm, pk, "Çalışan Düzenle", 'worker_list')
+    item = get_object_or_404(Worker, pk=pk)
+    if request.method == 'POST':
+        form = WorkerForm(request.POST, instance=item)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Kayıt güncellendi.')
+            return redirect('worker_list')
+    else:
+        form = WorkerForm(instance=item)
+    return render(request, 'core/worker_form.html', {'form': form, 'title': "Çalışan Düzenle"})
 
 @login_required
 def educator_list(request):
@@ -557,9 +602,10 @@ def examination_list(request):
         {'field': 'date', 'label': 'Tarih', 'type': 'date'},
         {'field': 'worker', 'label': 'Çalışan', 'type': 'select'},
         {'field': 'professional', 'label': 'Hekim', 'type': 'select'},
+        {'field': 'decision', 'label': 'Karar', 'type': 'select'},
     ]
     return generic_list_view(request, Examination, "Sağlık Muayeneleri", 'examination_create', 'examination_update',
-                             [('date', 'Tarih'), ('worker', 'Çalışan'), ('professional', 'Hekim')],
+                             [('date', 'Tarih'), ('worker', 'Çalışan'), ('get_decision_display', 'Karar')],
                              'examination_bulk_delete', 'examination_export', filter_config, 'import_examination_step1')
 
 @login_required
@@ -576,13 +622,58 @@ def examination_export(request):
         {'field': 'date', 'type': 'date'},
         {'field': 'worker', 'type': 'select'},
         {'field': 'professional', 'type': 'select'},
+        {'field': 'decision', 'type': 'select'},
     ]
     return generic_export_view(request, Examination, filter_config)
 
 @login_required
 def examination_create(request):
-    return generic_create_view(request, ExaminationForm, "Yeni Muayene", 'examination_list')
+    if request.method == 'POST':
+        form = ExaminationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Kayıt başarıyla oluşturuldu.')
+            return redirect('examination_list')
+    else:
+        form = ExaminationForm()
+    return render(request, 'core/examination_form.html', {'form': form, 'title': "Yeni Muayene"})
 
 @login_required
 def examination_update(request, pk):
-    return generic_update_view(request, Examination, ExaminationForm, pk, "Muayene Düzenle", 'examination_list')
+    item = get_object_or_404(Examination, pk=pk)
+    if request.method == 'POST':
+        form = ExaminationForm(request.POST, instance=item)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Kayıt güncellendi.')
+            return redirect('examination_list')
+    else:
+        form = ExaminationForm(instance=item)
+    return render(request, 'core/examination_form.html', {'form': form, 'title': "Muayene Düzenle"})
+
+@login_required
+def profession_list(request):
+    filter_config = [{'field': 'name', 'label': 'Meslek Adı', 'type': 'text'}]
+    return generic_list_view(request, Profession, "Meslekler", 'profession_create', 'profession_update',
+                             [('name', 'Meslek Adı')],
+                             'profession_bulk_delete', 'profession_export', filter_config, 'import_profession_step1')
+
+@login_required
+def profession_bulk_delete(request):
+    return generic_bulk_delete_view(request, Profession, 'profession_list')
+
+@login_required
+def profession_export(request):
+    return generic_export_view(request, Profession, [{'field': 'name', 'type': 'text'}])
+
+@login_required
+def profession_import(request, step=1):
+    return generic_import_view(request, Profession, "Meslek İçe Aktar", 'profession_list', step=step)
+
+@login_required
+def profession_create(request):
+    return generic_create_view(request, ProfessionForm, "Yeni Meslek", 'profession_list')
+
+@login_required
+def profession_update(request, pk):
+    return generic_update_view(request, Profession, ProfessionForm, pk, "Meslek Düzenle", 'profession_list')

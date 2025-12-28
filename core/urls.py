@@ -6,6 +6,7 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('api/get_workers/', views.get_workers_json, name='get_workers_json'),
+    path('api/create_profession/', views.api_create_profession, name='api_create_profession'),
     
     # Workplace
     path('workplaces/', views.workplace_list, name='workplace_list'),
@@ -83,4 +84,15 @@ urlpatterns = [
     path('examinations/import/step2/', views.examination_import, {'step': 2}, name='import_examination_step2'),
     path('examinations/import/step3/', views.examination_import, {'step': 3}, name='import_examination_step3'),
     path('examinations/import/step4/', views.examination_import, {'step': 4}, name='import_examination_step4'),
+
+    # Profession
+    path('professions/', views.profession_list, name='profession_list'),
+    path('professions/new/', views.profession_create, name='profession_create'),
+    path('professions/<int:pk>/edit/', views.profession_update, name='profession_update'),
+    path('professions/delete/', views.profession_bulk_delete, name='profession_bulk_delete'),
+    path('professions/export/', views.profession_export, name='profession_export'),
+    path('professions/import/step1/', views.profession_import, {'step': 1}, name='import_profession_step1'),
+    path('professions/import/step2/', views.profession_import, {'step': 2}, name='import_profession_step2'),
+    path('professions/import/step3/', views.profession_import, {'step': 3}, name='import_profession_step3'),
+    path('professions/import/step4/', views.profession_import, {'step': 4}, name='import_profession_step4'),
 ]

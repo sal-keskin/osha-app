@@ -1,0 +1,65 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <h2>{{ title }}</h2>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="mb-3" id="div_{{ field.name }}">
+                    {% if field.field.widget.input_type == 'checkbox' %}
+                        <div class="form-check">
+                            {{ field }}
+                            <label for="{{ field.id_for_label }}" class="form-check-label">{{ field.label }}</label>
+                        </div>
+                    {% else %}
+                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                    {% endif %}
+
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ field.errors.0 }}
+                        </div>
+                    {% endif %}
+                    {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <div class="d-flex justify-content-end">
+                <a href="javascript:history.back()" class="btn btn-secondary me-2">İptal</a>
+                <button type="submit" class="btn btn-primary">Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const decisionSelect = document.getElementById('id_decision');
+    const conditionsDiv = document.getElementById('div_decision_conditions');
+
+    function toggleConditions() {
+        if (decisionSelect.value === 'CONDITIONAL') {
+            conditionsDiv.style.display = 'block';
+        } else {
+            conditionsDiv.style.display = 'none';
+        }
+    }
+
+    if (decisionSelect) {
+        decisionSelect.addEventListener('change', toggleConditions);
+        // Initial state
+        toggleConditions();
+    }
+});
+</script>
+{% endblock %}
