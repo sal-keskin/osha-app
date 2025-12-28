@@ -18,6 +18,12 @@
             </div>
             {% endif %}
 
+            {% if import_url_name %}
+            <a href="{% url import_url_name %}" class="btn btn-outline-primary me-2">
+                <i class="bi bi-upload"></i> İçe Aktar
+            </a>
+            {% endif %}
+
             {% if bulk_delete_url_name %}
             <button type="button" class="btn btn-danger me-2" id="delete-selected-btn" disabled>
                 <i class="bi bi-trash"></i> Seçilenleri Sil

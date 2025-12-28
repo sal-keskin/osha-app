@@ -1,0 +1,63 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2>{{ title }} - Adım 3: Alan Eşleştirme</h2>
+        <div class="progress" style="height: 2px;">
+            <div class="progress-bar" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> CSV dosyanızdaki sütunları veritabanı alanlarıyla eşleştirin.
+            Zorunlu alanların eşleştirilmesi gereklidir.
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Veritabanı Alanı</th>
+                            <th>Açıklama</th>
+                            <th>CSV Sütunu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for field in model_fields %}
+                        <tr>
+                            <td>
+                                <strong>{{ field.verbose_name }}</strong>
+                                {% if field.required %}<span class="text-danger">*</span>{% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ field.help_text|default:field.verbose_name }}</small>
+                                {% if field.type %}<br><span class="badge bg-secondary">{{ field.type }}</span>{% endif %}
+                            </td>
+                            <td>
+                                <select class="form-select" name="map_{{ field.name }}" {% if field.required %}required{% endif %}>
+                                    <option value="">-- Seçiniz --</option>
+                                    {% for header in csv_headers %}
+                                    <option value="{{ header }}" {% if header|lower == field.name|lower or header|lower == field.verbose_name|lower %}selected{% endif %}>{{ header }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between mt-3">
+                <a href="javascript:history.back()" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Geri</a>
+                <button type="submit" class="btn btn-primary">İleri <i class="bi bi-arrow-right"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
