@@ -94,7 +94,7 @@ class EducationForm(forms.ModelForm):
             'topic': forms.TextInput(attrs={'class': 'form-control'}),
             'workplace': forms.Select(attrs={'class': 'form-select'}),
             'educator': forms.Select(attrs={'class': 'form-select'}),
-            'workers': forms.SelectMultiple(attrs={'class': 'form-control', 'size': '5'}),
+            'workers': forms.CheckboxSelectMultiple(),
         }
 
 class InspectionForm(forms.ModelForm):

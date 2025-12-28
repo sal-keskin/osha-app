@@ -5,6 +5,7 @@ urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('api/get_workers/', views.get_workers_json, name='get_workers_json'),
     
     # Workplace
     path('workplaces/', views.workplace_list, name='workplace_list'),

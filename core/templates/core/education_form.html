@@ -1,0 +1,125 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <h2>{{ title }}</h2>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+
+                    {% if field.name == 'workers' %}
+                        <div class="card p-2" style="max-height: 300px; overflow-y: auto;">
+                             <div id="workers-checkbox-container">
+                                {{ field }}
+                             </div>
+                             <div id="no-workers-msg" class="text-muted small text-center {% if field.value %}d-none{% endif %}">
+                                Lütfen önce bir işyeri seçiniz.
+                             </div>
+                        </div>
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
+
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ field.errors.0 }}
+                        </div>
+                    {% endif %}
+                    {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <div class="d-flex justify-content-end">
+                <a href="javascript:history.back()" class="btn btn-secondary me-2">İptal</a>
+                <button type="submit" class="btn btn-primary">Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const workplaceSelect = document.getElementById('id_workplace');
+    const workersContainer = document.getElementById('workers-checkbox-container');
+    const noWorkersMsg = document.getElementById('no-workers-msg');
+    const existingWorkerIds = new Set();
+
+    // Store initially selected workers (for Edit mode)
+    document.querySelectorAll('#workers-checkbox-container input[type="checkbox"]:checked').forEach(cb => {
+        existingWorkerIds.add(cb.value);
+    });
+
+    if (workplaceSelect) {
+        workplaceSelect.addEventListener('change', function() {
+            const workplaceId = this.value;
+            if (workplaceId) {
+                fetchWorkers(workplaceId, false);
+            } else {
+                workersContainer.innerHTML = '';
+                noWorkersMsg.classList.remove('d-none');
+            }
+        });
+
+        // Initial load logic handles generic rendering, but we might want to refresh lists
+        // OR simply rely on Django rendering the checkboxes for the existing selection.
+        // However, if we change workplace, we need AJAX.
+    }
+
+    function fetchWorkers(workplaceId, isInitialLoad) {
+        fetch(`{% url 'get_workers_json' %}?workplace_id=${workplaceId}`)
+            .then(response => response.json())
+            .then(data => {
+                workersContainer.innerHTML = '';
+                if (data.workers.length > 0) {
+                    noWorkersMsg.classList.add('d-none');
+                    data.workers.forEach(worker => {
+                        const div = document.createElement('div');
+                        div.className = 'form-check';
+
+                        const input = document.createElement('input');
+                        input.type = 'checkbox';
+                        input.className = 'form-check-input';
+                        input.name = 'workers';
+                        input.value = worker.id;
+                        input.id = 'id_workers_' + worker.id;
+
+                        // Logic:
+                        // If it's a NEW selection (user changed workplace), check ALL.
+                        // If it's a RELOAD (edit mode initial), Django rendered it, but we are re-rendering via JS.
+                        // So we must respect 'existingWorkerIds' ONLY if the workplace hasn't changed from saved value.
+                        // BUT simplifies: User wants "default all selected".
+
+                        // IMPLEMENTATION:
+                        // Since this function is called on 'change', we assume user wants to select workers for THIS workplace.
+                        // Default behavior requested: "In default all selected"
+                        input.checked = true;
+
+                        const label = document.createElement('label');
+                        label.className = 'form-check-label';
+                        label.htmlFor = 'id_workers_' + worker.id;
+                        label.textContent = `${worker.name} (${worker.tckn})`;
+
+                        div.appendChild(input);
+                        div.appendChild(label);
+                        workersContainer.appendChild(div);
+                    });
+                } else {
+                    noWorkersMsg.textContent = 'Bu işyerinde çalışan bulunamadı.';
+                    noWorkersMsg.classList.remove('d-none');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+});
+</script>
+{% endblock %}

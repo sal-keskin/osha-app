@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.db.models import Q
 import csv
 import openpyxl
@@ -44,6 +44,13 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+def get_workers_json(request):
+    workplace_id = request.GET.get('workplace_id')
+    workers = []
+    if workplace_id:
+        workers = list(Worker.objects.filter(workplace_id=workplace_id).values('id', 'name', 'tckn'))
+    return JsonResponse({'workers': workers})
 
 @login_required
 def dashboard(request):
@@ -485,11 +492,28 @@ def education_export(request):
 
 @login_required
 def education_create(request):
-    return generic_create_view(request, EducationForm, "Yeni Eğitim", 'education_list')
+    if request.method == 'POST':
+        form = EducationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Kayıt başarıyla oluşturuldu.')
+            return redirect('education_list')
+    else:
+        form = EducationForm()
+    return render(request, 'core/education_form.html', {'form': form, 'title': "Yeni Eğitim"})
 
 @login_required
 def education_update(request, pk):
-    return generic_update_view(request, Education, EducationForm, pk, "Eğitim Düzenle", 'education_list')
+    item = get_object_or_404(Education, pk=pk)
+    if request.method == 'POST':
+        form = EducationForm(request.POST, instance=item)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Kayıt güncellendi.')
+            return redirect('education_list')
+    else:
+        form = EducationForm(instance=item)
+    return render(request, 'core/education_form.html', {'form': form, 'title': "Eğitim Düzenle"})
 
 @login_required
 def inspection_list(request):
