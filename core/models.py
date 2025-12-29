@@ -1,5 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.utils.safestring import mark_safe
+from datetime import date, timedelta
 
 class Profession(models.Model):
     name = models.CharField(max_length=255, unique=True, verbose_name="Meslek Adı")
@@ -29,6 +31,75 @@ class Workplace(models.Model):
         verbose_name = "İşyeri"
         verbose_name_plural = "İşyerleri"
 
+    @property
+    def total_workers_count(self):
+        # We try to use the annotated value first, fallback to count
+        if hasattr(self, 'total_workers'):
+            return self.total_workers
+        return self.workers.count()
+
+    def get_validity_years(self, type_):
+        # type_: 'education' or 'examination'
+        if type_ == 'education':
+            # HIGH=1, MEDIUM=2, LOW=3
+            if self.hazard_class == 'HIGH': return 1
+            elif self.hazard_class == 'MEDIUM': return 2
+            else: return 3
+        elif type_ == 'examination':
+            # HIGH=1, MEDIUM=3, LOW=5
+            if self.hazard_class == 'HIGH': return 1
+            elif self.hazard_class == 'MEDIUM': return 3
+            else: return 5
+        return 0
+
+    @property
+    def valid_education_count_display(self):
+        # We need to count workers who have at least one education where date >= today - validity
+        # This is expensive if not prefetched. We assume prefetch is done in view.
+        today = date.today()
+        years = self.get_validity_years('education')
+        limit_date = today - timedelta(days=365*years)
+
+        # Check if prefetch cache exists for workers
+        if hasattr(self, '_prefetched_objects_cache') and 'workers' in self._prefetched_objects_cache:
+            workers = self.workers.all()
+        else:
+            # Avoid N+1 if not prefetched by fetching IDs only? No, just iterate.
+            workers = self.workers.prefetch_related('education_set').all()
+
+        count = 0
+        for w in workers:
+            # Check education_set
+            # If prefetched, use all()
+            edus = w.education_set.all()
+            # We need ANY education after limit_date?
+            # Or the LATEST one must be after limit_date?
+            # Usually compliance means "is currently valid", so if you had one 5 years ago and one 1 month ago, you are valid.
+            # So ANY education >= limit_date.
+            if any(e.date >= limit_date for e in edus):
+                count += 1
+
+        return f"{count}/{len(workers)}"
+
+    @property
+    def valid_examination_count_display(self):
+        today = date.today()
+        years = self.get_validity_years('examination')
+        limit_date = today - timedelta(days=365*years)
+
+        if hasattr(self, '_prefetched_objects_cache') and 'workers' in self._prefetched_objects_cache:
+            workers = self.workers.all()
+        else:
+            workers = self.workers.prefetch_related('examination_set').all()
+
+        count = 0
+        for w in workers:
+            exams = w.examination_set.all()
+            if any(e.date >= limit_date for e in exams):
+                count += 1
+
+        return f"{count}/{len(workers)}"
+
 
 class Worker(models.Model):
     GENDER_CHOICES = [
@@ -51,6 +122,41 @@ class Worker(models.Model):
     class Meta:
         verbose_name = "Çalışan"
         verbose_name_plural = "Çalışanlar"
+
+    def _get_badge_html(self, type_):
+        # type_: 'education' or 'examination'
+        if not self.workplace:
+            return mark_safe('<span class="badge bg-secondary">İşyeri Yok</span>')
+
+        today = date.today()
+        if type_ == 'education':
+            years = self.workplace.get_validity_years('education')
+            # Education is M2M. Get latest.
+            items = self.education_set.all()
+        else:
+            years = self.workplace.get_validity_years('examination')
+            # Examination is FK (reverse). Get latest.
+            items = self.examination_set.all()
+
+        if not items:
+            return mark_safe('<span class="badge bg-danger">Yok</span>')
+
+        # Find latest date
+        latest_item = max(items, key=lambda x: x.date)
+        expiry_date = latest_item.date + timedelta(days=365*years)
+
+        if expiry_date >= today:
+            return mark_safe(f'<span class="badge bg-success">{expiry_date.strftime("%d.%m.%Y")}</span>')
+        else:
+            return mark_safe(f'<span class="badge bg-warning text-dark">Gecikmiş ({expiry_date.strftime("%d.%m.%Y")})</span>')
+
+    @property
+    def education_status(self):
+        return self._get_badge_html('education')
+
+    @property
+    def examination_status(self):
+        return self._get_badge_html('examination')
 
 
 class Educator(models.Model):

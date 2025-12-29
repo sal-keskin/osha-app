@@ -117,8 +117,11 @@ def apply_filters(queryset, filter_config, params):
     return queryset
 
 # Generic helper for CRUD views
-def generic_list_view(request, model_class, title, create_url_name, update_url_name, fields_to_show, bulk_delete_url_name=None, export_url_name=None, filter_config=None, import_url_name=None):
-    items = model_class.objects.all()
+def generic_list_view(request, model_class, title, create_url_name, update_url_name, fields_to_show, bulk_delete_url_name=None, export_url_name=None, filter_config=None, import_url_name=None, queryset=None):
+    if queryset is not None:
+        items = queryset
+    else:
+        items = model_class.objects.all()
 
     if filter_config:
         # Populate options for select fields dynamically if not provided
@@ -350,14 +353,91 @@ def generic_export_view(request, model_class, filter_config=None):
 # Specific Views using helpers
 @login_required
 def workplace_list(request):
+    from django.db.models import Count, Max, Q, F, Case, When, IntegerField
+    from datetime import date, timedelta
+
+    # Calculate counts
+    queryset = Workplace.objects.annotate(
+        total_workers=Count('workers', distinct=True)
+    )
+
+    # We need to process validity in Python because logic is hazard-class dependent and complex for pure SQL/ORM
+    # (specifically date differences varying by hazard class)
+    # However, to keep it somewhat efficient, we can prefetch workers and their latest edu/exam dates.
+    # But generic_list_view expects a queryset.
+
+    # Let's try to annotate valid counts using conditional logic.
+    # Validity Periods (Years):
+    # Education: HIGH=1, MEDIUM=2, LOW=3
+    # Examination: HIGH=1, MEDIUM=3, LOW=5
+
+    today = date.today()
+
+    # Helper for date subtraction expression is hard in Django ORM across different DBs (sqlite vs postgres).
+    # Simple approach: fetch all and annotate in python, but generic_list_view needs a queryset to apply filters.
+    # If we apply filters first, then annotate in Python, we break pagination or ordering if it was handled by generic view (it's not paginated currently).
+    # But generic_list_view calls `apply_filters` on the passed queryset.
+
+    # Let's do a hybrid approach:
+    # 1. Apply annotations that are possible in SQL
+    # 2. Iterate and update attributes (won't persist to DB but available in template)
+    # Problem: generic_list_view renders fields using getattr.
+
+    # Actually, we can define methods on the Workplace model, but they would be slow (N+1).
+    # Better: Pre-calculate these values and stick them onto the objects.
+    # But generic_list_view takes a queryset or class. If we pass a list, `apply_filters` (which does .filter()) will fail.
+
+    # Revised approach:
+    # Since the dataset is likely small (<1000 items based on "1-929" issue), we can:
+    # 1. Get QuerySet.
+    # 2. Convert to list.
+    # 3. Annotate in Python.
+    # 4. Pass list to generic_list_view?
+    # generic_list_view does `if filter_config: items = apply_filters(items, ...)`
+    # `apply_filters` uses `.filter()`. So `items` MUST be a QuerySet.
+
+    # So we must annotate the QuerySet.
+    # Since calculating dynamic date validity in SQL is painful and DB-dependent,
+    # and given the user wants "count of workers who had education in time",
+    # let's try a simplified approximation or exact SQL if possible.
+
+    # Let's use Python iteration after the generic view does its filtering?
+    # No, generic_list_view does everything.
+
+    # Workaround:
+    # Pass the queryset to generic_list_view.
+    # But we can't easily annotate "valid_education_count" efficiently in pure ORM with SQLite without complex subqueries.
+    # Let's add methods to Workplace that calculate this on the fly, and use prefetch_related to optimize.
+
+    queryset = Workplace.objects.prefetch_related('workers__education_set', 'workers__examination_set')
+
+    # We will attach the counts as properties/methods to the model or use a wrapper.
+    # But generic_list_view uses `getattr(item, field_name)`.
+    # If we define a property on the model `valid_education_count`, it can calculate it.
+    # To avoid N+1, we rely on the prefetch.
+
     filter_config = [
         {'field': 'name', 'label': 'İşyeri Adı', 'type': 'text'},
         {'field': 'detsis_number', 'label': 'DETSİS No', 'type': 'text'},
         {'field': 'hazard_class', 'label': 'Tehlike Sınıfı', 'type': 'select'},
     ]
+
+    # We need to wrap the queryset to calculate these counts when iterated,
+    # OR we modify the generic_list_view to allow a "post-process" hook.
+    # OR we just accept that we might iterate in the template.
+
+    # Let's use model properties with prefetch.
+    # I will modify Workplace model in the next step to add these properties using cached worker lists.
+    # But wait, prefetch_related caches to `_prefetched_objects_cache`. Accessing `workplace.workers.all()` uses it.
+
     return generic_list_view(request, Workplace, "İşyerleri", 'workplace_create', 'workplace_update',
-                             [('name', 'İşyeri Adı'), ('detsis_number', 'DETSİS No'), ('get_hazard_class_display', 'Tehlike Sınıfı')],
-                             'workplace_bulk_delete', 'workplace_export', filter_config, 'import_workplace_step1')
+                             [('name', 'İşyeri Adı'),
+                              ('get_hazard_class_display', 'Tehlike Sınıfı'),
+                              ('total_workers_count', 'Toplam Çalışan'),
+                              ('valid_education_count_display', 'Geçerli Eğitim'),
+                              ('valid_examination_count_display', 'Geçerli Muayene')],
+                             'workplace_bulk_delete', 'workplace_export', filter_config, 'import_workplace_step1',
+                             queryset=queryset)
 
 @login_required
 def workplace_import(request, step=1):
@@ -392,9 +472,18 @@ def worker_list(request):
         {'field': 'workplace', 'label': 'İşyeri', 'type': 'select'},
         {'field': 'profession', 'label': 'Meslek', 'type': 'select'},
     ]
+
+    # Prefetch related data to optimize badge generation
+    queryset = Worker.objects.select_related('workplace').prefetch_related('education_set', 'examination_set')
+
     return generic_list_view(request, Worker, "Çalışanlar", 'worker_create', 'worker_update',
-                             [('name', 'Ad Soyad'), ('tckn', 'TCKN'), ('workplace', 'İşyeri'), ('profession', 'Meslek')],
-                             'worker_bulk_delete', 'worker_export', filter_config, 'import_worker_step1')
+                             [('name', 'Ad Soyad'),
+                              ('tckn', 'TCKN'),
+                              ('workplace', 'İşyeri'),
+                              ('education_status', 'Eğitim Durumu'),
+                              ('examination_status', 'Muayene Durumu')],
+                             'worker_bulk_delete', 'worker_export', filter_config, 'import_worker_step1',
+                             queryset=queryset)
 
 @login_required
 def worker_import(request, step=1):
@@ -568,7 +657,7 @@ def inspection_list(request):
         {'field': 'professional', 'label': 'Denetleyen', 'type': 'select'},
     ]
     return generic_list_view(request, Inspection, "Denetimler", 'inspection_create', 'inspection_update',
-                             [('date', 'Tarih'), ('workplace', 'İşyeri'), ('professional', 'Denetleyen')],
+                             [('date', 'Tarih'), ('workplace', 'İşyeri'), ('notes', 'Notlar')],
                              'inspection_bulk_delete', 'inspection_export', filter_config, 'import_inspection_step1')
 
 @login_required
@@ -712,7 +801,7 @@ STATISTICS_CONFIG = {
 
 @login_required
 def statistics_view(request):
-    return render(request, 'core/statistics.html', {'config': json.dumps(STATISTICS_CONFIG)})
+    return render(request, 'core/statistics.html', {'config': STATISTICS_CONFIG})
 
 @login_required
 def api_get_statistics(request):

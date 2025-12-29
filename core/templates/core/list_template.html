@@ -97,7 +97,7 @@
                             {% for field_name, field_label in fields %}
                             <td class="item-data" data-label="{{ field_label }}">
                                 {% with value=item|getattr:field_name %}
-                                    {{ value }}
+                                    {{ value|safe }}
                                 {% endwith %}
                             </td>
                             {% endfor %}
