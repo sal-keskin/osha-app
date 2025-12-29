@@ -1,0 +1,251 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">{{ title }}</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{% url create_url_name %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-plus-lg"></i> Yeni Ekle
+            </a>
+            {% if import_url_name %}
+            <a href="{% url import_url_name %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-upload"></i> İçe Aktar
+            </a>
+            {% endif %}
+            {% if export_url_name %}
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-download"></i> Dışa Aktar
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url export_url_name %}?format=csv{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">CSV İndir</a></li>
+                    <li><a class="dropdown-item" href="{% url export_url_name %}?format=xlsx{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">Excel İndir</a></li>
+                </ul>
+            </div>
+            {% endif %}
+            <a href="{% url 'all_notes' %}" class="btn btn-sm btn-outline-info ms-2">
+                <i class="bi bi-journal-text"></i> Tüm Notlar
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+{% if filter_config %}
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            {% for field in filter_config %}
+            <div class="col-md-3">
+                <label class="form-label">{{ field.label }}</label>
+                {% if field.type == 'text' %}
+                    <input type="text" name="{{ field.field }}" class="form-control" value="{{ field.value|default:'' }}">
+                {% elif field.type == 'select' %}
+                    <select name="{{ field.field }}" class="form-select">
+                        <option value="">Tümü</option>
+                        {% for opt_val, opt_label in field.options %}
+                            <option value="{{ opt_val }}" {% if field.value|stringformat:"s" == opt_val|stringformat:"s" %}selected{% endif %}>{{ opt_label }}</option>
+                        {% endfor %}
+                    </select>
+                {% elif field.type == 'date' %}
+                    <input type="date" name="{{ field.field }}" class="form-control" value="{{ field.value|default:'' }}">
+                {% endif %}
+            </div>
+            {% endfor %}
+            <div class="col-12 text-end">
+                <a href="{{ request.path }}" class="btn btn-secondary">Temizle</a>
+                <button type="submit" class="btn btn-primary">Filtrele</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<form method="post" action="{% url bulk_delete_url_name %}" id="bulkDeleteForm">
+    {% csrf_token %}
+
+    <!-- Accordion List -->
+    <div class="accordion" id="workplaceAccordion">
+        {% for item in items %}
+        {% with grouped_workers=item.get_workers_by_facility %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading{{ item.id }}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ item.id }}" aria-expanded="false" aria-controls="collapse{{ item.id }}">
+                    <div class="d-flex w-100 justify-content-between align-items-center me-3">
+                        <div>
+                            <strong>{{ item.name }}</strong>
+                            <span class="badge bg-{{ item.hazard_class|lower|cut:'high:danger'|cut:'medium:warning'|cut:'low:success' }} ms-2">
+                                {{ item.get_hazard_class_display }}
+                            </span>
+                        </div>
+                        <div class="d-flex gap-3">
+                            <span class="badge bg-secondary" title="Toplam Çalışan">
+                                <i class="bi bi-people"></i> {{ item.total_workers_count }}
+                            </span>
+                            <span class="badge bg-info text-dark" title="Geçerli Eğitim">
+                                <i class="bi bi-book"></i> {{ item.valid_education_count_display }}
+                            </span>
+                            <span class="badge bg-primary" title="Geçerli Muayene">
+                                <i class="bi bi-heart-pulse"></i> {{ item.valid_examination_count_display }}
+                            </span>
+
+                            <!-- Actions -->
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{% url update_url_name item.id %}" class="btn btn-outline-primary" onclick="event.stopPropagation();">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-info" onclick="editNote('Workplace', {{ item.id }}, '{{ item.special_note|escapejs|default:'' }}'); event.stopPropagation();">
+                                    <i class="bi bi-sticky"></i>
+                                </button>
+                            </div>
+                            <input class="form-check-input" type="checkbox" name="selected_items" value="{{ item.id }}" onclick="event.stopPropagation();">
+                        </div>
+                    </div>
+                </button>
+            </h2>
+            <div id="collapse{{ item.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ item.id }}" data-bs-parent="#workplaceAccordion">
+                <div class="accordion-body">
+
+                    {% for facility_name, workers in grouped_workers.items %}
+                        {% if workers %}
+                        <div class="mb-3">
+                            <h6 class="border-bottom pb-2">{{ facility_name }}</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Ad Soyad</th>
+                                            <th>TCKN</th>
+                                            <th>Eğitim</th>
+                                            <th>Muayene</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for worker in workers %}
+                                        <tr>
+                                            <td>{{ worker.name }}</td>
+                                            <td>{{ worker.tckn }}</td>
+                                            <td>{{ worker.education_status }}</td>
+                                            <td>{{ worker.examination_status }}</td>
+                                            <td>
+                                                <a href="{% url 'worker_update' worker.id %}" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <a href="{% url 'examination_create' %}?worker_id={{ worker.id }}" class="btn btn-sm btn-outline-success" title="Hızlı Muayene">
+                                                    <i class="bi bi-heart-pulse"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-info" onclick="editNote('Worker', {{ worker.id }}, '{{ worker.special_note|escapejs|default:'' }}')">
+                                                    <i class="bi bi-sticky"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if not grouped_workers %}
+                        <p class="text-muted">Bu işyerine bağlı çalışan bulunmamaktadır.</p>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+    </div>
+
+    <div class="mt-3">
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+            <i class="bi bi-trash"></i> Seçilileri Sil
+        </button>
+    </div>
+</form>
+
+<!-- Note Modal -->
+<div class="modal fade" id="noteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Özel Not Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="noteModelName">
+                <input type="hidden" id="noteObjId">
+                <textarea id="noteText" class="form-control" rows="5"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" onclick="saveNote()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Silme Onayı</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Seçili kayıtları silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-danger" onclick="document.getElementById('bulkDeleteForm').submit()">Evet, Sil</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+var noteModal;
+document.addEventListener('DOMContentLoaded', function() {
+    noteModal = new bootstrap.Modal(document.getElementById('noteModal'));
+});
+
+function editNote(model, id, currentNote) {
+    document.getElementById('noteModelName').value = model;
+    document.getElementById('noteObjId').value = id;
+    document.getElementById('noteText').value = currentNote;
+    noteModal.show();
+}
+
+function saveNote() {
+    const model = document.getElementById('noteModelName').value;
+    const id = document.getElementById('noteObjId').value;
+    const note = document.getElementById('noteText').value;
+
+    fetch('{% url "api_update_note" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            model: model,
+            id: id,
+            note: note
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Hata: ' + data.error);
+        }
+    });
+}
+</script>
+
+{% endblock %}

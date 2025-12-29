@@ -1,0 +1,46 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Özel Notlar</h1>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <h3>İşyeri Notları</h3>
+        {% if workplace_notes %}
+            <div class="list-group">
+            {% for wp in workplace_notes %}
+                <a href="{% url 'workplace_update' wp.id %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ wp.name }}</h5>
+                    </div>
+                    <p class="mb-1">{{ wp.special_note|linebreaksbr }}</p>
+                </a>
+            {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted">Kayıtlı not yok.</p>
+        {% endif %}
+    </div>
+
+    <div class="col-md-6">
+        <h3>Çalışan Notları</h3>
+        {% if worker_notes %}
+            <div class="list-group">
+            {% for w in worker_notes %}
+                <a href="{% url 'worker_update' w.id %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ w.name }}</h5>
+                        <small>{{ w.workplace.name }}</small>
+                    </div>
+                    <p class="mb-1">{{ w.special_note|linebreaksbr }}</p>
+                </a>
+            {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted">Kayıtlı not yok.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

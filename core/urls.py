@@ -8,7 +8,11 @@ urlpatterns = [
     path('api/get_workers/', views.get_workers_json, name='get_workers_json'),
     path('api/create_profession/', views.api_create_profession, name='api_create_profession'),
     path('api/statistics/', views.api_get_statistics, name='api_get_statistics'),
+    path('api/update_note/', views.api_update_note, name='api_update_note'),
+    path('api/get_facilities/', views.api_get_facilities, name='api_get_facilities'),
+    path('api/create_facility/', views.api_create_facility, name='api_create_facility'),
     path('statistics/', views.statistics_view, name='statistics'),
+    path('all-notes/', views.all_notes_view, name='all_notes'),
     
     # Workplace
     path('workplaces/', views.workplace_list, name='workplace_list'),

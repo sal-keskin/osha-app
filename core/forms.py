@@ -70,9 +70,11 @@ class WorkerForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'tckn': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '11', 'minlength': '11'}),
             'workplace': forms.Select(attrs={'class': 'form-select'}),
+            'facility': forms.Select(attrs={'class': 'form-select'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'special_note': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'profession': forms.Select(attrs={'class': 'form-select'}),
         }
     
@@ -80,6 +82,15 @@ class WorkerForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk and self.instance.chronic_diseases:
             self.fields['chronic_diseases_list'].initial = self.instance.chronic_diseases.split(',')
+
+        # Order foreign keys
+        self.fields['workplace'].queryset = Workplace.objects.order_by('name')
+        self.fields['profession'].queryset = Profession.objects.order_by('name')
+        # Facility should be filtered if instance exists, but dynamically loaded via JS
+        if self.instance and self.instance.pk and self.instance.workplace:
+             self.fields['facility'].queryset = self.instance.workplace.facilities.all()
+        else:
+             self.fields['facility'].queryset = self.instance.facility.__class__.objects.none()
 
     def save(self, commit=True):
         instance = super().save(commit=False)

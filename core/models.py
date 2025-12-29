@@ -23,6 +23,7 @@ class Workplace(models.Model):
     name = models.CharField(max_length=255, verbose_name="İşyeri Adı")
     detsis_number = models.CharField(max_length=50, unique=True, verbose_name="DETSİS No")
     hazard_class = models.CharField(max_length=10, choices=HAZARD_CHOICES, default='LOW', verbose_name="Tehlike Sınıfı")
+    special_note = models.TextField(blank=True, null=True, verbose_name="Özel Not")
 
     def __str__(self):
         return f"{self.name} ({self.detsis_number})"
@@ -30,6 +31,29 @@ class Workplace(models.Model):
     class Meta:
         verbose_name = "İşyeri"
         verbose_name_plural = "İşyerleri"
+
+    def get_workers_by_facility(self):
+        """Returns a dict of facility_name -> [workers] and 'No Facility' -> [workers]"""
+        facilities = self.facilities.all()
+        workers = self.workers.all().select_related('facility')
+
+        grouped = {}
+        # Initialize facilities
+        for f in facilities:
+            grouped[f.name] = []
+
+        grouped['Diğer'] = []
+
+        for w in workers:
+            if w.facility:
+                if w.facility.name not in grouped:
+                    grouped[w.facility.name] = [] # Should not happen if prefetched correctly
+                grouped[w.facility.name].append(w)
+            else:
+                grouped['Diğer'].append(w)
+
+        # Remove empty facilities if desired? No, user might want to see them.
+        return grouped
 
     @property
     def total_workers_count(self):
@@ -101,6 +125,19 @@ class Workplace(models.Model):
         return f"{count}/{len(workers)}"
 
 
+class Facility(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Birim Adı")
+    workplace = models.ForeignKey(Workplace, on_delete=models.CASCADE, related_name="facilities", verbose_name="İşyeri")
+
+    def __str__(self):
+        return f"{self.name} ({self.workplace.name})"
+
+    class Meta:
+        verbose_name = "Birim"
+        verbose_name_plural = "Birimler"
+        unique_together = ('name', 'workplace')
+
+
 class Worker(models.Model):
     GENDER_CHOICES = [
         ('F', 'Kadın'),
@@ -109,9 +146,11 @@ class Worker(models.Model):
     name = models.CharField(max_length=255, verbose_name="Ad Soyad")
     tckn = models.CharField(max_length=11, unique=True, verbose_name="TCKN")
     workplace = models.ForeignKey(Workplace, on_delete=models.CASCADE, related_name="workers", verbose_name="İşyeri")
+    facility = models.ForeignKey(Facility, on_delete=models.SET_NULL, null=True, blank=True, related_name="workers", verbose_name="Birim")
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, null=True, blank=True, verbose_name="Cinsiyet")
     birth_date = models.DateField(null=True, blank=True, verbose_name="Doğum Tarihi")
     notes = models.TextField(null=True, blank=True, verbose_name="Notlar")
+    special_note = models.TextField(blank=True, null=True, verbose_name="Özel Not")
     # Storing chronic diseases as comma-separated string for simplicity
     chronic_diseases = models.CharField(max_length=255, null=True, blank=True, verbose_name="Kronik Hastalıklar")
     profession = models.ForeignKey(Profession, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Meslek")
