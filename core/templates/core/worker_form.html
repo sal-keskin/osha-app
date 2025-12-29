@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectBox = document.getElementById('id_profession');
     const modalElement = document.getElementById('addProfessionModal');
     const modal = new bootstrap.Modal(modalElement);
-    
+
     // Facility Logic
     const workplaceSelect = document.getElementById('id_workplace');
     const facilitySelect = document.getElementById('id_facility');
@@ -94,10 +94,10 @@ document.addEventListener('DOMContentLoaded', function() {
         workplaceSelect.addEventListener('change', function() {
             const workplaceId = this.value;
             facilitySelect.disabled = !workplaceId;
-            
+
             // Clear facilities
             facilitySelect.innerHTML = '<option value="">---------</option>';
-            
+
             if (workplaceId) {
                 fetch(`{% url 'api_get_facilities' %}?workplace_id=${workplaceId}`)
                 .then(response => response.json())
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         option.textContent = facility.name;
                         facilitySelect.appendChild(option);
                     });
-                    
+
                     // Add "New Facility" option
                     const newOption = document.createElement('option');
                     newOption.value = 'NEW';
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.value = '';
                     return;
                 }
-                
+
                 const name = prompt("Yeni Birim Adı:");
                 if (name) {
                     fetch('{% url "api_create_facility" %}', {

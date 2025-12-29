@@ -54,7 +54,7 @@ def api_update_note(request):
                 obj = Worker.objects.get(pk=obj_id)
             else:
                 return JsonResponse({'success': False, 'error': 'Invalid model'})
-            
+
             obj.special_note = note
             obj.save()
             return JsonResponse({'success': True})
@@ -93,7 +93,7 @@ def api_create_facility(request):
 def all_notes_view(request):
     workplaces = Workplace.objects.filter(special_note__isnull=False).exclude(special_note='')
     workers = Worker.objects.filter(special_note__isnull=False).exclude(special_note='').select_related('workplace')
-    
+
     context = {
         'workplace_notes': workplaces,
         'worker_notes': workers
@@ -415,7 +415,7 @@ def generic_export_view(request, model_class, filter_config=None):
 @login_required
 def workplace_list(request):
     from django.db.models import Count, Prefetch
-    
+
     queryset = Workplace.objects.prefetch_related(
         'workers',
         'workers__education_set',
@@ -424,13 +424,13 @@ def workplace_list(request):
         # Prefetch workers again for facilities grouping to avoid N+1 in template loops
         Prefetch('workers', queryset=Worker.objects.select_related('facility'), to_attr='prefetched_workers')
     )
-    
+
     filter_config = [
         {'field': 'name', 'label': 'İşyeri Adı', 'type': 'text'},
         {'field': 'detsis_number', 'label': 'DETSİS No', 'type': 'text'},
         {'field': 'hazard_class', 'label': 'Tehlike Sınıfı', 'type': 'select'},
     ]
-    
+
     # Manual filter application since we are using custom template
     if request.GET:
         queryset = apply_filters(queryset, filter_config, request.GET)
@@ -454,10 +454,10 @@ def workplace_list(request):
         'export_url_name': 'workplace_export',
         'import_url_name': 'import_workplace_step1',
         'fields': [ # Used for header generation mostly in custom template
-              ('name', 'İşyeri Adı'), 
+              ('name', 'İşyeri Adı'),
               ('hazard_class', 'Tehlike Sınıfı'),
-              ('total_workers_count', 'Toplam Çalışan'), 
-              ('valid_education_count_display', 'Geçerli Eğitim'), 
+              ('total_workers_count', 'Toplam Çalışan'),
+              ('valid_education_count_display', 'Geçerli Eğitim'),
               ('valid_examination_count_display', 'Geçerli Muayene')
         ],
         'filter_config': filter_config,
@@ -497,15 +497,15 @@ def worker_list(request):
         {'field': 'workplace', 'label': 'İşyeri', 'type': 'select'},
         {'field': 'profession', 'label': 'Meslek', 'type': 'select'},
     ]
-    
+
     # Prefetch related data to optimize badge generation
     queryset = Worker.objects.select_related('workplace').prefetch_related('education_set', 'examination_set')
-    
+
     return generic_list_view(request, Worker, "Çalışanlar", 'worker_create', 'worker_update',
-                             [('name', 'Ad Soyad'), 
-                              ('tckn', 'TCKN'), 
-                              ('workplace', 'İşyeri'), 
-                              ('education_status', 'Eğitim Durumu'), 
+                             [('name', 'Ad Soyad'),
+                              ('tckn', 'TCKN'),
+                              ('workplace', 'İşyeri'),
+                              ('education_status', 'Eğitim Durumu'),
                               ('examination_status', 'Muayene Durumu')],
                              'worker_bulk_delete', 'worker_export', filter_config, 'import_worker_step1',
                              queryset=queryset)
