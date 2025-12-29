@@ -64,7 +64,7 @@
 
 <form method="post" action="{% url bulk_delete_url_name %}" id="bulkDeleteForm">
     {% csrf_token %}
-
+    
     <!-- Accordion List -->
     <div class="accordion" id="workplaceAccordion">
         {% for item in items %}
@@ -89,7 +89,7 @@
                             <span class="badge bg-primary" title="Geçerli Muayene">
                                 <i class="bi bi-heart-pulse"></i> {{ item.valid_examination_count_display }}
                             </span>
-
+                            
                             <!-- Actions -->
                             <div class="btn-group btn-group-sm" role="group">
                                 <a href="{% url update_url_name item.id %}" class="btn btn-outline-primary" onclick="event.stopPropagation();">
@@ -106,7 +106,7 @@
             </h2>
             <div id="collapse{{ item.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ item.id }}" data-bs-parent="#workplaceAccordion">
                 <div class="accordion-body">
-
+                    
                     {% for facility_name, workers in grouped_workers.items %}
                         {% if workers %}
                         <div class="mb-3">
@@ -148,7 +148,7 @@
                         </div>
                         {% endif %}
                     {% endfor %}
-
+                    
                     {% if not grouped_workers %}
                         <p class="text-muted">Bu işyerine bağlı çalışan bulunmamaktadır.</p>
                     {% endif %}

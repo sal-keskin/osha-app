@@ -36,12 +36,12 @@ class Workplace(models.Model):
         """Returns a dict of facility_name -> [workers] and 'No Facility' -> [workers]"""
         facilities = self.facilities.all()
         workers = self.workers.all().select_related('facility')
-
+        
         grouped = {}
         # Initialize facilities
         for f in facilities:
             grouped[f.name] = []
-
+            
         grouped['Diğer'] = []
 
         for w in workers:
@@ -51,7 +51,7 @@ class Workplace(models.Model):
                 grouped[w.facility.name].append(w)
             else:
                 grouped['Diğer'].append(w)
-
+        
         # Remove empty facilities if desired? No, user might want to see them.
         return grouped
 
@@ -83,7 +83,7 @@ class Workplace(models.Model):
         today = date.today()
         years = self.get_validity_years('education')
         limit_date = today - timedelta(days=365*years)
-
+        
         # Check if prefetch cache exists for workers
         if hasattr(self, '_prefetched_objects_cache') and 'workers' in self._prefetched_objects_cache:
             workers = self.workers.all()
@@ -96,13 +96,13 @@ class Workplace(models.Model):
             # Check education_set
             # If prefetched, use all()
             edus = w.education_set.all()
-            # We need ANY education after limit_date?
+            # We need ANY education after limit_date? 
             # Or the LATEST one must be after limit_date?
             # Usually compliance means "is currently valid", so if you had one 5 years ago and one 1 month ago, you are valid.
             # So ANY education >= limit_date.
             if any(e.date >= limit_date for e in edus):
                 count += 1
-
+                
         return f"{count}/{len(workers)}"
 
     @property
@@ -110,7 +110,7 @@ class Workplace(models.Model):
         today = date.today()
         years = self.get_validity_years('examination')
         limit_date = today - timedelta(days=365*years)
-
+        
         if hasattr(self, '_prefetched_objects_cache') and 'workers' in self._prefetched_objects_cache:
             workers = self.workers.all()
         else:
@@ -121,7 +121,7 @@ class Workplace(models.Model):
             exams = w.examination_set.all()
             if any(e.date >= limit_date for e in exams):
                 count += 1
-
+                
         return f"{count}/{len(workers)}"
 
 

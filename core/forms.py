@@ -82,7 +82,7 @@ class WorkerForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk and self.instance.chronic_diseases:
             self.fields['chronic_diseases_list'].initial = self.instance.chronic_diseases.split(',')
-
+        
         # Order foreign keys
         self.fields['workplace'].queryset = Workplace.objects.order_by('name')
         self.fields['profession'].queryset = Profession.objects.order_by('name')
