@@ -81,7 +81,7 @@
                             </th>
                             {% endif %}
                             {% for field_name, field_label in fields %}
-                            <th><a href="?sort={{ field_name }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}" class="text-dark text-decoration-none">{{ field_label }}</a></th>
+                            <th>{{ field_label }}</th>
                             {% endfor %}
                             <th style="width: 100px;">İşlemler</th>
                         </tr>
@@ -102,19 +102,9 @@
                             </td>
                             {% endfor %}
                             <td>
-                                <a href="{% url update_url_name item.pk %}" class="btn btn-sm btn-outline-secondary" title="Düzenle">
+                                <a href="{% url update_url_name item.pk %}" class="btn btn-sm btn-outline-secondary">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                {% if request.resolver_match.url_name == 'worker_list' %}
-                                <a href="{% url 'examination_create' %}?worker_id={{ item.pk }}" class="btn btn-sm btn-outline-primary" title="Hızlı Muayene">
-                                    <i class="bi bi-heart-pulse"></i>
-                                </a>
-                                {% endif %}
-                                {% if item.special_note is not None %}
-                                <button type="button" class="btn btn-sm btn-outline-info" onclick="editNote('{{ item|to_class_name }}', {{ item.pk }}, '{{ item.special_note|escapejs|default:'' }}')">
-                                    <i class="bi bi-sticky"></i>
-                                </button>
-                                {% endif %}
                             </td>
                         </tr>
                         {% empty %}
@@ -220,71 +210,5 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-</script>
-
-<!-- Note Modal -->
-<div class="modal fade" id="noteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Özel Not Düzenle</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="noteModelName">
-                <input type="hidden" id="noteObjId">
-                <textarea id="noteText" class="form-control" rows="5"></textarea>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                <button type="button" class="btn btn-primary" onclick="saveNote()">Kaydet</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-var noteModal;
-document.addEventListener('DOMContentLoaded', function() {
-    var noteModalEl = document.getElementById('noteModal');
-    if (noteModalEl) {
-        noteModal = new bootstrap.Modal(noteModalEl);
-    }
-});
-
-function editNote(model, id, currentNote) {
-    if (!noteModal) return;
-    document.getElementById('noteModelName').value = model;
-    document.getElementById('noteObjId').value = id;
-    document.getElementById('noteText').value = currentNote;
-    noteModal.show();
-}
-
-function saveNote() {
-    const model = document.getElementById('noteModelName').value;
-    const id = document.getElementById('noteObjId').value;
-    const note = document.getElementById('noteText').value;
-
-    fetch('{% url "api_update_note" %}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({
-            model: model,
-            id: id,
-            note: note
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Hata: ' + data.error);
-        }
-    });
-}
 </script>
 {% endblock %}
