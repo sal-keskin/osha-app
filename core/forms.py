@@ -1,6 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import Workplace, Worker, Educator, Professional, Education, Inspection, Examination, Profession
+from .models import Workplace, Worker, Educator, Professional, Education, Inspection, Examination, Profession, Facility
 import random
 
 class ProfessionForm(forms.ModelForm):
