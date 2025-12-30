@@ -16,7 +16,8 @@ from .models import (
 )
 from .forms import (
     LoginForm, WorkplaceForm, WorkerForm, EducatorForm, ProfessionalForm,
-    EducationForm, InspectionForm, ExaminationForm, ProfessionForm
+    EducationForm, InspectionForm, ExaminationForm, ProfessionForm,
+    ExaminationNoteForm
 )
 from .import_utils import ImportHandler
 import json
@@ -537,7 +538,9 @@ def worker_update(request, pk):
             return redirect('worker_list')
     else:
         form = WorkerForm(instance=item)
-    return render(request, 'core/worker_form.html', {'form': form, 'title': "Çalışan Düzenle"})
+
+    examinations = item.examination_set.all().order_by('-date')
+    return render(request, 'core/worker_form.html', {'form': form, 'title': "Çalışan Düzenle", 'examinations': examinations})
 
 @login_required
 def educator_list(request):
@@ -705,7 +708,7 @@ def examination_list(request):
         {'field': 'decision', 'label': 'Karar', 'type': 'select'},
     ]
     return generic_list_view(request, Examination, "Sağlık Muayeneleri", 'examination_create', 'examination_update',
-                             [('date', 'Tarih'), ('worker', 'Çalışan'), ('get_decision_display', 'Karar')],
+                             [('caution_icon_html', ''), ('date', 'Tarih'), ('worker', 'Çalışan'), ('get_decision_display', 'Karar')],
                              'examination_bulk_delete', 'examination_export', filter_config, 'import_examination_step1')
 
 @login_required
@@ -755,6 +758,26 @@ def examination_update(request, pk):
     else:
         form = ExaminationForm(instance=item)
     return render(request, 'core/examination_form.html', {'form': form, 'title': "Muayene Düzenle"})
+
+@login_required
+def update_examination_note(request, pk):
+    examination = get_object_or_404(Examination, pk=pk)
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'delete':
+            examination.caution_note = ''
+            examination.is_caution = False
+            examination.save()
+            messages.success(request, 'Uyarı notu silindi.')
+        else:
+            form = ExaminationNoteForm(request.POST, instance=examination)
+            if form.is_valid():
+                examination.is_caution = True # Ensure flag is set if note is saved
+                form.save()
+                messages.success(request, 'Uyarı notu güncellendi.')
+            else:
+                messages.error(request, 'Hata oluştu.')
+    return redirect('examination_list')
 
 @login_required
 def profession_list(request):

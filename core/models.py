@@ -234,6 +234,10 @@ class Examination(models.Model):
     decision = models.CharField(max_length=20, choices=DECISION_CHOICES, default='FIT', verbose_name="Karar")
     decision_conditions = models.TextField(null=True, blank=True, verbose_name="Şartlar")
 
+    # Caution Note
+    is_caution = models.BooleanField(default=False, verbose_name="Uyarı notu")
+    caution_note = models.TextField(null=True, blank=True, verbose_name="Not")
+
     # Checkups
     tetanus_vaccine = models.BooleanField(default=False, verbose_name="Tetanoz Aşısı Önerildi")
     tetanus_date = models.DateField(null=True, blank=True, verbose_name="Tetanoz Aşısı Tarihi")
@@ -249,6 +253,17 @@ class Examination(models.Model):
 
     def __str__(self):
         return f"{self.worker.name} - {self.date}"
+
+    @property
+    def caution_icon_html(self):
+        if self.is_caution:
+            # We store the note in a data attribute for the modal
+            note = self.caution_note.replace('"', '&quot;') if self.caution_note else ""
+            html = f'<a href="#" class="text-warning caution-icon-btn" data-id="{self.id}" data-note="{note}">' \
+                   f'<i class="bi bi-exclamation-triangle-fill" style="font-size: 1.2rem;"></i></a>'
+            return mark_safe(html)
+        return ""
+    caution_icon_html.fget.short_description = "Uyarı"
 
     class Meta:
         verbose_name = "Sağlık Muayenesi"

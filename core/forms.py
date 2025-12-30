@@ -161,6 +161,9 @@ class ExaminationForm(forms.ModelForm):
             'decision': forms.Select(attrs={'class': 'form-select', 'id': 'id_decision'}),
             'decision_conditions': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'id': 'id_decision_conditions'}),
 
+            'is_caution': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'id_is_caution'}),
+            'caution_note': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'id': 'id_caution_note'}),
+
             'tetanus_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
 
             # Checkboxes can use default widget or added class if needed, standard checkbox is fine
@@ -172,4 +175,12 @@ class ExaminationForm(forms.ModelForm):
             'sft': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'audiometry': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'radiology': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+class ExaminationNoteForm(forms.ModelForm):
+    class Meta:
+        model = Examination
+        fields = ['caution_note']
+        widgets = {
+             'caution_note': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }

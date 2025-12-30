@@ -80,6 +80,7 @@ urlpatterns = [
     path('examinations/', views.examination_list, name='examination_list'),
     path('examinations/new/', views.examination_create, name='examination_create'),
     path('examinations/<int:pk>/edit/', views.examination_update, name='examination_update'),
+    path('examinations/<int:pk>/update-note/', views.update_examination_note, name='update_examination_note'),
     path('examinations/delete/', views.examination_bulk_delete, name='examination_bulk_delete'),
     path('examinations/export/', views.examination_export, name='examination_export'),
     path('examinations/import/step1/', views.examination_import, {'step': 1}, name='import_examination_step1'),
