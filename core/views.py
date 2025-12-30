@@ -9,16 +9,13 @@ import openpyxl
 from datetime import datetime
 from .forms import (
     LoginForm, WorkplaceForm, WorkerForm, EducatorForm, ProfessionalForm,
-    EducationForm, InspectionForm, ExaminationForm
+    EducationForm, InspectionForm, ExaminationForm, ProfessionForm,
+    ExaminationNoteForm, FacilityForm
 )
 from .models import (
-    Workplace, Worker, Educator, Professional, Education, Inspection, Examination, Profession
+    Workplace, Worker, Educator, Professional, Education, Inspection, Examination, Profession, Facility
 )
-from .forms import (
-    LoginForm, WorkplaceForm, WorkerForm, EducatorForm, ProfessionalForm,
-    EducationForm, InspectionForm, ExaminationForm, ProfessionForm,
-    ExaminationNoteForm
-)
+# Removed duplicate imports
 from .import_utils import ImportHandler
 import json
 
@@ -76,6 +73,14 @@ def get_workers_json(request):
     if workplace_id:
         workers = list(Worker.objects.filter(workplace_id=workplace_id).values('id', 'name', 'tckn'))
     return JsonResponse({'workers': workers})
+
+@login_required
+def api_get_facilities(request):
+    workplace_id = request.GET.get('workplace_id')
+    facilities = []
+    if workplace_id:
+        facilities = list(Facility.objects.filter(workplace_id=workplace_id).values('id', 'name'))
+    return JsonResponse({'facilities': facilities})
 
 @login_required
 def dashboard(request):
@@ -477,7 +482,7 @@ def worker_list(request):
     ]
 
     # Prefetch related data to optimize badge generation
-    queryset = Worker.objects.select_related('workplace').prefetch_related('education_set', 'examination_set')
+    queryset = Worker.objects.select_related('workplace', 'facility').prefetch_related('education_set', 'examination_set')
 
     extra_actions = [
         {
@@ -493,6 +498,7 @@ def worker_list(request):
                              [('name', 'Ad Soyad'),
                               ('tckn', 'TCKN'),
                               ('workplace', 'İşyeri'),
+                              ('facility', 'Bina/Birim'),
                               ('education_status', 'Eğitim Durumu'),
                               ('examination_status', 'Muayene Durumu')],
                              'worker_bulk_delete', 'worker_export', filter_config, 'import_worker_step1',
@@ -779,6 +785,29 @@ def update_examination_note(request, pk):
             else:
                 messages.error(request, 'Hata oluştu.')
     return redirect('examination_list')
+
+# Facility Views
+@login_required
+def facility_list(request):
+    filter_config = [
+        {'field': 'name', 'label': 'Bina/Birim Adı', 'type': 'text'},
+        {'field': 'workplace', 'label': 'İşyeri', 'type': 'select'},
+    ]
+    return generic_list_view(request, Facility, "Binalar/Birimler", 'facility_create', 'facility_update',
+                             [('name', 'Bina/Birim Adı'), ('workplace', 'İşyeri')],
+                             'facility_bulk_delete', None, filter_config, None) # No export/import yet
+
+@login_required
+def facility_bulk_delete(request):
+    return generic_bulk_delete_view(request, Facility, 'facility_list')
+
+@login_required
+def facility_create(request):
+    return generic_create_view(request, FacilityForm, "Yeni Bina/Birim", 'facility_list')
+
+@login_required
+def facility_update(request, pk):
+    return generic_update_view(request, Facility, FacilityForm, pk, "Bina/Birim Düzenle", 'facility_list')
 
 @login_required
 def profession_list(request):

@@ -197,6 +197,41 @@ document.addEventListener('DOMContentLoaded', function() {
         firstAidCheckbox.addEventListener('change', toggleFirstAidExpiry);
         toggleFirstAidExpiry();
     }
+
+    // Facility Filtering
+    const workplaceSelect = document.getElementById('id_workplace');
+    const facilitySelect = document.getElementById('id_facility');
+
+    if (workplaceSelect && facilitySelect) {
+        workplaceSelect.addEventListener('change', function() {
+            const workplaceId = this.value;
+            facilitySelect.innerHTML = '<option value="">---------</option>'; // Reset options
+
+            if (workplaceId) {
+                fetch(`{% url "get_facilities_json" %}?workplace_id=${workplaceId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.facilities.forEach(facility => {
+                            const option = new Option(facility.name, facility.id);
+                            facilitySelect.add(option);
+                        });
+                        // If editing, we might want to re-select the existing facility,
+                        // but Django form rendering usually handles the initial selection
+                        // if the options are available. However, since we cleared them,
+                        // we might lose the initial selection if we trigger this on load.
+                        // Better approach: Only trigger fetch if user changes it,
+                        // OR ensure initial load handles it.
+                        // Django renders the current value's option by default even if we filter queryset in form init.
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        });
+
+        // Optional: Trigger change on load if you want to filter even initial options,
+        // but typically Django form handles initial valid options.
+        // If we want dependent behavior strictly (only showing valid options), we should trigger it.
+        // But we need to preserve the selected value.
+    }
 });
 </script>
 {% endblock %}

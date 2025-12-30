@@ -117,6 +117,18 @@ class Workplace(models.Model):
         return f"{count}/{len(workers)} 🏥"
 
 
+class Facility(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Bina/Birim Adı")
+    workplace = models.ForeignKey(Workplace, on_delete=models.CASCADE, verbose_name="İşyeri", related_name="facilities")
+
+    def __str__(self):
+        return f"{self.name} ({self.workplace.name})"
+
+    class Meta:
+        verbose_name = "Bina/Birim"
+        verbose_name_plural = "Binalar/Birimler"
+
+
 class Worker(models.Model):
     GENDER_CHOICES = [
         ('F', 'Kadın'),
@@ -131,6 +143,7 @@ class Worker(models.Model):
     # Storing chronic diseases as comma-separated string for simplicity
     chronic_diseases = models.CharField(max_length=255, null=True, blank=True, verbose_name="Kronik Hastalıklar")
     profession = models.ForeignKey(Profession, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Meslek")
+    facility = models.ForeignKey(Facility, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Bina/Birim")
 
     first_aid_certificate = models.BooleanField(default=False, verbose_name="İlkyardım Sertifikası")
     first_aid_expiry_date = models.DateField(null=True, blank=True, verbose_name="Sertifika Bitiş Tarihi")

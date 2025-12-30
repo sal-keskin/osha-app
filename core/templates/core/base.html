@@ -23,6 +23,21 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dashboard' %}"><i class="bi bi-speedometer2"></i> Panel</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'workplace_list' %}"><i class="bi bi-building"></i> İşyerleri</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'facility_list' %}"><i class="bi bi-houses"></i> Binalar</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'worker_list' %}"><i class="bi bi-people"></i> Çalışanlar</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'examination_list' %}"><i class="bi bi-heart-pulse"></i> Muayeneler</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{% url 'statistics' %}"><i class="bi bi-bar-chart-line"></i> İstatistikler</a>
                     </li>
                 </ul>

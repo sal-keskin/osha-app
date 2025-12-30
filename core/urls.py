@@ -6,6 +6,7 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('api/get_workers/', views.get_workers_json, name='get_workers_json'),
+    path('api/get_facilities/', views.api_get_facilities, name='get_facilities_json'),
     path('api/create_profession/', views.api_create_profession, name='api_create_profession'),
     path('api/statistics/', views.api_get_statistics, name='api_get_statistics'),
     path('statistics/', views.statistics_view, name='statistics'),
@@ -98,4 +99,10 @@ urlpatterns = [
     path('professions/import/step2/', views.profession_import, {'step': 2}, name='import_profession_step2'),
     path('professions/import/step3/', views.profession_import, {'step': 3}, name='import_profession_step3'),
     path('professions/import/step4/', views.profession_import, {'step': 4}, name='import_profession_step4'),
+
+    # Facility
+    path('facilities/', views.facility_list, name='facility_list'),
+    path('facilities/new/', views.facility_create, name='facility_create'),
+    path('facilities/<int:pk>/edit/', views.facility_update, name='facility_update'),
+    path('facilities/delete/', views.facility_bulk_delete, name='facility_bulk_delete'),
 ]
