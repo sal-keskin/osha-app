@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
+from django.core.exceptions import ValidationError
 from datetime import date, timedelta
 
 class Profession(models.Model):
@@ -147,6 +148,14 @@ class Worker(models.Model):
     first_aid_certificate = models.BooleanField(default=False, blank=True, verbose_name="İlkyardım Sertifikası")
     first_aid_expiry_date = models.DateField(null=True, blank=True, verbose_name="Sertifika Bitiş Tarihi")
 
+    def clean(self):
+        if self.facility and self.facility.workplace != self.workplace:
+            raise ValidationError({'facility': "Seçilen birim, seçilen işyerine ait değil."})
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.name} ({self.tckn})"
 
@@ -291,7 +300,10 @@ class Examination(models.Model):
             # We store the note in a data attribute for the modal
             # Escape the note to prevent XSS and breaking the HTML attribute
             note = escape(self.caution_note) if self.caution_note else ""
-            html = f'<a href="#" class="text-warning caution-icon-btn" data-id="{self.id}" data-note="{note}">' \
+            # Add tooltip title
+            from django.utils.text import Truncator
+            short_note = Truncator(self.caution_note).chars(50) if self.caution_note else "Uyarı"
+            html = f'<a href="#" class="text-warning caution-icon-btn" data-id="{self.id}" data-note="{note}" title="Uyarı: {escape(short_note)}">' \
                    f'<i class="bi bi-exclamation-triangle-fill" style="font-size: 1.2rem;"></i></a>'
             return mark_safe(html)
         return ""
