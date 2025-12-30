@@ -149,6 +149,7 @@ class InspectionForm(forms.ModelForm):
         }
 
 class ExaminationForm(forms.ModelForm):
+    field_order = ['worker', 'professional']
     class Meta:
         model = Examination
         fields = '__all__'
@@ -160,12 +161,9 @@ class ExaminationForm(forms.ModelForm):
             'decision': forms.Select(attrs={'class': 'form-select', 'id': 'id_decision'}),
             'decision_conditions': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'id': 'id_decision_conditions'}),
 
-            'work_accident_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'tetanus_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'hepatitis_b_value': forms.TextInput(attrs={'class': 'form-control'}),
 
             # Checkboxes can use default widget or added class if needed, standard checkbox is fine
-            'work_accident': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'tetanus_vaccine': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'hepatitis_b_vaccine': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'biochemistry': forms.CheckboxInput(attrs={'class': 'form-check-input'}),

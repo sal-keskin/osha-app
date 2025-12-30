@@ -235,14 +235,10 @@ class Examination(models.Model):
     decision_conditions = models.TextField(null=True, blank=True, verbose_name="Şartlar")
 
     # Checkups
-    work_accident = models.BooleanField(default=False, verbose_name="İş Kazası")
-    work_accident_date = models.DateField(null=True, blank=True, verbose_name="İş Kazası Tarihi")
-
-    tetanus_vaccine = models.BooleanField(default=False, verbose_name="Tetanoz Aşısı")
+    tetanus_vaccine = models.BooleanField(default=False, verbose_name="Tetanoz Aşısı Önerildi")
     tetanus_date = models.DateField(null=True, blank=True, verbose_name="Tetanoz Aşısı Tarihi")
 
-    hepatitis_b_vaccine = models.BooleanField(default=False, verbose_name="Hepatit B Aşısı")
-    hepatitis_b_value = models.CharField(max_length=50, null=True, blank=True, verbose_name="Anti-HbS Değeri")
+    hepatitis_b_vaccine = models.BooleanField(default=False, verbose_name="Hepatit B Aşısı Önerildi")
 
     biochemistry = models.BooleanField(default=False, verbose_name="Biyokimya")
     hemogram = models.BooleanField(default=False, verbose_name="Hemogram")
