@@ -60,6 +60,23 @@ document.addEventListener('DOMContentLoaded', function() {
         // Initial state
         toggleConditions();
     }
+
+    // Toggle Caution Note
+    const isCautionCheckbox = document.getElementById('id_is_caution');
+    const cautionNoteDiv = document.getElementById('div_caution_note');
+
+    function toggleCautionNote() {
+        if (isCautionCheckbox.checked) {
+            cautionNoteDiv.style.display = 'block';
+        } else {
+            cautionNoteDiv.style.display = 'none';
+        }
+    }
+
+    if (isCautionCheckbox) {
+        isCautionCheckbox.addEventListener('change', toggleCautionNote);
+        toggleCautionNote();
+    }
 });
 </script>
 {% endblock %}

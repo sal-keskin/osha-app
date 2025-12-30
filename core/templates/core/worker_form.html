@@ -49,6 +49,49 @@
     </div>
 </div>
 
+{% if examinations %}
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0">Muayene Geçmişi</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Uyarı</th>
+                        <th>Karar</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exam in examinations %}
+                    <tr>
+                        <td>{{ exam.date }}</td>
+                        <td>
+                            {% if exam.is_caution %}
+                                <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                                {{ exam.caution_note|truncatechars:50 }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ exam.get_decision_display }}</td>
+                        <td>
+                            <a href="{% url 'examination_update' exam.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil"></i> Düzenle
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Add Profession Modal -->
 <div class="modal fade" id="addProfessionModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
@@ -131,6 +174,63 @@ document.addEventListener('DOMContentLoaded', function() {
     function showError(msg) {
         errorDiv.textContent = msg;
         errorDiv.classList.remove('d-none');
+    }
+
+    // Toggle First Aid Expiry Date
+    const firstAidCheckbox = document.getElementById('id_first_aid_certificate');
+    const firstAidExpiryDiv = document.getElementById('div_first_aid_expiry_date');
+    // The generic form loop wraps fields in divs with id="div_FIELDNAME"
+    // However, if the wrapper ID logic is consistent, this should work.
+    // Let's ensure the template renders it. The template loop does: <div class="mb-3" id="div_{{ field.name }}">
+
+    function toggleFirstAidExpiry() {
+        if (firstAidCheckbox && firstAidExpiryDiv) {
+            if (firstAidCheckbox.checked) {
+                firstAidExpiryDiv.style.display = 'block';
+            } else {
+                firstAidExpiryDiv.style.display = 'none';
+            }
+        }
+    }
+
+    if (firstAidCheckbox) {
+        firstAidCheckbox.addEventListener('change', toggleFirstAidExpiry);
+        toggleFirstAidExpiry();
+    }
+
+    // Facility Filtering
+    const workplaceSelect = document.getElementById('id_workplace');
+    const facilitySelect = document.getElementById('id_facility');
+
+    if (workplaceSelect && facilitySelect) {
+        workplaceSelect.addEventListener('change', function() {
+            const workplaceId = this.value;
+            facilitySelect.innerHTML = '<option value="">---------</option>'; // Reset options
+
+            if (workplaceId) {
+                fetch(`{% url "get_facilities_json" %}?workplace_id=${workplaceId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.facilities.forEach(facility => {
+                            const option = new Option(facility.name, facility.id);
+                            facilitySelect.add(option);
+                        });
+                        // If editing, we might want to re-select the existing facility,
+                        // but Django form rendering usually handles the initial selection
+                        // if the options are available. However, since we cleared them,
+                        // we might lose the initial selection if we trigger this on load.
+                        // Better approach: Only trigger fetch if user changes it,
+                        // OR ensure initial load handles it.
+                        // Django renders the current value's option by default even if we filter queryset in form init.
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        });
+
+        // Optional: Trigger change on load if you want to filter even initial options,
+        // but typically Django form handles initial valid options.
+        // If we want dependent behavior strictly (only showing valid options), we should trigger it.
+        // But we need to preserve the selected value.
     }
 });
 </script>

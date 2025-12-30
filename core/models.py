@@ -100,6 +100,34 @@ class Workplace(models.Model):
 
         return f"{count}/{len(workers)}"
 
+    @property
+    def valid_first_aid_count_display(self):
+        today = date.today()
+        # Use prefetched workers if available
+        if hasattr(self, '_prefetched_objects_cache') and 'workers' in self._prefetched_objects_cache:
+            workers = self.workers.all()
+        else:
+            workers = self.workers.all()
+
+        count = 0
+        for w in workers:
+            if w.first_aid_certificate and w.first_aid_expiry_date and w.first_aid_expiry_date >= today:
+                count += 1
+
+        return f"{count}/{len(workers)} 🏥"
+
+
+class Facility(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Bina/Birim Adı")
+    workplace = models.ForeignKey(Workplace, on_delete=models.CASCADE, verbose_name="İşyeri", related_name="facilities")
+
+    def __str__(self):
+        return f"{self.name} ({self.workplace.name})"
+
+    class Meta:
+        verbose_name = "Bina/Birim"
+        verbose_name_plural = "Binalar/Birimler"
+
 
 class Worker(models.Model):
     GENDER_CHOICES = [
@@ -115,6 +143,10 @@ class Worker(models.Model):
     # Storing chronic diseases as comma-separated string for simplicity
     chronic_diseases = models.CharField(max_length=255, null=True, blank=True, verbose_name="Kronik Hastalıklar")
     profession = models.ForeignKey(Profession, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Meslek")
+    facility = models.ForeignKey(Facility, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Bina/Birim")
+
+    first_aid_certificate = models.BooleanField(default=False, verbose_name="İlkyardım Sertifikası")
+    first_aid_expiry_date = models.DateField(null=True, blank=True, verbose_name="Sertifika Bitiş Tarihi")
 
     def __str__(self):
         return f"{self.name} ({self.tckn})"
@@ -234,15 +266,15 @@ class Examination(models.Model):
     decision = models.CharField(max_length=20, choices=DECISION_CHOICES, default='FIT', verbose_name="Karar")
     decision_conditions = models.TextField(null=True, blank=True, verbose_name="Şartlar")
 
-    # Checkups
-    work_accident = models.BooleanField(default=False, verbose_name="İş Kazası")
-    work_accident_date = models.DateField(null=True, blank=True, verbose_name="İş Kazası Tarihi")
+    # Caution Note
+    is_caution = models.BooleanField(default=False, verbose_name="Uyarı notu")
+    caution_note = models.TextField(null=True, blank=True, verbose_name="Not")
 
-    tetanus_vaccine = models.BooleanField(default=False, verbose_name="Tetanoz Aşısı")
+    # Checkups
+    tetanus_vaccine = models.BooleanField(default=False, verbose_name="Tetanoz Aşısı Önerildi")
     tetanus_date = models.DateField(null=True, blank=True, verbose_name="Tetanoz Aşısı Tarihi")
 
-    hepatitis_b_vaccine = models.BooleanField(default=False, verbose_name="Hepatit B Aşısı")
-    hepatitis_b_value = models.CharField(max_length=50, null=True, blank=True, verbose_name="Anti-HbS Değeri")
+    hepatitis_b_vaccine = models.BooleanField(default=False, verbose_name="Hepatit B Aşısı Önerildi")
 
     biochemistry = models.BooleanField(default=False, verbose_name="Biyokimya")
     hemogram = models.BooleanField(default=False, verbose_name="Hemogram")
@@ -253,6 +285,17 @@ class Examination(models.Model):
 
     def __str__(self):
         return f"{self.worker.name} - {self.date}"
+
+    @property
+    def caution_icon_html(self):
+        if self.is_caution:
+            # We store the note in a data attribute for the modal
+            note = self.caution_note.replace('"', '&quot;') if self.caution_note else ""
+            html = f'<a href="#" class="text-warning caution-icon-btn" data-id="{self.id}" data-note="{note}">' \
+                   f'<i class="bi bi-exclamation-triangle-fill" style="font-size: 1.2rem;"></i></a>'
+            return mark_safe(html)
+        return ""
+    caution_icon_html.fget.short_description = "Uyarı"
 
     class Meta:
         verbose_name = "Sağlık Muayenesi"

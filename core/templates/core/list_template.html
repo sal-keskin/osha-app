@@ -102,6 +102,13 @@
                             </td>
                             {% endfor %}
                             <td>
+                                {% if extra_actions %}
+                                    {% for action in extra_actions %}
+                                        <a href="{% url action.url_name %}?{{ action.query_param }}={{ item.pk }}" class="btn {{ action.btn_class }} me-1" title="{{ action.label }}">
+                                            <i class="bi {{ action.icon }}"></i>
+                                        </a>
+                                    {% endfor %}
+                                {% endif %}
                                 <a href="{% url update_url_name item.pk %}" class="btn btn-sm btn-outline-secondary">
                                     <i class="bi bi-pencil"></i>
                                 </a>
@@ -119,6 +126,32 @@
             </div>
         </form>
     </div>
+</div>
+
+<!-- Caution Note Modal -->
+<div class="modal fade" id="cautionNoteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Uyarı Notu Düzenle</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="caution-note-form" method="post" action="">
+          {% csrf_token %}
+          <div class="modal-body">
+            <div class="mb-3">
+                <label for="modal-caution-note" class="form-label">Not</label>
+                <textarea class="form-control" id="modal-caution-note" name="caution_note" rows="3"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" name="action" value="delete" class="btn btn-danger me-auto">Sil</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+            <button type="submit" name="action" value="save" class="btn btn-primary">Kaydet</button>
+          </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <!-- Delete Confirmation Modal -->
@@ -146,6 +179,31 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Caution Icon Handler
+    const cautionNoteModalEl = document.getElementById('cautionNoteModal');
+    if (cautionNoteModalEl) {
+        const cautionNoteModal = new bootstrap.Modal(cautionNoteModalEl);
+        const modalNoteInput = document.getElementById('modal-caution-note');
+        const modalForm = document.getElementById('caution-note-form');
+
+        document.querySelectorAll('.caution-icon-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const id = this.getAttribute('data-id');
+                const note = this.getAttribute('data-note');
+
+                modalNoteInput.value = note;
+                // Set form action dynamically. We assume URL pattern here or need a way to construct it.
+                // Best way: Use a placeholder or data attribute on the table row?
+                // Or construct it: /examinations/<id>/update-note/
+                // This assumes standard URL structure.
+                modalForm.action = `/examinations/${id}/update-note/`;
+
+                cautionNoteModal.show();
+            });
+        });
+    }
+
     const selectAllCheckbox = document.getElementById('select-all');
     const itemCheckboxes = document.querySelectorAll('.item-checkbox');
     const deleteBtn = document.getElementById('delete-selected-btn');
