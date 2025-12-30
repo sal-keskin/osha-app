@@ -57,24 +57,9 @@ class FacilityForm(forms.ModelForm):
         }
 
 class WorkerForm(forms.ModelForm):
-    CHRONIC_DISEASES_CHOICES = [
-        ('Diyabet', 'Diyabet'),
-        ('KAH', 'KAH'),
-        ('Astım', 'Astım'),
-        ('Alerji', 'Alerji'),
-    ]
-    # We use a MultipleChoiceField to handle the rendering, but we need to process it back to a string
-    chronic_diseases_list = forms.MultipleChoiceField(
-        choices=CHRONIC_DISEASES_CHOICES,
-        widget=forms.CheckboxSelectMultiple,
-        required=False,
-        label="Kronik Hastalıklar"
-    )
-
     class Meta:
         model = Worker
         fields = '__all__'
-        exclude = ['chronic_diseases'] # We handle this manually via chronic_diseases_list
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'tckn': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '11', 'minlength': '11'}),
@@ -88,18 +73,6 @@ class WorkerForm(forms.ModelForm):
             'first_aid_certificate': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'id_first_aid_certificate'}),
             'first_aid_expiry_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk and self.instance.chronic_diseases:
-            self.fields['chronic_diseases_list'].initial = self.instance.chronic_diseases.split(',')
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        instance.chronic_diseases = ",".join(self.cleaned_data.get('chronic_diseases_list', []))
-        if commit:
-            instance.save()
-        return instance
 
     def clean_tckn(self):
         tckn = self.cleaned_data.get('tckn')

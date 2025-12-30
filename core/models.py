@@ -141,12 +141,10 @@ class Worker(models.Model):
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, null=True, blank=True, verbose_name="Cinsiyet")
     birth_date = models.DateField(null=True, blank=True, verbose_name="Doğum Tarihi")
     notes = models.TextField(null=True, blank=True, verbose_name="Notlar")
-    # Storing chronic diseases as comma-separated string for simplicity
-    chronic_diseases = models.CharField(max_length=255, null=True, blank=True, verbose_name="Kronik Hastalıklar")
     profession = models.ForeignKey(Profession, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Meslek")
     facility = models.ForeignKey(Facility, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Bina/Birim")
 
-    first_aid_certificate = models.BooleanField(default=False, verbose_name="İlkyardım Sertifikası")
+    first_aid_certificate = models.BooleanField(default=False, blank=True, verbose_name="İlkyardım Sertifikası")
     first_aid_expiry_date = models.DateField(null=True, blank=True, verbose_name="Sertifika Bitiş Tarihi")
 
     def __str__(self):

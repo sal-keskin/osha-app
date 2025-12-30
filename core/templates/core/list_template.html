@@ -52,7 +52,11 @@
                     {% endfor %}
                 </select>
                 {% elif config.type == 'date' %}
-                <input type="date" name="{{ config.field }}" id="filter-{{ config.field }}" class="form-control" value="{{ config.value|default:'' }}">
+                <div class="input-group">
+                    <input type="date" name="{{ config.field }}_min" class="form-control" value="{{ config.value_min|default:'' }}" placeholder="Başlangıç" title="Başlangıç Tarihi">
+                    <span class="input-group-text">-</span>
+                    <input type="date" name="{{ config.field }}_max" class="form-control" value="{{ config.value_max|default:'' }}" placeholder="Bitiş" title="Bitiş Tarihi">
+                </div>
                 {% else %}
                 <input type="text" name="{{ config.field }}" id="filter-{{ config.field }}" class="form-control" value="{{ config.value|default:'' }}" placeholder="Ara...">
                 {% endif %}

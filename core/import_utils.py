@@ -65,6 +65,9 @@ class ImportHandler:
                             continue
 
                         if val == '':
+                            if isinstance(field_obj, models.BooleanField):
+                                model_data[model_field] = False
+                                continue
                             model_data[model_field] = None
                             continue
 
@@ -160,7 +163,16 @@ class ImportHandler:
 
                     if val == '':
                         if not field_obj.blank and not field_obj.null:
+                            # Special case for BooleanField with default
+                            if isinstance(field_obj, models.BooleanField):
+                                model_data[model_field] = False
+                                continue
                             skip = True; break
+
+                        if isinstance(field_obj, models.BooleanField):
+                             model_data[model_field] = False
+                             continue
+
                         model_data[model_field] = None
                         continue
 
