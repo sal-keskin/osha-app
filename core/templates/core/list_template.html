@@ -102,6 +102,13 @@
                             </td>
                             {% endfor %}
                             <td>
+                                {% if extra_actions %}
+                                    {% for action in extra_actions %}
+                                        <a href="{% url action.url_name %}?{{ action.query_param }}={{ item.pk }}" class="btn {{ action.btn_class }} me-1" title="{{ action.label }}">
+                                            <i class="bi {{ action.icon }}"></i>
+                                        </a>
+                                    {% endfor %}
+                                {% endif %}
                                 <a href="{% url update_url_name item.pk %}" class="btn btn-sm btn-outline-secondary">
                                     <i class="bi bi-pencil"></i>
                                 </a>

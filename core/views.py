@@ -117,7 +117,7 @@ def apply_filters(queryset, filter_config, params):
     return queryset
 
 # Generic helper for CRUD views
-def generic_list_view(request, model_class, title, create_url_name, update_url_name, fields_to_show, bulk_delete_url_name=None, export_url_name=None, filter_config=None, import_url_name=None, queryset=None):
+def generic_list_view(request, model_class, title, create_url_name, update_url_name, fields_to_show, bulk_delete_url_name=None, export_url_name=None, filter_config=None, import_url_name=None, queryset=None, extra_actions=None):
     if queryset is not None:
         items = queryset
     else:
@@ -151,6 +151,7 @@ def generic_list_view(request, model_class, title, create_url_name, update_url_n
         'import_url_name': import_url_name,
         'fields': fields_to_show,
         'filter_config': filter_config,
+        'extra_actions': extra_actions,
     }
     return render(request, 'core/list_template.html', context)
 
@@ -476,6 +477,16 @@ def worker_list(request):
     # Prefetch related data to optimize badge generation
     queryset = Worker.objects.select_related('workplace').prefetch_related('education_set', 'examination_set')
 
+    extra_actions = [
+        {
+            'url_name': 'examination_create',
+            'label': 'Muayene Ekle',
+            'icon': 'bi-heart-pulse',
+            'btn_class': 'btn-outline-success',
+            'query_param': 'worker_id'
+        }
+    ]
+
     return generic_list_view(request, Worker, "Çalışanlar", 'worker_create', 'worker_update',
                              [('name', 'Ad Soyad'),
                               ('tckn', 'TCKN'),
@@ -483,7 +494,7 @@ def worker_list(request):
                               ('education_status', 'Eğitim Durumu'),
                               ('examination_status', 'Muayene Durumu')],
                              'worker_bulk_delete', 'worker_export', filter_config, 'import_worker_step1',
-                             queryset=queryset)
+                             queryset=queryset, extra_actions=extra_actions)
 
 @login_required
 def worker_import(request, step=1):
@@ -724,7 +735,12 @@ def examination_create(request):
             messages.success(request, 'Kayıt başarıyla oluşturuldu.')
             return redirect('examination_list')
     else:
-        form = ExaminationForm()
+        initial_data = {}
+        worker_id = request.GET.get('worker_id')
+        if worker_id:
+            worker = get_object_or_404(Worker, pk=worker_id)
+            initial_data['worker'] = worker
+        form = ExaminationForm(initial=initial_data)
     return render(request, 'core/examination_form.html', {'form': form, 'title': "Yeni Muayene"})
 
 @login_required
