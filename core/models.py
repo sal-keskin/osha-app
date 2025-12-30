@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
+from django.utils.html import escape
 from datetime import date, timedelta
 
 class Profession(models.Model):
@@ -290,7 +291,8 @@ class Examination(models.Model):
     def caution_icon_html(self):
         if self.is_caution:
             # We store the note in a data attribute for the modal
-            note = self.caution_note.replace('"', '&quot;') if self.caution_note else ""
+            # Escape the note to prevent XSS and breaking the HTML attribute
+            note = escape(self.caution_note) if self.caution_note else ""
             html = f'<a href="#" class="text-warning caution-icon-btn" data-id="{self.id}" data-note="{note}">' \
                    f'<i class="bi bi-exclamation-triangle-fill" style="font-size: 1.2rem;"></i></a>'
             return mark_safe(html)
