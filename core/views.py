@@ -194,7 +194,8 @@ def generic_import_view(request, model_class, title, list_url_name, step=1):
             settings = {
                 'delimiter': request.POST.get('delimiter', ';'),
                 'date_format': request.POST.get('date_format', '%Y-%m-%d'),
-                'encoding': request.POST.get('encoding', 'utf-8-sig')
+                'encoding': request.POST.get('encoding', 'utf-8-sig'),
+                'uppercase_names': request.POST.get('uppercase_names') == 'on'
             }
             request.session['import_settings'] = settings
             return redirect(f'import_{model_class.__name__.lower()}_step3')
@@ -736,7 +737,7 @@ def inspection_update(request, pk):
 def examination_list(request):
     filter_config = [
         {'field': 'date', 'label': 'Tarih', 'type': 'date'},
-        {'field': 'worker', 'label': 'Çalışan', 'type': 'select'},
+        {'field': 'worker__workplace', 'label': 'İşyeri', 'type': 'select'},
         {'field': 'professional', 'label': 'Hekim', 'type': 'select'},
         {'field': 'decision', 'label': 'Karar', 'type': 'select'},
     ]

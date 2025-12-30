@@ -19,22 +19,18 @@
             </div>
         </div>
     </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-info mb-3">
-                <div class="card-header">Binalar/Birimler</div>
-                <div class="card-body">
-                    <h5 class="card-title">{{ facility_count }}</h5>
-                    <p class="card-text">Kayıtlı Bina</p>
-                    <div class="d-flex justify-content-end">
-                        <i class="bi bi-houses fs-1 text-white-50"></i>
-                    </div>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a href="{% url 'facility_list' %}" class="text-white text-decoration-none small">Detaylar</a>
-                    <i class="bi bi-chevron-right small text-white"></i>
-                </div>
+
+    <!-- Facility -->
+    <div class="col-md-4 col-sm-6">
+        <div class="card h-100 text-center p-3">
+            <div class="card-body">
+                <i class="bi bi-houses fs-1 text-info"></i>
+                <h5 class="card-title mt-2">Binalar/Birimler</h5>
+                <p class="card-text fs-4 fw-bold">{{ facility_count }}</p>
+                <a href="{% url 'facility_list' %}" class="btn btn-outline-info stretched-link">Yönet</a>
             </div>
         </div>
+    </div>
 
     <!-- Worker -->
     <div class="col-md-4 col-sm-6">
