@@ -12,7 +12,7 @@
         <form method="post">
             {% csrf_token %}
             {% for field in form %}
-                <div class="mb-3">
+                <div class="mb-3" id="div_{{ field.name }}">
                     <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
 
                     {% if field.name == 'profession' %}
@@ -22,10 +22,6 @@
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
-                    {% elif field.name == 'chronic_diseases_list' %}
-                         <div class="card p-2">
-                            {{ field }}
-                         </div>
                     {% else %}
                         {{ field }}
                     {% endif %}

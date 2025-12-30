@@ -115,11 +115,23 @@ def apply_filters(queryset, filter_config, params):
                 # Exact match for foreign keys or choices
                 queryset = queryset.filter(**{field_name: param_value})
             elif filter_type == 'date':
-                # Exact match for date
+                # Exact match for date - kept for backward compatibility if single input used
                 queryset = queryset.filter(**{field_name: param_value})
 
             # Update config with the current value to repopulate the form
             config['value'] = param_value
+
+        # Date Range Filter
+        if config.get('type') == 'date':
+            min_val = params.get(f"{field_name}_min")
+            max_val = params.get(f"{field_name}_max")
+
+            if min_val:
+                queryset = queryset.filter(**{f"{field_name}__gte": min_val})
+                config['value_min'] = min_val
+            if max_val:
+                queryset = queryset.filter(**{f"{field_name}__lte": max_val})
+                config['value_max'] = max_val
 
     return queryset
 
