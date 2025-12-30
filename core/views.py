@@ -86,6 +86,7 @@ def api_get_facilities(request):
 def dashboard(request):
     context = {
         'workplace_count': Workplace.objects.count(),
+        'facility_count': Facility.objects.count(),
         'worker_count': Worker.objects.count(),
         'educator_count': Educator.objects.count(),
         'professional_count': Professional.objects.count(),
@@ -470,7 +471,20 @@ def workplace_create(request):
 
 @login_required
 def workplace_update(request, pk):
-    return generic_update_view(request, Workplace, WorkplaceForm, pk, "İşyeri Düzenle", 'workplace_list')
+    item = get_object_or_404(Workplace, pk=pk)
+    if request.method == 'POST':
+        form = WorkplaceForm(request.POST, instance=item)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Kayıt güncellendi.')
+            return redirect('workplace_list')
+    else:
+        form = WorkplaceForm(instance=item)
+
+    # Fetch facilities with their workers
+    facilities = item.facilities.prefetch_related('worker_set').all()
+
+    return render(request, 'core/workplace_form.html', {'form': form, 'title': "İşyeri Düzenle", 'facilities': facilities})
 
 @login_required
 def worker_list(request):
@@ -808,6 +822,10 @@ def facility_create(request):
 @login_required
 def facility_update(request, pk):
     return generic_update_view(request, Facility, FacilityForm, pk, "Bina/Birim Düzenle", 'facility_list')
+
+@login_required
+def facility_import(request, step=1):
+    return generic_import_view(request, Facility, "Bina/Birim İçe Aktar", 'facility_list', step=step)
 
 @login_required
 def profession_list(request):

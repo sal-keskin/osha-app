@@ -105,4 +105,8 @@ urlpatterns = [
     path('facilities/new/', views.facility_create, name='facility_create'),
     path('facilities/<int:pk>/edit/', views.facility_update, name='facility_update'),
     path('facilities/delete/', views.facility_bulk_delete, name='facility_bulk_delete'),
+    path('facilities/import/step1/', views.facility_import, {'step': 1}, name='import_facility_step1'),
+    path('facilities/import/step2/', views.facility_import, {'step': 2}, name='import_facility_step2'),
+    path('facilities/import/step3/', views.facility_import, {'step': 3}, name='import_facility_step3'),
+    path('facilities/import/step4/', views.facility_import, {'step': 4}, name='import_facility_step4'),
 ]
