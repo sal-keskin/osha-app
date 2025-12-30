@@ -437,7 +437,8 @@ def workplace_list(request):
                               ('get_hazard_class_display', 'Tehlike Sınıfı'),
                               ('total_workers_count', 'Toplam Çalışan'),
                               ('valid_education_count_display', 'Geçerli Eğitim'),
-                              ('valid_examination_count_display', 'Geçerli Muayene')],
+                              ('valid_examination_count_display', 'Geçerli Muayene'),
+                              ('valid_first_aid_count_display', 'İlkyardım Sertifikası')],
                              'workplace_bulk_delete', 'workplace_export', filter_config, 'import_workplace_step1',
                              queryset=queryset)
 

@@ -74,6 +74,9 @@ class WorkerForm(forms.ModelForm):
             'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'profession': forms.Select(attrs={'class': 'form-select'}),
+
+            'first_aid_certificate': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'id_first_aid_certificate'}),
+            'first_aid_expiry_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
     
     def __init__(self, *args, **kwargs):

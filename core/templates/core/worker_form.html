@@ -175,6 +175,28 @@ document.addEventListener('DOMContentLoaded', function() {
         errorDiv.textContent = msg;
         errorDiv.classList.remove('d-none');
     }
+
+    // Toggle First Aid Expiry Date
+    const firstAidCheckbox = document.getElementById('id_first_aid_certificate');
+    const firstAidExpiryDiv = document.getElementById('div_first_aid_expiry_date');
+    // The generic form loop wraps fields in divs with id="div_FIELDNAME"
+    // However, if the wrapper ID logic is consistent, this should work.
+    // Let's ensure the template renders it. The template loop does: <div class="mb-3" id="div_{{ field.name }}">
+
+    function toggleFirstAidExpiry() {
+        if (firstAidCheckbox && firstAidExpiryDiv) {
+            if (firstAidCheckbox.checked) {
+                firstAidExpiryDiv.style.display = 'block';
+            } else {
+                firstAidExpiryDiv.style.display = 'none';
+            }
+        }
+    }
+
+    if (firstAidCheckbox) {
+        firstAidCheckbox.addEventListener('change', toggleFirstAidExpiry);
+        toggleFirstAidExpiry();
+    }
 });
 </script>
 {% endblock %}

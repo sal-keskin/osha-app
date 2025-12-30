@@ -100,6 +100,22 @@ class Workplace(models.Model):
 
         return f"{count}/{len(workers)}"
 
+    @property
+    def valid_first_aid_count_display(self):
+        today = date.today()
+        # Use prefetched workers if available
+        if hasattr(self, '_prefetched_objects_cache') and 'workers' in self._prefetched_objects_cache:
+            workers = self.workers.all()
+        else:
+            workers = self.workers.all()
+
+        count = 0
+        for w in workers:
+            if w.first_aid_certificate and w.first_aid_expiry_date and w.first_aid_expiry_date >= today:
+                count += 1
+
+        return f"{count}/{len(workers)} 🏥"
+
 
 class Worker(models.Model):
     GENDER_CHOICES = [
@@ -115,6 +131,9 @@ class Worker(models.Model):
     # Storing chronic diseases as comma-separated string for simplicity
     chronic_diseases = models.CharField(max_length=255, null=True, blank=True, verbose_name="Kronik Hastalıklar")
     profession = models.ForeignKey(Profession, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Meslek")
+
+    first_aid_certificate = models.BooleanField(default=False, verbose_name="İlkyardım Sertifikası")
+    first_aid_expiry_date = models.DateField(null=True, blank=True, verbose_name="Sertifika Bitiş Tarihi")
 
     def __str__(self):
         return f"{self.name} ({self.tckn})"
