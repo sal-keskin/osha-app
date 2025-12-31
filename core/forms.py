@@ -1,7 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
-from .models import Workplace, Worker, Educator, Professional, Education, Inspection, Examination, Profession, Facility
+from .models import Workplace, Worker, Professional, Education, Inspection, Examination, Profession, Facility, CertificateTemplate
 import random
 
 class CustomUserCreationForm(forms.ModelForm):
@@ -116,21 +116,6 @@ class WorkerForm(forms.ModelForm):
             raise ValidationError("TCKN 11 haneli bir sayı olmalıdır.")
         return tckn
 
-class EducatorForm(forms.ModelForm):
-    class Meta:
-        model = Educator
-        fields = '__all__'
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'license_id': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '6'}),
-        }
-    
-    def clean_license_id(self):
-        license_id = self.cleaned_data.get('license_id')
-        if not license_id.isdigit() or len(license_id) != 6:
-            raise ValidationError("Lisans No 6 haneli bir sayı olmalıdır.")
-        return license_id
-
 class ProfessionalForm(forms.ModelForm):
     class Meta:
         model = Professional
@@ -154,8 +139,9 @@ class EducationForm(forms.ModelForm):
         widgets = {
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'topic': forms.TextInput(attrs={'class': 'form-control'}),
+            'duration': forms.NumberInput(attrs={'class': 'form-control'}),
             'workplace': forms.Select(attrs={'class': 'form-select'}),
-            'educator': forms.Select(attrs={'class': 'form-select'}),
+            'professionals': forms.CheckboxSelectMultiple(),
             'workers': forms.CheckboxSelectMultiple(),
         }
 
@@ -205,4 +191,12 @@ class ExaminationNoteForm(forms.ModelForm):
         fields = ['caution_note']
         widgets = {
              'caution_note': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+class CertificateTemplateForm(forms.ModelForm):
+    class Meta:
+        model = CertificateTemplate
+        fields = ['background_image']
+        widgets = {
+            'background_image': forms.FileInput(attrs={'class': 'form-control'}),
         }

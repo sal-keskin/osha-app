@@ -33,17 +33,6 @@ urlpatterns = [
     path('workers/import/step3/', views.worker_import, {'step': 3}, name='import_worker_step3'),
     path('workers/import/step4/', views.worker_import, {'step': 4}, name='import_worker_step4'),
 
-    # Educator
-    path('educators/', views.educator_list, name='educator_list'),
-    path('educators/new/', views.educator_create, name='educator_create'),
-    path('educators/<int:pk>/edit/', views.educator_update, name='educator_update'),
-    path('educators/delete/', views.educator_bulk_delete, name='educator_bulk_delete'),
-    path('educators/export/', views.educator_export, name='educator_export'),
-    path('educators/import/step1/', views.educator_import, {'step': 1}, name='import_educator_step1'),
-    path('educators/import/step2/', views.educator_import, {'step': 2}, name='import_educator_step2'),
-    path('educators/import/step3/', views.educator_import, {'step': 3}, name='import_educator_step3'),
-    path('educators/import/step4/', views.educator_import, {'step': 4}, name='import_educator_step4'),
-
     # Professional
     path('professionals/', views.professional_list, name='professional_list'),
     path('professionals/new/', views.professional_create, name='professional_create'),
@@ -65,6 +54,7 @@ urlpatterns = [
     path('educations/import/step2/', views.education_import, {'step': 2}, name='import_education_step2'),
     path('educations/import/step3/', views.education_import, {'step': 3}, name='import_education_step3'),
     path('educations/import/step4/', views.education_import, {'step': 4}, name='import_education_step4'),
+    path('educations/certificate/', views.education_certificate_download, name='education_certificate_download'),
 
     # Inspection
     path('inspections/', views.inspection_list, name='inspection_list'),
@@ -112,6 +102,7 @@ urlpatterns = [
 
     # Settings & Users
     path('settings/', views.settings_view, name='settings'),
+    path('settings/certificate/', views.certificate_settings_view, name='certificate_settings'),
     path('settings/users/', views.user_list, name='user_list'),
     path('settings/users/new/', views.user_create, name='user_create'),
     path('settings/users/<int:pk>/edit/', views.user_update, name='user_update'),
