@@ -213,22 +213,11 @@ class Worker(models.Model):
         return self._get_badge_html('examination')
 
 
-class Educator(models.Model):
-    name = models.CharField(max_length=255, verbose_name="Ad Soyad")
-    license_id = models.CharField(max_length=6, unique=True, verbose_name="Lisans No")
-
-    def __str__(self):
-        return f"{self.name} ({self.license_id})"
-
-    class Meta:
-        verbose_name = "Eğitici"
-        verbose_name_plural = "Eğiticiler"
-
-
 class Professional(models.Model):
     ROLE_CHOICES = [
         ('DOCTOR', 'İşyeri Hekimi'),
         ('SPECIALIST', 'İş Güvenliği Uzmanı'),
+        ('OTHER_HEALTH', 'Diğer Sağlık Personeli'),
     ]
     name = models.CharField(max_length=255, verbose_name="Ad Soyad")
     license_id = models.CharField(max_length=6, unique=True, verbose_name="Lisans No")
@@ -245,8 +234,9 @@ class Professional(models.Model):
 class Education(models.Model):
     date = models.DateField(verbose_name="Tarih")
     topic = models.CharField(max_length=255, verbose_name="Konu")
+    duration = models.PositiveIntegerField(default=4, verbose_name="Süre (Saat)")
     workplace = models.ForeignKey(Workplace, on_delete=models.CASCADE, verbose_name="İşyeri")
-    educator = models.ForeignKey(Educator, on_delete=models.PROTECT, verbose_name="Eğitici")
+    professionals = models.ManyToManyField(Professional, verbose_name="Eğiticiler")
     workers = models.ManyToManyField(Worker, verbose_name="Katılımcılar")
 
     def __str__(self):
@@ -326,3 +316,15 @@ class Examination(models.Model):
     class Meta:
         verbose_name = "Sağlık Muayenesi"
         verbose_name_plural = "Sağlık Muayeneleri"
+
+class CertificateTemplate(models.Model):
+    name = models.CharField(max_length=255, default="Global", verbose_name="Şablon Adı")
+    background_image = models.ImageField(upload_to='certificates/', verbose_name="Arkaplan Resmi", null=True, blank=True)
+    layout_config = models.JSONField(default=dict, verbose_name="Yerleşim Ayarları", blank=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Sertifika Şablonu"
+        verbose_name_plural = "Sertifika Şablonları"

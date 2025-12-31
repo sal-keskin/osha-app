@@ -1,9 +1,9 @@
 from django.test import TestCase, RequestFactory
 from django.core.exceptions import ValidationError
 from datetime import date, timedelta
-from .models import Worker, Workplace, Facility, Examination, Professional
-from .views import apply_filters
-from .import_utils import ImportHandler
+from core.models import Worker, Workplace, Facility, Examination, Professional
+from core.views import apply_filters
+from core.import_utils import ImportHandler
 import csv
 import os
 

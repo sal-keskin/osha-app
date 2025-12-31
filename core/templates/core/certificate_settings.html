@@ -1,0 +1,233 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2>{{ title }}</h2>
+        <a href="{% url 'settings' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Ayarlara Dön</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Sertifika Şablonu</span>
+        <button class="btn btn-primary btn-sm" id="saveLayoutBtn">Düzeni Kaydet</button>
+    </div>
+    <div class="card-body">
+        <!-- Upload Form -->
+        <form method="post" enctype="multipart/form-data" class="mb-4">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="{{ form.background_image.id_for_label }}" class="form-label">Arkaplan Resmi (A4 Boyutu Önerilir)</label>
+                {{ form.background_image }}
+            </div>
+            <button type="submit" class="btn btn-secondary btn-sm">Resmi Yükle/Güncelle</button>
+        </form>
+
+        <hr>
+
+        <div class="row">
+            <div class="col-md-3">
+                <h6>Alanlar</h6>
+                <p class="text-muted small">Alanları resim üzerine sürükleyip bırakın.</p>
+                <div id="draggable-items">
+                    <div class="draggable-item badge bg-secondary mb-2 p-2" draggable="true" data-field="worker_name" style="cursor: move;">Ad Soyad</div>
+                    <div class="draggable-item badge bg-secondary mb-2 p-2" draggable="true" data-field="worker_tckn" style="cursor: move;">TCKN</div>
+                    <div class="draggable-item badge bg-secondary mb-2 p-2" draggable="true" data-field="date" style="cursor: move;">Tarih</div>
+                    <div class="draggable-item badge bg-secondary mb-2 p-2" draggable="true" data-field="duration" style="cursor: move;">Süre</div>
+                    <div class="draggable-item badge bg-secondary mb-2 p-2" draggable="true" data-field="workplace" style="cursor: move;">İşyeri</div>
+                    <div class="draggable-item badge bg-secondary mb-2 p-2" draggable="true" data-field="educators" style="cursor: move;">Eğitici(ler)</div>
+                    <div class="draggable-item badge bg-secondary mb-2 p-2" draggable="true" data-field="certificate_no" style="cursor: move;">Sertifika No (ID)</div>
+                </div>
+            </div>
+            <div class="col-md-9">
+                <div id="canvas-container" style="position: relative; width: 100%; border: 1px solid #ccc; background-color: #f0f0f0; min-height: 600px; overflow: hidden;">
+                    {% if template.background_image %}
+                        <img src="{{ template.background_image.url }}" id="cert-bg-img" style="width: 100%; height: auto; display: block;">
+                    {% else %}
+                        <div class="text-center p-5 text-muted">Lütfen önce bir arkaplan resmi yükleyin.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Config Data -->
+<script id="layout-config-data" type="application/json">
+    {{ template.layout_config|safe|default:"{}" }}
+</script>
+
+<style>
+    .draggable-on-canvas {
+        position: absolute;
+        cursor: grab;
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px dashed #333;
+        padding: 5px;
+        color: #000;
+        font-weight: bold;
+    }
+    .draggable-on-canvas:active {
+        cursor: grabbing;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const canvas = document.getElementById('canvas-container');
+    const bgImg = document.getElementById('cert-bg-img');
+    const draggables = document.querySelectorAll('.draggable-item');
+    let config = {};
+
+    try {
+        const configEl = document.getElementById('layout-config-data');
+        if (configEl && configEl.textContent) {
+            config = JSON.parse(configEl.textContent);
+        }
+    } catch(e) {
+        console.error("Config parse error", e);
+    }
+
+    if (!canvas) return;
+
+    // Initialize Canvas
+    function renderItems() {
+        // Clear existing on canvas except img
+        const existing = canvas.querySelectorAll('.draggable-on-canvas');
+        existing.forEach(el => el.remove());
+
+        for (const [key, val] of Object.entries(config)) {
+            createCanvasItem(key, val.x, val.y, getLabel(key));
+        }
+    }
+
+    function getLabel(key) {
+        const item = document.querySelector(`.draggable-item[data-field="${key}"]`);
+        return item ? item.innerText : key;
+    }
+
+    function createCanvasItem(key, xPercent, yPercent, label) {
+        const el = document.createElement('div');
+        el.classList.add('draggable-on-canvas');
+        el.dataset.field = key;
+        el.innerText = label;
+
+        // Position
+        el.style.left = xPercent + '%';
+        el.style.top = yPercent + '%';
+
+        // Simple Dragging Implementation (Mouse Events)
+        el.onmousedown = function(event) {
+            event.preventDefault(); // prevent selection
+
+            let shiftX = event.clientX - el.getBoundingClientRect().left;
+            let shiftY = event.clientY - el.getBoundingClientRect().top;
+
+            function moveAt(pageX, pageY) {
+                const canvasRect = canvas.getBoundingClientRect();
+                let left = pageX - shiftX - canvasRect.left;
+                let top = pageY - shiftY - canvasRect.top;
+
+                // Boundaries
+                if (left < 0) left = 0;
+                if (top < 0) top = 0;
+                if (left + el.offsetWidth > canvasRect.width) left = canvasRect.width - el.offsetWidth;
+                if (top + el.offsetHeight > canvasRect.height) top = canvasRect.height - el.offsetHeight;
+
+                // Convert to percentage
+                let leftPercent = (left / canvasRect.width) * 100;
+                let topPercent = (top / canvasRect.height) * 100;
+
+                el.style.left = leftPercent + '%';
+                el.style.top = topPercent + '%';
+
+                // Update config
+                config[el.dataset.field] = { x: leftPercent, y: topPercent };
+            }
+
+            function onMouseMove(event) {
+                moveAt(event.pageX, event.pageY);
+            }
+
+            document.addEventListener('mousemove', onMouseMove);
+
+            el.onmouseup = function() {
+                document.removeEventListener('mousemove', onMouseMove);
+                el.onmouseup = null;
+            };
+        };
+
+        // Double click to remove
+        el.addEventListener('dblclick', () => {
+            if(confirm('Bu alanı kaldırmak istiyor musunuz?')) {
+                el.remove();
+                delete config[key];
+            }
+        });
+
+        canvas.appendChild(el);
+    }
+
+    // Handle Drag from Sidebar
+    draggables.forEach(item => {
+        item.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', item.dataset.field);
+            e.dataTransfer.setData('text/label', item.innerText);
+        });
+    });
+
+    canvas.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    });
+
+    canvas.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const field = e.dataTransfer.getData('text/plain');
+        const label = e.dataTransfer.getData('text/label');
+
+        if (!field) return;
+
+        // Calculate Position relative to canvas
+        const canvasRect = canvas.getBoundingClientRect();
+        const x = e.clientX - canvasRect.left;
+        const y = e.clientY - canvasRect.top;
+
+        const xPercent = (x / canvasRect.width) * 100;
+        const yPercent = (y / canvasRect.height) * 100;
+
+        // Update Config
+        config[field] = { x: xPercent, y: yPercent };
+
+        // Re-render
+        renderItems();
+    });
+
+    // Save Button
+    const saveBtn = document.getElementById('saveLayoutBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            fetch('{% url "certificate_settings" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ layout_config: config })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Düzen kaydedildi!');
+                } else {
+                    alert('Hata: ' + data.error);
+                }
+            });
+        });
+    }
+
+    // Initial Render
+    renderItems();
+});
+</script>
+{% endblock %}

@@ -2,23 +2,25 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, FileResponse
 from django.db.models import Q
 import csv
 import openpyxl
 from datetime import datetime
 from .forms import (
-    LoginForm, WorkplaceForm, WorkerForm, EducatorForm, ProfessionalForm,
+    LoginForm, WorkplaceForm, WorkerForm, ProfessionalForm,
     EducationForm, InspectionForm, ExaminationForm, ProfessionForm,
-    ExaminationNoteForm, FacilityForm, CustomUserCreationForm, CustomUserChangeForm
+    ExaminationNoteForm, FacilityForm, CustomUserCreationForm, CustomUserChangeForm,
+    CertificateTemplateForm
 )
 from .models import (
-    Workplace, Worker, Educator, Professional, Education, Inspection, Examination, Profession, Facility, ActionLog
+    Workplace, Worker, Professional, Education, Inspection, Examination, Profession, Facility, ActionLog, CertificateTemplate
 )
 from django.contrib.auth.models import User
 # Removed duplicate imports
 from .import_utils import ImportHandler
 import json
+from .pdf_generator import generate_certificate_pdf
 
 def log_action(user, action, model_obj, details=None):
     if not user.is_authenticated: return
@@ -106,7 +108,6 @@ def dashboard(request):
         'workplace_count': Workplace.objects.count(),
         'facility_count': Facility.objects.count(),
         'worker_count': Worker.objects.count(),
-        'educator_count': Educator.objects.count(),
         'professional_count': Professional.objects.count(),
         'education_count': Education.objects.count(),
         'inspection_count': Inspection.objects.count(),
@@ -603,40 +604,6 @@ def worker_update(request, pk):
     return render(request, 'core/worker_form.html', {'form': form, 'title': "Çalışan Düzenle", 'examinations': examinations})
 
 @login_required
-def educator_list(request):
-    filter_config = [
-        {'field': 'name', 'label': 'Ad Soyad', 'type': 'text'},
-        {'field': 'license_id', 'label': 'Lisans No', 'type': 'text'},
-    ]
-    return generic_list_view(request, Educator, "Eğiticiler", 'educator_create', 'educator_update',
-                             [('name', 'Ad Soyad'), ('license_id', 'Lisans No')],
-                             'educator_bulk_delete', 'educator_export', filter_config, 'import_educator_step1')
-
-@login_required
-def educator_import(request, step=1):
-    return generic_import_view(request, Educator, "Eğitici İçe Aktar", 'educator_list', step=step)
-
-@login_required
-def educator_bulk_delete(request):
-    return generic_bulk_delete_view(request, Educator, 'educator_list')
-
-@login_required
-def educator_export(request):
-    filter_config = [
-        {'field': 'name', 'type': 'text'},
-        {'field': 'license_id', 'type': 'text'},
-    ]
-    return generic_export_view(request, Educator, filter_config)
-
-@login_required
-def educator_create(request):
-    return generic_create_view(request, EducatorForm, "Yeni Eğitici", 'educator_list')
-
-@login_required
-def educator_update(request, pk):
-    return generic_update_view(request, Educator, EducatorForm, pk, "Eğitici Düzenle", 'educator_list')
-
-@login_required
 def professional_list(request):
     filter_config = [
         {'field': 'name', 'label': 'Ad Soyad', 'type': 'text'},
@@ -676,10 +643,62 @@ def education_list(request):
         {'field': 'topic', 'label': 'Konu', 'type': 'text'},
         {'field': 'date', 'label': 'Tarih', 'type': 'date'},
         {'field': 'workplace', 'label': 'İşyeri', 'type': 'select'},
+        {'field': 'professionals', 'label': 'Eğiticiler', 'type': 'select'},
     ]
+
+    extra_actions = [
+        {
+            'url_name': 'education_certificate',
+            'label': 'Sertifika',
+            'icon': 'bi-file-earmark-pdf',
+            'btn_class': 'btn-outline-danger',
+            'query_param': None # This button appends the PK to the URL via pattern so we might need a custom column or modify list template.
+                                # But `extra_actions` in generic_list_view usually render buttons per row or globally?
+                                # Let's check `list_template.html`.
+        }
+    ]
+    # Re-reading list_template.html logic for extra_actions...
+    # It seems extra_actions in generic_list_view are often "top-level" or "per-row"?
+    # The `worker_list` used extra_actions with `query_param='worker_id'`.
+    # This implies it links to a URL with `?worker_id=current_row.id`.
+    # For certificate download, we want `/educations/<id>/certificate/`.
+    # The generic view might not support path parameter interpolation easily if it only does query params.
+    # However, if we set url_name, django's `{% url %}` needs args.
+    # If the generic template constructs the url like `{% url action.url_name item.id %}`, it works.
+    # Let's check list_template.html.
+
+    # Actually, I don't have list_template.html content in memory fully (I saw it earlier in file list but didn't read content).
+    # But `worker_list` used it: `{'url_name': 'examination_create', ... 'query_param': 'worker_id'}`
+    # This suggests it builds `url?worker_id=ID`.
+    # So if I want to download, I might need a view that accepts `?education_id=ID`.
+    # OR I modify the template/view to support path args.
+
+    # Let's stick to the existing pattern: `?education_id=ID` pointing to a view.
+    # So I will make `education_certificate_download` accept `education_id` via GET or PK.
+    # If I use PK in URL conf `educations/<int:pk>/certificate/`, I can't easily use the generic `extra_actions` unless it supports path args.
+
+    # Let's define the URL as `education_certificate_download` (no args in path) and use `?id=...`.
+
     return generic_list_view(request, Education, "İSG Eğitimleri", 'education_create', 'education_update',
                              [('date', 'Tarih'), ('topic', 'Konu'), ('workplace', 'İşyeri')],
-                             'education_bulk_delete', 'education_export', filter_config, 'import_education_step1')
+                             'education_bulk_delete', 'education_export', filter_config, 'import_education_step1',
+                             extra_actions=[{
+                                 'url_name': 'education_certificate_download',
+                                 'label': 'Sertifika',
+                                 'icon': 'bi-file-pdf',
+                                 'btn_class': 'btn-outline-dark',
+                                 'query_param': 'education_id'
+                             }])
+
+@login_required
+def education_certificate_download(request):
+    education_id = request.GET.get('education_id')
+    education = get_object_or_404(Education, pk=education_id)
+
+    pdf_buffer = generate_certificate_pdf(education)
+
+    filename = f"Sertifika_{education.id}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    return FileResponse(pdf_buffer, as_attachment=True, filename=filename)
 
 @login_required
 def education_import(request, step=1):
@@ -871,6 +890,36 @@ def settings_view(request):
     return render(request, 'core/settings.html', {'title': 'Ayarlar'})
 
 @login_required
+def certificate_settings_view(request):
+    template, created = CertificateTemplate.objects.get_or_create(name="Global")
+
+    if request.method == 'POST':
+        # Check if this is a save-coords request (AJAX/JSON)
+        if request.content_type == 'application/json':
+            try:
+                data = json.loads(request.body)
+                template.layout_config = data.get('layout_config', {})
+                template.save()
+                return JsonResponse({'success': True})
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)})
+
+        # Normal form submit for image upload
+        form = CertificateTemplateForm(request.POST, request.FILES, instance=template)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Ayarlar kaydedildi.')
+            return redirect('certificate_settings')
+    else:
+        form = CertificateTemplateForm(instance=template)
+
+    return render(request, 'core/certificate_settings.html', {
+        'title': 'Sertifika Tasarımı',
+        'form': form,
+        'template': template
+    })
+
+@login_required
 def user_list(request):
     filter_config = [{'field': 'username', 'label': 'Kullanıcı Adı', 'type': 'text'}]
     return generic_list_view(request, User, "Kullanıcılar", 'user_create', 'user_update',
@@ -964,7 +1013,7 @@ STATISTICS_CONFIG = {
     'Education': {
         'fields': [
             {'name': 'topic', 'label': 'Konu', 'type': 'category'},
-            {'name': 'educator__name', 'label': 'Eğitici', 'type': 'category'},
+            {'name': 'professionals__name', 'label': 'Eğiticiler', 'type': 'category'},
             {'name': 'workplace__name', 'label': 'İşyeri', 'type': 'category'},
             {'name': 'date', 'label': 'Tarih', 'type': 'date'},
         ]
