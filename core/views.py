@@ -10,14 +10,29 @@ from datetime import datetime
 from .forms import (
     LoginForm, WorkplaceForm, WorkerForm, EducatorForm, ProfessionalForm,
     EducationForm, InspectionForm, ExaminationForm, ProfessionForm,
-    ExaminationNoteForm, FacilityForm
+    ExaminationNoteForm, FacilityForm, CustomUserCreationForm, CustomUserChangeForm
 )
 from .models import (
-    Workplace, Worker, Educator, Professional, Education, Inspection, Examination, Profession, Facility
+    Workplace, Worker, Educator, Professional, Education, Inspection, Examination, Profession, Facility, ActionLog
 )
+from django.contrib.auth.models import User
 # Removed duplicate imports
 from .import_utils import ImportHandler
 import json
+
+def log_action(user, action, model_obj, details=None):
+    if not user.is_authenticated: return
+    try:
+        model_name = model_obj._meta.verbose_name
+        object_id = str(model_obj.pk)
+        ActionLog.objects.create(
+            user=user,
+            action=action,
+            model_name=model_name,
+            object_id=object_id,
+            details=details or str(model_obj)
+        )
+    except: pass
 
 @login_required
 def api_create_profession(request):
@@ -46,6 +61,7 @@ def login_view(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
+                ActionLog.objects.create(user=user, action='Giriş', model_name='Oturum', details='Kullanıcı giriş yaptı.')
                 # Clear captcha session data
                 if 'captcha_question' in request.session:
                     del request.session['captcha_question']
@@ -63,6 +79,8 @@ def login_view(request):
     return render(request, 'core/login.html', {'form': form})
 
 def logout_view(request):
+    if request.user.is_authenticated:
+        ActionLog.objects.create(user=request.user, action='Çıkış', model_name='Oturum', details='Kullanıcı çıkış yaptı.')
     logout(request)
     return redirect('login')
 
@@ -268,8 +286,14 @@ def generic_bulk_delete_view(request, model_class, list_url_name):
     if request.method == 'POST':
         selected_ids = request.POST.getlist('selected_items')
         if selected_ids:
-            model_class.objects.filter(id__in=selected_ids).delete()
-            messages.success(request, f'{len(selected_ids)} kayıt silindi.')
+            # Log deletion (need to fetch before delete to log)
+            items = model_class.objects.filter(id__in=selected_ids)
+            count = items.count()
+            for item in items:
+                log_action(request.user, 'Silme', item)
+
+            items.delete()
+            messages.success(request, f'{count} kayıt silindi.')
         else:
             messages.warning(request, 'Silinecek kayıt seçilmedi.')
     return redirect(list_url_name)
@@ -278,7 +302,8 @@ def generic_create_view(request, form_class, title, list_url_name):
     if request.method == 'POST':
         form = form_class(request.POST)
         if form.is_valid():
-            form.save()
+            obj = form.save()
+            log_action(request.user, 'Oluşturma', obj)
             messages.success(request, 'Kayıt başarıyla oluşturuldu.')
             return redirect(list_url_name)
     else:
@@ -290,7 +315,8 @@ def generic_update_view(request, model_class, form_class, pk, title, list_url_na
     if request.method == 'POST':
         form = form_class(request.POST, instance=item)
         if form.is_valid():
-            form.save()
+            obj = form.save()
+            log_action(request.user, 'Güncelleme', obj)
             messages.success(request, 'Kayıt güncellendi.')
             return redirect(list_url_name)
     else:
@@ -839,6 +865,52 @@ def facility_update(request, pk):
 @login_required
 def facility_import(request, step=1):
     return generic_import_view(request, Facility, "Bina/Birim İçe Aktar", 'facility_list', step=step)
+
+@login_required
+def settings_view(request):
+    return render(request, 'core/settings.html', {'title': 'Ayarlar'})
+
+@login_required
+def user_list(request):
+    filter_config = [{'field': 'username', 'label': 'Kullanıcı Adı', 'type': 'text'}]
+    return generic_list_view(request, User, "Kullanıcılar", 'user_create', 'user_update',
+                             [('username', 'Kullanıcı Adı'), ('email', 'E-Posta'), ('is_staff', 'Admin?'), ('is_active', 'Aktif?')],
+                             'user_bulk_delete', None, filter_config, None)
+
+@login_required
+def user_create(request):
+    return generic_create_view(request, CustomUserCreationForm, "Yeni Kullanıcı", 'user_list')
+
+@login_required
+def user_update(request, pk):
+    return generic_update_view(request, User, CustomUserChangeForm, pk, "Kullanıcı Düzenle", 'user_list')
+
+@login_required
+def user_bulk_delete(request):
+    return generic_bulk_delete_view(request, User, 'user_list')
+
+@login_required
+def log_list(request):
+    filter_config = [
+        {'field': 'user', 'label': 'Kullanıcı', 'type': 'select'},
+        {'field': 'action', 'label': 'İşlem', 'type': 'text'},
+        {'field': 'model_name', 'label': 'Veri Türü', 'type': 'text'},
+    ]
+    # For logs, we typically want read-only, so we might need to adjust generic_list_view or pass empty create/update urls
+    # But generic_list_view expects url names. We can pass placeholders or None if we modify generic view to handle None.
+    # The current generic_list_view renders update button if url is provided.
+    # Let's pass None for update_url_name to disable edit button.
+    # We need to update generic_list_view template to check for None update_url_name.
+
+    queryset = ActionLog.objects.all()
+
+    # We need to handle 'user' filter which is a relationship. generic view's apply_filters handles select for foreign keys.
+    # But ActionLog user is standard User model. apply_filters tries to find options from related model.
+    # It should work.
+
+    return generic_list_view(request, ActionLog, "İşlem Kayıtları", None, None,
+                             [('timestamp', 'Zaman'), ('user', 'Kullanıcı'), ('action', 'İşlem'), ('model_name', 'Veri Türü'), ('details', 'Detaylar')],
+                             None, None, filter_config, None, queryset=queryset)
 
 @login_required
 def profession_list(request):
