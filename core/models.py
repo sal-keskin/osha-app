@@ -3,7 +3,21 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
 from datetime import date, timedelta
+
+class ActionLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Kullanıcı")
+    action = models.CharField(max_length=50, verbose_name="İşlem")
+    model_name = models.CharField(max_length=100, verbose_name="Veri Türü")
+    object_id = models.CharField(max_length=50, null=True, blank=True, verbose_name="Kayıt ID")
+    details = models.TextField(null=True, blank=True, verbose_name="Detaylar")
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Zaman")
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = "İşlem Kaydı"
+        verbose_name_plural = "İşlem Kayıtları"
 
 class Profession(models.Model):
     name = models.CharField(max_length=255, unique=True, verbose_name="Meslek Adı")

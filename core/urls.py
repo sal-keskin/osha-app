@@ -109,4 +109,12 @@ urlpatterns = [
     path('facilities/import/step2/', views.facility_import, {'step': 2}, name='import_facility_step2'),
     path('facilities/import/step3/', views.facility_import, {'step': 3}, name='import_facility_step3'),
     path('facilities/import/step4/', views.facility_import, {'step': 4}, name='import_facility_step4'),
+
+    # Settings & Users
+    path('settings/', views.settings_view, name='settings'),
+    path('settings/users/', views.user_list, name='user_list'),
+    path('settings/users/new/', views.user_create, name='user_create'),
+    path('settings/users/<int:pk>/edit/', views.user_update, name='user_update'),
+    path('settings/users/delete/', views.user_bulk_delete, name='user_bulk_delete'),
+    path('settings/logs/', views.log_list, name='log_list'),
 ]
