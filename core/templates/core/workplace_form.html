@@ -76,6 +76,8 @@
                                         <tr>
                                             <th>Ad Soyad</th>
                                             <th>TCKN</th>
+                                            <th>Eğitim Durumu</th>
+                                            <th>Muayene Durumu</th>
                                             <th style="width: 200px;">İşlemler</th>
                                         </tr>
                                     </thead>
@@ -84,6 +86,8 @@
                                         <tr>
                                             <td>{{ worker.name }}</td>
                                             <td>{{ worker.tckn }}</td>
+                                            <td>{{ worker.education_status }}</td>
+                                            <td>{{ worker.examination_status }}</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
                                                     <a href="{% url 'worker_update' worker.id %}" class="btn btn-outline-primary">Düzenle</a>

@@ -38,6 +38,8 @@ class ImportHandler:
         if not path or not os.path.exists(path):
             return {'error': 'File not found'}
 
+        uppercase_names = self.session.get('import_settings', {}).get('uppercase_names', False)
+
         preview_rows = []
         valid_count = 0
         error_count = 0
@@ -147,6 +149,7 @@ class ImportHandler:
          # Similar to preview but actually saves
          # Re-implementing lightly to avoid double-reading issues if I could refactor, but for now simple copy-paste logic
         path = self.get_file_path()
+        uppercase_names = self.session.get('import_settings', {}).get('uppercase_names', False)
         success_count = 0
 
         with open(path, 'r', encoding=encoding) as f:
@@ -197,7 +200,10 @@ class ImportHandler:
                                 if str(key) == val or str(label).lower() == val.lower():
                                     model_data[model_field] = key; break
                         else:
-                            model_data[model_field] = val
+                                if uppercase_names and isinstance(val, str):
+                                    model_data[model_field] = val.replace('i', 'İ').upper()
+                                else:
+                                    model_data[model_field] = val
                     except: skip = True; break
 
                 if skip: continue
