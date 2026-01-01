@@ -645,40 +645,6 @@ def education_list(request):
         {'field': 'workplace', 'label': 'İşyeri', 'type': 'select'},
         {'field': 'professionals', 'label': 'Eğiticiler', 'type': 'select'},
     ]
-
-    extra_actions = [
-        {
-            'url_name': 'education_certificate',
-            'label': 'Sertifika',
-            'icon': 'bi-file-earmark-pdf',
-            'btn_class': 'btn-outline-danger',
-            'query_param': None # This button appends the PK to the URL via pattern so we might need a custom column or modify list template.
-                                # But `extra_actions` in generic_list_view usually render buttons per row or globally?
-                                # Let's check `list_template.html`.
-        }
-    ]
-    # Re-reading list_template.html logic for extra_actions...
-    # It seems extra_actions in generic_list_view are often "top-level" or "per-row"?
-    # The `worker_list` used extra_actions with `query_param='worker_id'`.
-    # This implies it links to a URL with `?worker_id=current_row.id`.
-    # For certificate download, we want `/educations/<id>/certificate/`.
-    # The generic view might not support path parameter interpolation easily if it only does query params.
-    # However, if we set url_name, django's `{% url %}` needs args.
-    # If the generic template constructs the url like `{% url action.url_name item.id %}`, it works.
-    # Let's check list_template.html.
-
-    # Actually, I don't have list_template.html content in memory fully (I saw it earlier in file list but didn't read content).
-    # But `worker_list` used it: `{'url_name': 'examination_create', ... 'query_param': 'worker_id'}`
-    # This suggests it builds `url?worker_id=ID`.
-    # So if I want to download, I might need a view that accepts `?education_id=ID`.
-    # OR I modify the template/view to support path args.
-
-    # Let's stick to the existing pattern: `?education_id=ID` pointing to a view.
-    # So I will make `education_certificate_download` accept `education_id` via GET or PK.
-    # If I use PK in URL conf `educations/<int:pk>/certificate/`, I can't easily use the generic `extra_actions` unless it supports path args.
-
-    # Let's define the URL as `education_certificate_download` (no args in path) and use `?id=...`.
-
     return generic_list_view(request, Education, "İSG Eğitimleri", 'education_create', 'education_update',
                              [('date', 'Tarih'), ('topic', 'Konu'), ('workplace', 'İşyeri')],
                              'education_bulk_delete', 'education_export', filter_config, 'import_education_step1',
@@ -894,18 +860,7 @@ def certificate_settings_view(request):
     template, created = CertificateTemplate.objects.get_or_create(name="Global")
 
     if request.method == 'POST':
-        # Check if this is a save-coords request (AJAX/JSON)
-        if request.content_type == 'application/json':
-            try:
-                data = json.loads(request.body)
-                template.layout_config = data.get('layout_config', {})
-                template.save()
-                return JsonResponse({'success': True})
-            except Exception as e:
-                return JsonResponse({'success': False, 'error': str(e)})
-
-        # Normal form submit for image upload
-        form = CertificateTemplateForm(request.POST, request.FILES, instance=template)
+        form = CertificateTemplateForm(request.POST, instance=template)
         if form.is_valid():
             form.save()
             messages.success(request, 'Ayarlar kaydedildi.')
@@ -915,8 +870,7 @@ def certificate_settings_view(request):
 
     return render(request, 'core/certificate_settings.html', {
         'title': 'Sertifika Tasarımı',
-        'form': form,
-        'template': template
+        'form': form
     })
 
 @login_required
