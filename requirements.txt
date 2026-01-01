@@ -3,4 +3,4 @@ gunicorn
 python-dotenv
 openpyxl
 reportlab
-xhtml2pdf
+weasyprint
