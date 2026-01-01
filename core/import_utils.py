@@ -146,11 +146,12 @@ class ImportHandler:
         }
 
     def execute_import(self, model_class, mapping, delimiter=';', date_format='%Y-%m-%d', encoding='utf-8-sig'):
-         # Similar to preview but actually saves
-         # Re-implementing lightly to avoid double-reading issues if I could refactor, but for now simple copy-paste logic
         path = self.get_file_path()
         uppercase_names = self.session.get('import_settings', {}).get('uppercase_names', False)
         success_count = 0
+
+        # Import models locally to avoid circular imports and check types
+        from .models import Workplace, Facility
 
         with open(path, 'r', encoding=encoding) as f:
             reader = csv.DictReader(f, delimiter=delimiter)
@@ -193,7 +194,6 @@ class ImportHandler:
                                 else: skip = True; break
                         elif isinstance(field_obj, models.ManyToManyField):
                             # Handle M2M later
-                            # Expecting comma separated values? For now skipping complex m2m import
                             pass
                         elif field_obj.choices:
                              for key, label in field_obj.choices:
@@ -213,5 +213,9 @@ class ImportHandler:
                 if not model_class.objects.filter(**check_data).exists():
                     obj = model_class.objects.create(**check_data)
                     success_count += 1
+
+                    # Auto-create Facility for Workplace
+                    if model_class == Workplace:
+                        Facility.objects.create(name="MERKEZ BİNA", workplace=obj)
 
         return success_count

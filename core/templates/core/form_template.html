@@ -15,7 +15,17 @@
                     {% for field in form %}
                     <div class="mb-3">
                         <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                        {{ field }}
+                        {% if field.name == 'coordinates' %}
+                            <div class="input-group">
+                                {{ field }}
+                                <button type="button" class="btn btn-outline-secondary" id="btn-map-picker">
+                                    <i class="bi bi-geo-alt"></i> Harita
+                                </button>
+                            </div>
+                        {% else %}
+                            {{ field }}
+                        {% endif %}
+
                         {% if field.help_text %}
                         <div class="form-text">{{ field.help_text }}</div>
                         {% endif %}
@@ -35,4 +45,89 @@
         </div>
     </div>
 </div>
+
+<!-- Map Modal -->
+<div class="modal fade" id="mapModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Konum Seç</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="map" style="height: 400px; width: 100%;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="btn-map-confirm">Seçimi Onayla</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnMap = document.getElementById('btn-map-picker');
+        if (!btnMap) return;
+
+        const inputCoords = document.querySelector('input[name="coordinates"]');
+        const mapModal = new bootstrap.Modal(document.getElementById('mapModal'));
+        let map = null;
+        let marker = null;
+
+        btnMap.addEventListener('click', function() {
+            mapModal.show();
+            // Map init needs to wait for modal to be visible or resize trigger
+            setTimeout(() => {
+                if (!map) {
+                    // Default: Balıkesir
+                    map = L.map('map').setView([39.6484, 27.8826], 13);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(map);
+
+                    map.on('click', function(e) {
+                        placeMarker(e.latlng);
+                    });
+                }
+
+                // Set initial marker from input
+                if (inputCoords.value) {
+                    const parts = inputCoords.value.split(',');
+                    if (parts.length === 2) {
+                        const lat = parseFloat(parts[0]);
+                        const lng = parseFloat(parts[1]);
+                        if (!isNaN(lat) && !isNaN(lng)) {
+                            const latlng = { lat: lat, lng: lng };
+                            placeMarker(latlng);
+                            map.setView(latlng, 15);
+                        }
+                    }
+                }
+                map.invalidateSize();
+            }, 500);
+        });
+
+        function placeMarker(latlng) {
+            if (marker) {
+                marker.setLatLng(latlng);
+            } else {
+                marker = L.marker(latlng).addTo(map);
+            }
+        }
+
+        document.getElementById('btn-map-confirm').addEventListener('click', function() {
+            if (marker) {
+                const ll = marker.getLatLng();
+                // Format: "lat, lng" (6 decimal places)
+                inputCoords.value = `${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}`;
+            }
+            mapModal.hide();
+        });
+    });
+</script>
 {% endblock %}

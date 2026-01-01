@@ -485,7 +485,8 @@ def workplace_list(request):
                               ('total_workers_count', 'Toplam Çalışan'),
                               ('valid_education_count_display', 'Geçerli Eğitim'),
                               ('valid_examination_count_display', 'Geçerli Muayene'),
-                              ('valid_first_aid_count_display', 'İlkyardım Sertifikası')],
+                              ('valid_first_aid_count_display', 'İlkyardım Sertifikası'),
+                              ('contact_html', 'İletişim')],
                              'workplace_bulk_delete', 'workplace_export', filter_config, 'import_workplace_step1',
                              queryset=queryset)
 
