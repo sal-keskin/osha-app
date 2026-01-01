@@ -136,6 +136,9 @@ class Workplace(models.Model):
 class Facility(models.Model):
     name = models.CharField(max_length=255, verbose_name="Bina/Birim Adı")
     workplace = models.ForeignKey(Workplace, on_delete=models.CASCADE, verbose_name="İşyeri", related_name="facilities")
+    address = models.TextField(null=True, blank=True, verbose_name="Adres")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name="Enlem")
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name="Boylam")
 
     def __str__(self):
         return f"{self.name} ({self.workplace.name})"
@@ -143,6 +146,14 @@ class Facility(models.Model):
     class Meta:
         verbose_name = "Bina/Birim"
         verbose_name_plural = "Binalar/Birimler"
+
+    @property
+    def location_link_html(self):
+        if self.latitude and self.longitude:
+            url = f"https://www.google.com/maps/search/?api=1&query={self.latitude},{self.longitude}"
+            return mark_safe(f'<a href="{url}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-geo-alt-fill"></i> Harita</a>')
+        return ""
+    location_link_html.fget.short_description = "Konum"
 
 
 class Worker(models.Model):
