@@ -19,7 +19,19 @@ def generate_certificate_pdf(education_instance):
         education_topics = "Konular Girilmedi"
 
     # 2. Prepare Data
-    professionals_str = ", ".join([p.name for p in education_instance.professionals.all()])
+    # Separate professionals by role
+    specialist_name = ""
+    medic_name = ""
+
+    for p in education_instance.professionals.all():
+        if p.role == 'SPECIALIST':
+            specialist_name = p.name
+        elif p.role in ['DOCTOR', 'OTHER_HEALTH']:
+            medic_name = p.name
+
+    # Fallback if filtered incorrectly or empty
+    # If multiple, it takes the last one found in loop, but form ensures 1 of each.
+
     workplace_str = education_instance.workplace.name
     date_str = education_instance.date.strftime('%d.%m.%Y')
     duration_str = str(education_instance.duration) + " Saat"
@@ -30,8 +42,6 @@ def generate_certificate_pdf(education_instance):
     font_path = os.path.join(settings.BASE_DIR, 'core', 'static', 'fonts', 'DejaVuSans.ttf')
 
     # 4. CSS (Hardcoded Layout)
-    # We use @page to ensure A4 size.
-    # We embed the font via file:// URL.
     css_string = f"""
     @font-face {{
         font-family: 'DejaVuSans';
@@ -161,7 +171,7 @@ def generate_certificate_pdf(education_instance):
                 </div>
 
                 <div class="info-section">
-                    Say &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {education_instance.id}-{worker.id}<br>
+                    Sayı &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {education_instance.id}-{worker.id}<br>
                     TCKN &nbsp;&nbsp;: {worker.tckn}<br>
                     Tarih &nbsp;&nbsp;&nbsp;: {date_str}<br>
                     Süre &nbsp;&nbsp;&nbsp;&nbsp;: {duration_str}<br>
@@ -195,12 +205,13 @@ def generate_certificate_pdf(education_instance):
                     <div class="signature-box">
                         <div class="signature-line">
                             İş Güvenliği Uzmanı<br>
-                            {professionals_str}
+                            {specialist_name}
                         </div>
                     </div>
                     <div class="signature-box">
                         <div class="signature-line">
-                            İş Yeri Hekimi/Hemşiresi
+                            İş Yeri Hekimi/Hemşiresi<br>
+                            {medic_name}
                         </div>
                     </div>
                     <div class="signature-box">

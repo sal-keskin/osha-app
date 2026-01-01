@@ -318,7 +318,7 @@ class Examination(models.Model):
         verbose_name = "Sağlık Muayenesi"
         verbose_name_plural = "Sağlık Muayeneleri"
 
-DEFAULT_INSTITUTE = "T.C. Sağlık Bakanlığı\\nBalıkesir İl Sağlık Müdürlüğü, Karesi Çalışan Sağlığı Merkezi"
+DEFAULT_INSTITUTE = "T.C. Sağlık Bakanlığı\\nBalıkesir İl Sağlık Müdürlüğü\\nKaresi Çalışan Sağlığı Merkezi"
 DEFAULT_TOPICS = """Çalışma mevzuatı ile ilgili bilgiler
 Çalışanların yasal hak ve sorumlulukları
 İş yeri temizliği ve düzeni
