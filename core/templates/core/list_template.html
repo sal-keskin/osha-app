@@ -176,7 +176,12 @@
                             </th>
                             {% endif %}
                             {% for field_name, field_label in fields %}
-                            <th>{{ field_label }}</th>
+                            <th>
+                                <a href="?{% url_replace sort=field_name %}{% if current_sort == field_name %}&sort=-{{ field_name }}{% endif %}" class="text-decoration-none text-dark">
+                                    {{ field_label }}
+                                    {% if current_sort == field_name %}<i class="bi bi-arrow-down"></i>{% elif current_sort == '-'|add:field_name %}<i class="bi bi-arrow-up"></i>{% endif %}
+                                </a>
+                            </th>
                             {% endfor %}
                             <th style="width: 100px;">İşlemler</th>
                         </tr>

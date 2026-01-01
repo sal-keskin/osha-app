@@ -1,27 +1,65 @@
-[01/Jan/2026 17:18:26] "GET /login/ HTTP/1.1" 200 6794
-[01/Jan/2026 17:18:27] "POST /login/ HTTP/1.1" 302 0
-[01/Jan/2026 17:18:27] "GET / HTTP/1.1" 200 10531
-[01/Jan/2026 17:19:55] "GET /login/ HTTP/1.1" 200 6793
-[01/Jan/2026 17:19:56] "POST /login/ HTTP/1.1" 302 0
-[01/Jan/2026 17:19:56] "GET / HTTP/1.1" 200 10531
-[01/Jan/2026 17:21:22] "GET /login/ HTTP/1.1" 200 6793
-[01/Jan/2026 17:21:23] "POST /login/ HTTP/1.1" 302 0
-[01/Jan/2026 17:21:23] "GET / HTTP/1.1" 200 10531
-[01/Jan/2026 17:21:23] "GET /facilities/ HTTP/1.1" 200 10452
+Watching for file changes with StatReloader
+[01/Jan/2026 20:22:02] "GET /login/ HTTP/1.1" 200 9020
+[01/Jan/2026 20:22:03] "POST /login/ HTTP/1.1" 302 0
+[01/Jan/2026 20:22:03] "GET / HTTP/1.1" 200 13230
+[01/Jan/2026 20:22:03] "GET /login/ HTTP/1.1" 200 9021
+[01/Jan/2026 20:22:04] "POST /login/ HTTP/1.1" 302 0
+[01/Jan/2026 20:22:04] "GET / HTTP/1.1" 200 13230
+Internal Server Error: /facilities/
+Traceback (most recent call last):
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/core/views.py", line 946, in facility_list
+    ).annotate(worker_count=Count('worker_set'))
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/django/db/models/query.py", line 1595, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/django/db/models/query.py", line 1643, in _annotate
+    clone.query.add_annotation(
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/django/db/models/sql/query.py", line 1133, in add_annotation
+    annotation = annotation.resolve_expression(self, allow_joins=True, reuse=None)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/django/db/models/aggregates.py", line 64, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/django/db/models/expressions.py", line 950, in resolve_expression
+    c.source_expressions[pos] = arg.resolve_expression(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/django/db/models/expressions.py", line 829, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/django/db/models/sql/query.py", line 1978, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/django/db/models/sql/query.py", line 1825, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/django/db/models/sql/query.py", line 1726, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'worker_set' into field. Choices are: address, coordinates, id, name, worker, workplace, workplace_id
+[01/Jan/2026 20:22:04] "GET /facilities/ HTTP/1.1" 500 114717
+/app/core/views.py changed, reloading.
 Performing system checks...
 
 System check identified no issues (0 silenced).
-January 01, 2026 - 17:17:08
+January 01, 2026 - 20:20:55
 Django version 4.2.27, using settings 'osha_app.settings'
 Starting development server at http://0.0.0.0:8000/
 Quit the server with CONTROL-C.
 
-[01/Jan/2026 18:49:41] "GET /login/ HTTP/1.1" 200 9020
-[01/Jan/2026 18:49:42] "POST /login/ HTTP/1.1" 302 0
-[01/Jan/2026 18:49:42] "GET / HTTP/1.1" 200 12758
-[01/Jan/2026 18:49:43] "GET /workplaces/ HTTP/1.1" 200 23050
-[01/Jan/2026 18:49:43] "GET /workplaces/new/ HTTP/1.1" 200 15520
-[01/Jan/2026 18:49:43] "POST /workplaces/new/ HTTP/1.1" 302 0
-[01/Jan/2026 18:49:43] "GET /workplaces/ HTTP/1.1" 200 27924
-[01/Jan/2026 18:49:43] "GET /workplaces/ HTTP/1.1" 200 27595
-[01/Jan/2026 18:49:44] "GET /workplaces/1/edit/ HTTP/1.1" 200 21183
+Watching for file changes with StatReloader
+[01/Jan/2026 20:23:40] "GET /login/ HTTP/1.1" 200 9020
+[01/Jan/2026 20:23:41] "POST /login/ HTTP/1.1" 302 0
+[01/Jan/2026 20:23:41] "GET / HTTP/1.1" 200 13230
+[01/Jan/2026 20:23:41] "GET /login/ HTTP/1.1" 200 9020
+[01/Jan/2026 20:23:42] "POST /login/ HTTP/1.1" 302 0
+[01/Jan/2026 20:23:42] "GET / HTTP/1.1" 200 13230
+[01/Jan/2026 20:23:42] "GET /facilities/ HTTP/1.1" 200 16143

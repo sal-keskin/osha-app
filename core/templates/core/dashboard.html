@@ -1,95 +1,143 @@
 {% extends 'core/base.html' %}
 
 {% block content %}
+<style>
+    .dashboard-widget {
+        height: 140px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        position: relative;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.2s;
+        text-decoration: none;
+        border: 1px solid #f0f0f0;
+    }
+    .dashboard-widget:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    }
+    .widget-icon {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        font-size: 1.5rem;
+    }
+    .widget-number {
+        font-size: 2.5rem;
+        font-weight: 800;
+        text-align: center;
+        color: #333;
+        margin-top: auto;
+        margin-bottom: auto;
+    }
+    .widget-label {
+        text-align: center;
+        color: #8E8E93;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+</style>
+
 <div class="row mb-4">
     <div class="col-12 text-center">
-        <h2 class="display-6">Yönetim Paneli</h2>
+        <h2 class="display-6 fw-bold">Yönetim Paneli</h2>
     </div>
 </div>
 
-<div class="row g-4">
-    <!-- Workplace -->
-    <div class="col-md-4 col-sm-6">
-        <div class="card h-100 text-center p-3">
-            <div class="card-body">
-                <i class="bi bi-building fs-1 text-primary"></i>
-                <h5 class="card-title mt-2">İşyerleri</h5>
-                <p class="card-text fs-4 fw-bold">{{ workplace_count }}</p>
-                <a href="{% url 'workplace_list' %}" class="btn btn-outline-primary stretched-link">Yönet</a>
-            </div>
+<!-- Attention Banner -->
+{% if attention and attention.has_issues %}
+<div class="alert alert-dismissible fade show mb-4" role="alert" style="background-color: #FEF2F2; color: #991B1B; border: 1px solid #FCA5A5; border-radius: 12px;">
+    <div class="d-flex align-items-start">
+        <i class="bi bi-exclamation-triangle-fill me-3 fs-4 mt-1"></i>
+        <div>
+            <h5 class="alert-heading fw-bold mb-2">Dikkat Gerektiren Durumlar</h5>
+            <ul class="mb-0 ps-3">
+                {% if attention.missing_edu %}<li>📚 <strong>{{ attention.missing_edu }}</strong> Çalışanın eğitimi eksik.</li>{% endif %}
+                {% if attention.missing_exam %}<li>❤️‍🩹 <strong>{{ attention.missing_exam }}</strong> Çalışanın muayenesi eksik.</li>{% endif %}
+                {% if attention.expiring_exam %}<li>📅 <strong>{{ attention.expiring_exam }}</strong> Çalışanın bu ay muayene yenilenmesi gerekiyor.</li>{% endif %}
+                {% if attention.expiring_edu %}<li>📅 <strong>{{ attention.expiring_edu }}</strong> Çalışanın bu ay eğitimi yenilenmesi gerekiyor.</li>{% endif %}
+            </ul>
         </div>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<div class="row g-3">
+    <!-- Workplace -->
+    <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'workplace_list' %}" class="dashboard-widget">
+            <div class="widget-icon text-primary"><i class="bi bi-building"></i></div>
+            <div class="widget-number">{{ workplace_count }}</div>
+            <div class="widget-label">İşyerleri</div>
+        </a>
     </div>
 
     <!-- Facility -->
-    <div class="col-md-4 col-sm-6">
-        <div class="card h-100 text-center p-3">
-            <div class="card-body">
-                <i class="bi bi-houses fs-1 text-info"></i>
-                <h5 class="card-title mt-2">Binalar/Birimler</h5>
-                <p class="card-text fs-4 fw-bold">{{ facility_count }}</p>
-                <a href="{% url 'facility_list' %}" class="btn btn-outline-info stretched-link">Yönet</a>
-            </div>
-        </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'facility_list' %}" class="dashboard-widget">
+            <div class="widget-icon text-info"><i class="bi bi-houses"></i></div>
+            <div class="widget-number">{{ facility_count }}</div>
+            <div class="widget-label">Binalar</div>
+        </a>
     </div>
 
     <!-- Worker -->
-    <div class="col-md-4 col-sm-6">
-        <div class="card h-100 text-center p-3">
-            <div class="card-body">
-                <i class="bi bi-people fs-1 text-success"></i>
-                <h5 class="card-title mt-2">Çalışanlar</h5>
-                <p class="card-text fs-4 fw-bold">{{ worker_count }}</p>
-                <a href="{% url 'worker_list' %}" class="btn btn-outline-success stretched-link">Yönet</a>
-            </div>
-        </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'worker_list' %}" class="dashboard-widget">
+            <div class="widget-icon text-success"><i class="bi bi-people"></i></div>
+            <div class="widget-number">{{ worker_count }}</div>
+            <div class="widget-label">Çalışanlar</div>
+        </a>
     </div>
 
     <!-- Professional -->
-    <div class="col-md-4 col-sm-6">
-        <div class="card h-100 text-center p-3">
-            <div class="card-body">
-                <i class="bi bi-person-badge fs-1 text-warning"></i>
-                <h5 class="card-title mt-2">Profesyoneller</h5>
-                <p class="card-text fs-4 fw-bold">{{ professional_count }}</p>
-                <a href="{% url 'professional_list' %}" class="btn btn-outline-warning stretched-link">Yönet</a>
-            </div>
-        </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'professional_list' %}" class="dashboard-widget">
+            <div class="widget-icon text-warning"><i class="bi bi-person-badge"></i></div>
+            <div class="widget-number">{{ professional_count }}</div>
+            <div class="widget-label">Profesyoneller</div>
+        </a>
     </div>
 
     <!-- Education -->
-    <div class="col-md-4 col-sm-6">
-        <div class="card h-100 text-center p-3">
-            <div class="card-body">
-                <i class="bi bi-mortarboard fs-1 text-danger"></i>
-                <h5 class="card-title mt-2">Eğitimler</h5>
-                <p class="card-text fs-4 fw-bold">{{ education_count }}</p>
-                <a href="{% url 'education_list' %}" class="btn btn-outline-danger stretched-link">Yönet</a>
-            </div>
-        </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'education_list' %}" class="dashboard-widget">
+            <div class="widget-icon text-danger"><i class="bi bi-mortarboard"></i></div>
+            <div class="widget-number">{{ education_count }}</div>
+            <div class="widget-label">Eğitimler</div>
+        </a>
     </div>
 
     <!-- Inspection -->
-    <div class="col-md-4 col-sm-6">
-        <div class="card h-100 text-center p-3">
-            <div class="card-body">
-                <i class="bi bi-clipboard-check fs-1 text-secondary"></i>
-                <h5 class="card-title mt-2">Denetimler</h5>
-                <p class="card-text fs-4 fw-bold">{{ inspection_count }}</p>
-                <a href="{% url 'inspection_list' %}" class="btn btn-outline-secondary stretched-link">Yönet</a>
-            </div>
-        </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'inspection_list' %}" class="dashboard-widget">
+            <div class="widget-icon text-secondary"><i class="bi bi-clipboard-check"></i></div>
+            <div class="widget-number">{{ inspection_count }}</div>
+            <div class="widget-label">Denetimler</div>
+        </a>
     </div>
 
     <!-- Examination -->
-    <div class="col-md-4 col-sm-6">
-        <div class="card h-100 text-center p-3">
-            <div class="card-body">
-                <i class="bi bi-heart-pulse fs-1 text-danger"></i>
-                <h5 class="card-title mt-2">Muayeneler</h5>
-                <p class="card-text fs-4 fw-bold">{{ examination_count }}</p>
-                <a href="{% url 'examination_list' %}" class="btn btn-outline-danger stretched-link">Yönet</a>
-            </div>
-        </div>
+    <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'examination_list' %}" class="dashboard-widget">
+            <div class="widget-icon text-danger"><i class="bi bi-heart-pulse"></i></div>
+            <div class="widget-number">{{ examination_count }}</div>
+            <div class="widget-label">Muayeneler</div>
+        </a>
+    </div>
+
+    <!-- Statistics (Extra) -->
+    <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'statistics' %}" class="dashboard-widget">
+            <div class="widget-icon text-dark"><i class="bi bi-bar-chart-line"></i></div>
+            <div class="widget-number"><i class="bi bi-arrow-right"></i></div>
+            <div class="widget-label">İstatistikler</div>
+        </a>
     </div>
 </div>
 {% endblock %}
