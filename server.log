@@ -8,3 +8,20 @@
 [01/Jan/2026 17:21:23] "POST /login/ HTTP/1.1" 302 0
 [01/Jan/2026 17:21:23] "GET / HTTP/1.1" 200 10531
 [01/Jan/2026 17:21:23] "GET /facilities/ HTTP/1.1" 200 10452
+Performing system checks...
+
+System check identified no issues (0 silenced).
+January 01, 2026 - 17:17:08
+Django version 4.2.27, using settings 'osha_app.settings'
+Starting development server at http://0.0.0.0:8000/
+Quit the server with CONTROL-C.
+
+[01/Jan/2026 18:49:41] "GET /login/ HTTP/1.1" 200 9020
+[01/Jan/2026 18:49:42] "POST /login/ HTTP/1.1" 302 0
+[01/Jan/2026 18:49:42] "GET / HTTP/1.1" 200 12758
+[01/Jan/2026 18:49:43] "GET /workplaces/ HTTP/1.1" 200 23050
+[01/Jan/2026 18:49:43] "GET /workplaces/new/ HTTP/1.1" 200 15520
+[01/Jan/2026 18:49:43] "POST /workplaces/new/ HTTP/1.1" 302 0
+[01/Jan/2026 18:49:43] "GET /workplaces/ HTTP/1.1" 200 27924
+[01/Jan/2026 18:49:43] "GET /workplaces/ HTTP/1.1" 200 27595
+[01/Jan/2026 18:49:44] "GET /workplaces/1/edit/ HTTP/1.1" 200 21183
