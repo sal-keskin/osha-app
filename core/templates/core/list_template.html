@@ -117,12 +117,57 @@
 </div>
 {% endif %}
 
-<div class="card">
+<!-- Mobile List View (iOS Style) -->
+<div class="ios-list-group d-md-none">
+    {% for item in items %}
+    <div class="ios-list-item" onclick="toggleIosDetails(this)">
+        <div class="ios-item-header">
+            <div class="ios-item-title">
+                {% with first_field=fields.0.0 %}
+                   {{ item|getattr:first_field }}
+                {% endwith %}
+            </div>
+            <div class="ios-badges">
+                {% if mobile_config %}
+                    {% for badge in mobile_config.badge_fields %}
+                        {% with val=item|getattr:badge.field %}
+                            {% if badge.condition_gt %}
+                                 {% if val > badge.condition_gt %}
+                                     <span class="ios-badge"><i class="bi {{ badge.icon }}"></i> {{ val }}</span>
+                                 {% endif %}
+                            {% else %}
+                                 <span class="ios-badge"><i class="bi {{ badge.icon }}"></i> {{ val }}</span>
+                            {% endif %}
+                        {% endwith %}
+                    {% endfor %}
+                {% endif %}
+                <i class="bi bi-chevron-down ios-chevron"></i>
+            </div>
+        </div>
+        <div class="ios-item-details">
+            {% for field_name, field_label in fields %}
+                <div class="ios-detail-row">
+                    <span class="ios-detail-label">{{ field_label }}</span>
+                    <span>{{ item|getattr:field_name|safe }}</span>
+                </div>
+            {% endfor %}
+            {% if update_url_name %}
+                <a href="{% url update_url_name item.pk %}" class="ios-edit-btn">Edit Details</a>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="p-4 text-center text-muted">Kayıt bulunamadı.</div>
+    {% endfor %}
+</div>
+
+<!-- Desktop Table View -->
+<div class="card d-none d-md-block">
     <div class="card-body p-0">
         <form method="post" action="{% if bulk_delete_url_name %}{% url bulk_delete_url_name %}{% endif %}" id="bulk-delete-form">
             {% csrf_token %}
             <div class="table-responsive">
-                <table class="table table-striped table-hover mb-0 table-responsive-card">
+                <table class="table table-striped table-hover mb-0">
                     <thead class="table-light">
                         <tr>
                             {% if bulk_delete_url_name %}
@@ -230,6 +275,21 @@
 </div>
 
 <script>
+function toggleIosDetails(element) {
+    const details = element.querySelector('.ios-item-details');
+    const chevron = element.querySelector('.ios-chevron');
+    if (details.style.display === 'block') {
+        details.style.display = 'none';
+        chevron.style.transform = 'rotate(0deg)';
+        element.querySelector('.ios-item-header').style.backgroundColor = '';
+    } else {
+        details.style.display = 'block';
+        chevron.style.transform = 'rotate(180deg)';
+        // Highlight active state
+        // element.querySelector('.ios-item-header').style.backgroundColor = '#E5E5EA';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Caution Icon Handler
     const cautionNoteModalEl = document.getElementById('cautionNoteModal');

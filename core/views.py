@@ -156,7 +156,7 @@ def apply_filters(queryset, filter_config, params):
     return queryset
 
 # Generic helper for CRUD views
-def generic_list_view(request, model_class, title, create_url_name, update_url_name, fields_to_show, bulk_delete_url_name=None, export_url_name=None, filter_config=None, import_url_name=None, queryset=None, extra_actions=None):
+def generic_list_view(request, model_class, title, create_url_name, update_url_name, fields_to_show, bulk_delete_url_name=None, export_url_name=None, filter_config=None, import_url_name=None, queryset=None, extra_actions=None, mobile_config=None):
     if queryset is not None:
         items = queryset
     else:
@@ -191,6 +191,7 @@ def generic_list_view(request, model_class, title, create_url_name, update_url_n
         'fields': fields_to_show,
         'filter_config': filter_config,
         'extra_actions': extra_actions,
+        'mobile_config': mobile_config,
     }
     return render(request, 'core/list_template.html', context)
 
@@ -407,7 +408,8 @@ def workplace_list(request):
 
     # Calculate counts
     queryset = Workplace.objects.annotate(
-        total_workers=Count('workers', distinct=True)
+        total_workers=Count('workers', distinct=True),
+        facility_count=Count('facilities', distinct=True)
     )
 
     # We need to process validity in Python because logic is hazard-class dependent and complex for pure SQL/ORM
@@ -479,6 +481,13 @@ def workplace_list(request):
     # I will modify Workplace model in the next step to add these properties using cached worker lists.
     # But wait, prefetch_related caches to `_prefetched_objects_cache`. Accessing `workplace.workers.all()` uses it.
 
+    mobile_config = {
+        'badge_fields': [
+            {'field': 'total_workers_count', 'icon': 'bi-people', 'label': ''},
+            {'field': 'facility_count', 'icon': 'bi-building', 'label': '', 'condition_gt': 1},
+        ]
+    }
+
     return generic_list_view(request, Workplace, "İşyerleri", 'workplace_create', 'workplace_update',
                              [('name', 'İşyeri Adı'),
                               ('get_hazard_class_display', 'Tehlike Sınıfı'),
@@ -488,7 +497,7 @@ def workplace_list(request):
                               ('valid_first_aid_count_display', 'İlkyardım Sertifikası'),
                               ('contact_html', 'İletişim')],
                              'workplace_bulk_delete', 'workplace_export', filter_config, 'import_workplace_step1',
-                             queryset=queryset)
+                             queryset=queryset, mobile_config=mobile_config)
 
 @login_required
 def workplace_import(request, step=1):
@@ -543,19 +552,29 @@ def workplace_create(request):
 @login_required
 def workplace_update(request, pk):
     item = get_object_or_404(Workplace, pk=pk)
+
+    FacilityFormSet = inlineformset_factory(
+        Workplace, Facility, form=FacilityForm,
+        extra=1, can_delete=True
+    )
+
     if request.method == 'POST':
         form = WorkplaceForm(request.POST, instance=item)
-        if form.is_valid():
+        formset = FacilityFormSet(request.POST, instance=item)
+        if form.is_valid() and formset.is_valid():
             form.save()
+            formset.save()
+            log_action(request.user, 'Güncelleme', item)
             messages.success(request, 'Kayıt güncellendi.')
             return redirect('workplace_list')
     else:
         form = WorkplaceForm(instance=item)
+        formset = FacilityFormSet(instance=item)
 
     # Fetch facilities with their workers
     facilities = item.facilities.prefetch_related('worker_set').all()
 
-    return render(request, 'core/workplace_form.html', {'form': form, 'title': "İşyeri Düzenle", 'facilities': facilities})
+    return render(request, 'core/workplace_form.html', {'form': form, 'formset': formset, 'title': "İşyeri Düzenle", 'facilities': facilities})
 
 @login_required
 def worker_list(request):
