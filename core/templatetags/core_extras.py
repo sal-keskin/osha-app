@@ -19,3 +19,10 @@ def get_attribute(obj, attr_name):
             return obj[attr_name]
         except (TypeError, KeyError):
             return ""
+
+@register.simple_tag(takes_context=True)
+def url_replace(context, **kwargs):
+    query = context['request'].GET.copy()
+    for k, v in kwargs.items():
+        query[k] = v
+    return query.urlencode()

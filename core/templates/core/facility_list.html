@@ -57,18 +57,64 @@
 </div>
 {% endif %}
 
-<div class="card">
+<!-- Mobile List View -->
+<div class="ios-list-group d-md-none">
+    {% for facility in items %}
+    <div class="ios-list-item" onclick="toggleIosDetails(this)">
+        <div class="ios-item-header">
+            <div class="ios-item-title">{{ facility.name }}</div>
+            <div class="ios-badges">
+                <span class="ios-badge"><i class="bi bi-people"></i> {{ facility.worker_count }}</span>
+                <i class="bi bi-chevron-down ios-chevron"></i>
+            </div>
+        </div>
+        <div class="ios-item-details">
+            <div class="ios-detail-row">
+                <span class="ios-detail-label">İşyeri</span>
+                <span>{{ facility.workplace.name }}</span>
+            </div>
+            <div class="ios-detail-row">
+                <span class="ios-detail-label">Adres</span>
+                <span>{{ facility.address|default:"-" }}</span>
+            </div>
+            <div class="ios-detail-row">
+                <span class="ios-detail-label">Konum</span>
+                <span>{{ facility.location_link_html }}</span>
+            </div>
+            <div class="mt-2">
+                <a href="{% url update_url_name facility.id %}" class="ios-edit-btn">Düzenle</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="p-4 text-center text-muted">Kayıt bulunamadı.</div>
+    {% endfor %}
+</div>
+
+<div class="card d-none d-md-block">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0 table-responsive-card">
+            <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
                         <th style="width: 50px;"></th>
-                        <th>Bina/Birim Adı</th>
-                        <th>İşyeri</th>
+                        <th>
+                            <a href="?{% url_replace sort='name' %}{% if current_sort == 'name' %}&sort=-name{% endif %}" class="text-decoration-none text-dark">
+                                Bina/Birim Adı {% if current_sort == 'name' %}<i class="bi bi-arrow-down"></i>{% elif current_sort == '-name' %}<i class="bi bi-arrow-up"></i>{% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <a href="?{% url_replace sort='workplace__name' %}{% if current_sort == 'workplace__name' %}&sort=-workplace__name{% endif %}" class="text-decoration-none text-dark">
+                                İşyeri {% if current_sort == 'workplace__name' %}<i class="bi bi-arrow-down"></i>{% elif current_sort == '-workplace__name' %}<i class="bi bi-arrow-up"></i>{% endif %}
+                            </a>
+                        </th>
                         <th>Adres</th>
                         <th>Konum</th>
-                        <th>Çalışan Sayısı</th>
+                        <th>
+                            <a href="?{% url_replace sort='worker_count' %}{% if current_sort == 'worker_count' %}&sort=-worker_count{% endif %}" class="text-decoration-none text-dark">
+                                Çalışan Sayısı {% if current_sort == 'worker_count' %}<i class="bi bi-arrow-down"></i>{% elif current_sort == '-worker_count' %}<i class="bi bi-arrow-up"></i>{% endif %}
+                            </a>
+                        </th>
                         <th>İşlemler</th>
                     </tr>
                 </thead>
@@ -143,6 +189,19 @@
 </div>
 
 <script>
+    function toggleIosDetails(element) {
+        const details = element.querySelector('.ios-item-details');
+        const chevron = element.querySelector('.ios-chevron');
+        if (details.style.display === 'block') {
+            details.style.display = 'none';
+            chevron.style.transform = 'rotate(0deg)';
+            element.querySelector('.ios-item-header').style.backgroundColor = '';
+        } else {
+            details.style.display = 'block';
+            chevron.style.transform = 'rotate(180deg)';
+        }
+    }
+
     // Toggle icon functionality
     document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(btn => {
         btn.addEventListener('click', function() {

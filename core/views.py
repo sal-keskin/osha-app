@@ -105,6 +105,47 @@ def api_get_facilities(request):
 
 @login_required
 def dashboard(request):
+    from datetime import date, timedelta
+
+    # Attention Logic
+    workers = Worker.objects.select_related('workplace').prefetch_related('education_set', 'examination_set').all()
+    missing_edu = 0
+    missing_exam = 0
+    expiring_edu = 0
+    expiring_exam = 0
+    today = date.today()
+
+    for w in workers:
+        # Education
+        edus = w.education_set.all()
+        if not edus:
+            missing_edu += 1
+        else:
+            latest_edu = max(edus, key=lambda x: x.date)
+            validity = w.workplace.get_validity_years('education')
+            expiry = latest_edu.date + timedelta(days=365*validity)
+            if expiry.year == today.year and expiry.month == today.month:
+                 expiring_edu += 1
+
+        # Examination
+        exams = w.examination_set.all()
+        if not exams:
+            missing_exam += 1
+        else:
+            latest_exam = max(exams, key=lambda x: x.date)
+            validity = w.workplace.get_validity_years('examination')
+            expiry = latest_exam.date + timedelta(days=365*validity)
+            if expiry.year == today.year and expiry.month == today.month:
+                 expiring_exam += 1
+
+    attention_data = {
+        'missing_edu': missing_edu,
+        'missing_exam': missing_exam,
+        'expiring_edu': expiring_edu,
+        'expiring_exam': expiring_exam,
+        'has_issues': any([missing_edu, missing_exam, expiring_edu, expiring_exam])
+    }
+
     context = {
         'workplace_count': Workplace.objects.count(),
         'facility_count': Facility.objects.count(),
@@ -113,6 +154,7 @@ def dashboard(request):
         'education_count': Education.objects.count(),
         'inspection_count': Inspection.objects.count(),
         'examination_count': Examination.objects.count(),
+        'attention': attention_data,
     }
     return render(request, 'core/dashboard.html', context)
 
@@ -155,6 +197,14 @@ def apply_filters(queryset, filter_config, params):
 
     return queryset
 
+def apply_sorting(queryset, sort_param):
+    if sort_param:
+        try:
+            return queryset.order_by(sort_param)
+        except:
+            pass
+    return queryset
+
 # Generic helper for CRUD views
 def generic_list_view(request, model_class, title, create_url_name, update_url_name, fields_to_show, bulk_delete_url_name=None, export_url_name=None, filter_config=None, import_url_name=None, queryset=None, extra_actions=None, mobile_config=None):
     if queryset is not None:
@@ -179,6 +229,9 @@ def generic_list_view(request, model_class, title, create_url_name, update_url_n
                     config['options'] = []
 
         items = apply_filters(items, filter_config, request.GET)
+
+    current_sort = request.GET.get('sort')
+    items = apply_sorting(items, current_sort)
 
     context = {
         'items': items,
@@ -885,13 +938,23 @@ def facility_list(request):
     # Populate options for workplace select manually since we are not using generic_list_view
     filter_config[1]['options'] = [(w.pk, str(w)) for w in Workplace.objects.all()]
 
+    from django.db.models import Count
     queryset = Facility.objects.select_related('workplace').prefetch_related(
         'worker_set__workplace',
         'worker_set__education_set',
         'worker_set__examination_set'
-    )
+    ).annotate(worker_count=Count('worker'))
 
     items = apply_filters(queryset, filter_config, request.GET)
+
+    current_sort = request.GET.get('sort')
+    items = apply_sorting(items, current_sort)
+
+    mobile_config = {
+        'badge_fields': [
+            {'field': 'worker_count', 'icon': 'bi-people', 'label': ''},
+        ]
+    }
 
     context = {
         'items': items,
@@ -899,6 +962,8 @@ def facility_list(request):
         'create_url_name': 'facility_create',
         'update_url_name': 'facility_update',
         'filter_config': filter_config,
+        'mobile_config': mobile_config,
+        'current_sort': current_sort,
     }
     return render(request, 'core/facility_list.html', context)
 
