@@ -86,13 +86,6 @@ class WorkplaceForm(forms.ModelForm):
         }
 
 class FacilityForm(forms.ModelForm):
-    coordinates = forms.CharField(
-        label="Koordinatlar (Enlem, Boylam)",
-        required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Örn: 39.64266, 27.915561'}),
-        help_text="Google Maps'ten kopyalayabilirsiniz."
-    )
-
     class Meta:
         model = Facility
         fields = '__all__'
@@ -100,29 +93,8 @@ class FacilityForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'workplace': forms.Select(attrs={'class': 'form-select'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'latitude': forms.HiddenInput(),
-            'longitude': forms.HiddenInput(),
+            'coordinates': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Örn: 39.64266, 27.915561'}),
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance.pk and self.instance.latitude and self.instance.longitude:
-            self.fields['coordinates'].initial = f"{self.instance.latitude}, {self.instance.longitude}"
-
-    def clean(self):
-        cleaned_data = super().clean()
-        coords = cleaned_data.get('coordinates')
-        if coords:
-            try:
-                parts = [p.strip() for p in coords.split(',')]
-                if len(parts) == 2:
-                    cleaned_data['latitude'] = float(parts[0])
-                    cleaned_data['longitude'] = float(parts[1])
-                else:
-                    self.add_error('coordinates', 'Geçersiz format. "Enlem, Boylam" şeklinde olmalı.')
-            except ValueError:
-                self.add_error('coordinates', 'Geçersiz sayı formatı.')
-        return cleaned_data
 
 class WorkerForm(forms.ModelForm):
     class Meta:

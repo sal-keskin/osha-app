@@ -862,9 +862,26 @@ def facility_list(request):
         {'field': 'name', 'label': 'Bina/Birim Adı', 'type': 'text'},
         {'field': 'workplace', 'label': 'İşyeri', 'type': 'select'},
     ]
-    return generic_list_view(request, Facility, "Binalar/Birimler", 'facility_create', 'facility_update',
-                             [('name', 'Bina/Birim Adı'), ('workplace', 'İşyeri'), ('address', 'Adres'), ('location_link_html', 'Konum')],
-                             'facility_bulk_delete', None, filter_config, None) # No export/import yet
+
+    # Populate options for workplace select manually since we are not using generic_list_view
+    filter_config[1]['options'] = [(w.pk, str(w)) for w in Workplace.objects.all()]
+
+    queryset = Facility.objects.select_related('workplace').prefetch_related(
+        'worker_set__workplace',
+        'worker_set__education_set',
+        'worker_set__examination_set'
+    )
+
+    items = apply_filters(queryset, filter_config, request.GET)
+
+    context = {
+        'items': items,
+        'title': "Binalar/Birimler",
+        'create_url_name': 'facility_create',
+        'update_url_name': 'facility_update',
+        'filter_config': filter_config,
+    }
+    return render(request, 'core/facility_list.html', context)
 
 @login_required
 def facility_bulk_delete(request):
@@ -876,7 +893,19 @@ def facility_create(request):
 
 @login_required
 def facility_update(request, pk):
-    return generic_update_view(request, Facility, FacilityForm, pk, "Bina/Birim Düzenle", 'facility_list')
+    item = get_object_or_404(Facility, pk=pk)
+    if request.method == 'POST':
+        form = FacilityForm(request.POST, instance=item)
+        if form.is_valid():
+            obj = form.save()
+            log_action(request.user, 'Güncelleme', obj)
+            messages.success(request, 'Kayıt güncellendi.')
+            return redirect('facility_list')
+    else:
+        form = FacilityForm(instance=item)
+
+    workers = item.worker_set.all()
+    return render(request, 'core/facility_form.html', {'form': form, 'title': "Bina/Birim Düzenle", 'workers': workers})
 
 @login_required
 def facility_import(request, step=1):
