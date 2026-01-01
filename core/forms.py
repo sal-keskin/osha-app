@@ -196,7 +196,8 @@ class ExaminationNoteForm(forms.ModelForm):
 class CertificateTemplateForm(forms.ModelForm):
     class Meta:
         model = CertificateTemplate
-        fields = ['html_content']
+        fields = ['institute_name', 'education_topics']
         widgets = {
-            'html_content': forms.Textarea(attrs={'class': 'form-control', 'rows': 20, 'style': 'font-family: monospace;'}),
+            'institute_name': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'education_topics': forms.Textarea(attrs={'class': 'form-control', 'rows': 15}),
         }
