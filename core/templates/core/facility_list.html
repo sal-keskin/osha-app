@@ -1,0 +1,144 @@
+{% extends 'core/base.html' %}
+{% load core_extras %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col d-flex justify-content-between align-items-center">
+        <h2>{{ title }}</h2>
+        <div>
+            {% if create_url_name %}
+            <a href="{% url create_url_name %}" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> Yeni Ekle
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if filter_config %}
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            {% for config in filter_config %}
+            <div class="col-md-3">
+                <label for="filter-{{ config.field }}" class="form-label">{{ config.label|default:config.field|title }}</label>
+                {% if config.type == 'select' %}
+                <select name="{{ config.field }}" id="filter-{{ config.field }}" class="form-select">
+                    <option value="">Tümü</option>
+                    {% for opt_val, opt_label in config.options %}
+                    <option value="{{ opt_val }}" {% if config.value|stringformat:"s" == opt_val|stringformat:"s" %}selected{% endif %}>{{ opt_label }}</option>
+                    {% endfor %}
+                </select>
+                {% else %}
+                <input type="text" name="{{ config.field }}" id="filter-{{ config.field }}" class="form-control" value="{{ config.value|default:'' }}" placeholder="Ara...">
+                {% endif %}
+            </div>
+            {% endfor %}
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-secondary me-2">Filtrele</button>
+                <a href="{{ request.path }}" class="btn btn-outline-secondary">Temizle</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 50px;"></th>
+                        <th>Bina/Birim Adı</th>
+                        <th>İşyeri</th>
+                        <th>Adres</th>
+                        <th>Konum</th>
+                        <th>Çalışan Sayısı</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for facility in items %}
+                    <tr>
+                        <td>
+                            <button class="btn btn-sm btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFacility{{ facility.id }}" aria-expanded="false">
+                                <i class="bi bi-plus-circle fs-5"></i>
+                            </button>
+                        </td>
+                        <td>{{ facility.name }}</td>
+                        <td>{{ facility.workplace.name }}</td>
+                        <td>{{ facility.address|default:"-"|truncatechars:30 }}</td>
+                        <td>{{ facility.location_link_html }}</td>
+                        <td>{{ facility.worker_set.count }}</td>
+                        <td>
+                            <a href="{% url update_url_name facility.id %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr class="collapse bg-light" id="collapseFacility{{ facility.id }}">
+                        <td colspan="7" class="p-0">
+                            <div class="p-3">
+                                <h6>Bu birimdeki çalışanlar:</h6>
+                                {% if facility.worker_set.exists %}
+                                <table class="table table-sm table-bordered bg-white mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Ad Soyad</th>
+                                            <th>TCKN</th>
+                                            <th>Eğitim Durumu</th>
+                                            <th>Muayene Durumu</th>
+                                            <th style="width: 200px;">İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for worker in facility.worker_set.all %}
+                                        <tr>
+                                            <td>{{ worker.name }}</td>
+                                            <td>{{ worker.tckn }}</td>
+                                            <td>{{ worker.education_status }}</td>
+                                            <td>{{ worker.examination_status }}</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{% url 'worker_update' worker.id %}" class="btn btn-outline-primary">Düzenle</a>
+                                                    <a href="{% url 'examination_create' %}?worker_id={{ worker.id }}" class="btn btn-outline-success">Muayene Ekle</a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% else %}
+                                <p class="text-muted mb-0 small">Bu birime bağlı çalışan bulunmamaktadır.</p>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            Kayıt bulunamadı.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Toggle icon functionality
+    document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            if (icon.classList.contains('bi-plus-circle')) {
+                icon.classList.replace('bi-plus-circle', 'bi-dash-circle');
+            } else {
+                icon.classList.replace('bi-dash-circle', 'bi-plus-circle');
+            }
+        });
+    });
+</script>
+{% endblock %}
