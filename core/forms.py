@@ -133,17 +133,50 @@ class ProfessionalForm(forms.ModelForm):
         return license_id
 
 class EducationForm(forms.ModelForm):
+    specialist = forms.ModelChoiceField(
+        queryset=Professional.objects.filter(role='SPECIALIST'),
+        label="İş Güvenliği Uzmanı",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    medic = forms.ModelChoiceField(
+        queryset=Professional.objects.filter(role__in=['DOCTOR', 'OTHER_HEALTH']),
+        label="İşyeri Hekimi / Diğer Sağlık Personeli",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = Education
-        fields = '__all__'
+        exclude = ['professionals']
         widgets = {
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'topic': forms.TextInput(attrs={'class': 'form-control'}),
             'duration': forms.NumberInput(attrs={'class': 'form-control'}),
             'workplace': forms.Select(attrs={'class': 'form-select'}),
-            'professionals': forms.CheckboxSelectMultiple(),
             'workers': forms.CheckboxSelectMultiple(),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            # Populate initial values for specialist and medic if editing
+            profs = self.instance.professionals.all()
+            for p in profs:
+                if p.role == 'SPECIALIST':
+                    self.fields['specialist'].initial = p
+                elif p.role in ['DOCTOR', 'OTHER_HEALTH']:
+                    self.fields['medic'].initial = p
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if commit:
+            instance.save()
+            self.save_m2m() # Saves workers
+
+            # Save professionals
+            specialist = self.cleaned_data['specialist']
+            medic = self.cleaned_data['medic']
+            instance.professionals.set([specialist, medic])
+        return instance
 
 class InspectionForm(forms.ModelForm):
     class Meta:
