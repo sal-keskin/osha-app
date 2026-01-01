@@ -40,6 +40,10 @@ class Workplace(models.Model):
     detsis_number = models.CharField(max_length=50, unique=True, verbose_name="DETSİS No")
     hazard_class = models.CharField(max_length=10, choices=HAZARD_CHOICES, default='LOW', verbose_name="Tehlike Sınıfı")
 
+    # New Fields
+    employer_representative = models.TextField(null=True, blank=True, verbose_name="İşveren / İşveren Temsilcisi")
+    phone_number = models.CharField(max_length=20, null=True, blank=True, verbose_name="İletişim Numarası")
+
     def __str__(self):
         return f"{self.name} ({self.detsis_number})"
 
@@ -131,6 +135,24 @@ class Workplace(models.Model):
                 count += 1
 
         return f"{count}/{len(workers)} 🏥"
+
+    @property
+    def contact_html(self):
+        if not self.phone_number:
+            return ""
+
+        # Clean number for links
+        clean_num = ''.join(filter(str.isdigit, self.phone_number))
+
+        html = f"""
+        <a href="tel:{clean_num}" class="text-decoration-none me-2" title="Ara">
+            <i class="bi bi-telephone-fill"></i> {self.phone_number}
+        </a>
+        <a href="https://wa.me/{clean_num}" target="_blank" class="text-success text-decoration-none" title="WhatsApp">
+            <i class="bi bi-whatsapp"></i>
+        </a>
+        """
+        return mark_safe(html)
 
 
 class Facility(models.Model):
