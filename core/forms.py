@@ -172,7 +172,7 @@ class ExaminationForm(forms.ModelForm):
             'is_caution': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'id_is_caution'}),
             'caution_note': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'id': 'id_caution_note'}),
 
-            'tetanus_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            # REMOVED: tetanus_date widget
 
             # Checkboxes can use default widget or added class if needed, standard checkbox is fine
             'tetanus_vaccine': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -196,7 +196,7 @@ class ExaminationNoteForm(forms.ModelForm):
 class CertificateTemplateForm(forms.ModelForm):
     class Meta:
         model = CertificateTemplate
-        fields = ['background_image']
+        fields = ['html_content']
         widgets = {
-            'background_image': forms.FileInput(attrs={'class': 'form-control'}),
+            'html_content': forms.Textarea(attrs={'class': 'form-control', 'rows': 20, 'style': 'font-family: monospace;'}),
         }

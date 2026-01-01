@@ -284,7 +284,8 @@ class Examination(models.Model):
 
     # Checkups
     tetanus_vaccine = models.BooleanField(default=False, verbose_name="Tetanoz Aşısı Önerildi")
-    tetanus_date = models.DateField(null=True, blank=True, verbose_name="Tetanoz Aşısı Tarihi")
+
+    # REMOVED: tetanus_date
 
     hepatitis_b_vaccine = models.BooleanField(default=False, verbose_name="Hepatit B Aşısı Önerildi")
 
@@ -317,10 +318,104 @@ class Examination(models.Model):
         verbose_name = "Sağlık Muayenesi"
         verbose_name_plural = "Sağlık Muayeneleri"
 
+DEFAULT_CERTIFICATE_TEMPLATE = """<div style="width: 100%; max-width: 800px; padding: 40px; border: 5px solid #5d7083; font-family: 'Times New Roman', serif; background-color: #fff; position: relative; margin: 0 auto;">
+
+  <div style="text-align: center; color: #c62828; font-size: 10pt; font-weight: bold; margin-bottom: 20px;">
+    T.C. Sağlık Bakanlığı<br>
+    Balıkesir İl Sağlık Müdürlüğü, Karesi Çalışan Sağlığı Merkezi
+  </div>
+
+  <div style="text-align: center; color: #1f3a58; font-size: 32pt; margin-bottom: 40px; letter-spacing: 2px;">
+    EĞİTİM BELGESİ
+  </div>
+
+  <div style="margin-bottom: 40px; padding-left: 20px;">
+    <div style="font-weight: bold; font-size: 12pt; line-height: 1.8;">
+      Say&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{SAYI}}<br>
+      TCKN&nbsp;&nbsp;: {{TCKN}}<br>
+      Tarih&nbsp;&nbsp;&nbsp;: {{TARIH}}<br>
+      Süre&nbsp;&nbsp;&nbsp;&nbsp;: {{SURE}}<br>
+      İş Yeri : {{IS_YERI}}
+    </div>
+  </div>
+
+  <div style="text-align: center; border-bottom: 1px solid #000; width: 60%; margin: 0 auto 20px auto; font-size: 18pt; font-weight: bold;">
+    {{AD_SOYAD}}
+  </div>
+
+  <div style="text-align: center; font-size: 11pt; color: #444; margin-bottom: 30px; padding: 0 40px;">
+    Yukarıda adı geçen çalışan,<br>
+    Çalışanların İş Sağlığı ve Güvenliği Eğitimlerinin Usul ve Esasları Hakkında Yönetmelik
+    kapsamında verilen örgün <strong>İş Sağlığı ve Güvenliği Eğitimini</strong> başarıyla tamamlayarak bu
+    belgeyi almaya hak kazanmıştır.
+  </div>
+
+  <div style="text-align: center; font-weight: bold; font-size: 12pt; margin-bottom: 10px; font-variant: small-caps;">
+    Eğitim Konuları
+  </div>
+
+  <div style="text-align: center; color: #fdd835; margin-bottom: 20px; font-size: 20px;">
+    ~ ☚ ~
+  </div>
+
+  <table style="width: 100%; font-size: 8pt; border-collapse: collapse; margin-bottom: 50px; margin-left: auto; margin-right: auto; border: none;">
+    <tr>
+      <td style="width: 50%; vertical-align: top; padding-right: 15px; border: none; text-align: left;">
+        Çalışma mevzuatı ile ilgili bilgiler<br>
+        Çalışanların yasal hak ve sorumlulukları<br>
+        İş yeri temizliği ve düzeni<br>
+        İş kazası ve meslek hastalıklarından doğan hukuki sonuçlar<br>
+        Meslek hastalıklarının sebebi<br>
+        Hastalıktan korunma prensip ve tekniklerinin uygulanması<br>
+        Biyolojik ve psikososyal risk etmenleri<br>
+        İlk yardım<br>
+        Tütün ürünlerinin zararları ve pasif etkilenim<br>
+        Kimyasal fiziksel risk etmenleri<br>
+        Elle kaldırma taşıma
+      </td>
+      <td style="width: 50%; vertical-align: top; padding-left: 15px; border: none; text-align: left;">
+        Patlama, patlama, yangın ve yangından korunma<br>
+        İş ekipmanlarının güvenli kullanımı<br>
+        Ekranlı araçlarla çalışma<br>
+        Elektrik tehlikeleri riskleri ve önlemleri<br>
+        İş kazası sebepleri ve korunma prensipleri ile tekniklerinin uygulanması<br>
+        Güvenlik ve sağlık işaretleri<br>
+        Kişisel koruyucu donanımın kullanımı<br>
+        İş sağlığı ve güvenliği genel kuralları ve güvenlik kültürü<br>
+        Tahliye kurtarma<br>
+        Yüksekte çalışma<br>
+        Kapalı ortamda çalışma
+      </td>
+    </tr>
+  </table>
+
+  <table style="width: 100%;  text-align: center; font-size: 10pt; color: #555; margin-top: 40px; margin-left: auto; margin-right: auto; border: none;">
+    <tr>
+      <td style="width: 33%; vertical-align: bottom; border: none;">
+        <div style="border-top: 1px solid #555; width: 90%; margin: 0 auto; padding-top: 5px;">
+          İş Güvenliği Uzmanı
+        </div>
+      </td>
+      <td style="width: 33%; vertical-align: bottom; border: none;">
+        <div style="border-top: 1px solid #555; width: 99%; margin: 0 auto; padding-top: 5px;">
+          İş Yeri Hekimi/Hemşiresi
+        </div>
+      </td>
+      <td style="width: 33%; vertical-align: bottom; border: none;">
+        <div style="border-top: 1px solid #555; width: 90%; margin: 0 auto; padding-top: 5px;">
+          İşveren/İşveren Vekili
+        </div>
+      </td>
+    </tr>
+  </table>
+
+</div>
+"""
+
 class CertificateTemplate(models.Model):
     name = models.CharField(max_length=255, default="Global", verbose_name="Şablon Adı")
-    background_image = models.ImageField(upload_to='certificates/', verbose_name="Arkaplan Resmi", null=True, blank=True)
-    layout_config = models.JSONField(default=dict, verbose_name="Yerleşim Ayarları", blank=True)
+    # REMOVED: background_image, layout_config
+    html_content = models.TextField(default=DEFAULT_CERTIFICATE_TEMPLATE, verbose_name="HTML Şablonu")
 
     def __str__(self):
         return self.name
