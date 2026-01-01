@@ -7,6 +7,7 @@ from django.db.models import Q
 import csv
 import openpyxl
 from datetime import datetime
+from django.forms import inlineformset_factory
 from .forms import (
     LoginForm, WorkplaceForm, WorkerForm, ProfessionalForm,
     EducationForm, InspectionForm, ExaminationForm, ProfessionForm,
@@ -507,7 +508,36 @@ def workplace_export(request):
 
 @login_required
 def workplace_create(request):
-    return generic_create_view(request, WorkplaceForm, "Yeni İşyeri", 'workplace_list')
+    FacilityFormSet = inlineformset_factory(
+        Workplace, Facility, form=FacilityForm,
+        extra=1, can_delete=False
+    )
+
+    if request.method == 'POST':
+        form = WorkplaceForm(request.POST)
+        if form.is_valid():
+            created_workplace = form.save(commit=False)
+            formset = FacilityFormSet(request.POST, instance=created_workplace)
+            if formset.is_valid():
+                created_workplace.save()
+                formset.save()
+
+                # Auto-create fallback if no facility added
+                if created_workplace.facilities.count() == 0:
+                    Facility.objects.create(name="MERKEZ BİNA", workplace=created_workplace)
+
+                log_action(request.user, 'Oluşturma', created_workplace)
+                messages.success(request, 'İşyeri ve birimler başarıyla oluşturuldu.')
+                return redirect('workplace_list')
+    else:
+        form = WorkplaceForm()
+        formset = FacilityFormSet()
+
+    return render(request, 'core/workplace_form.html', {
+        'form': form,
+        'formset': formset,
+        'title': "Yeni İşyeri"
+    })
 
 @login_required
 def workplace_update(request, pk):
@@ -832,7 +862,7 @@ def facility_list(request):
         {'field': 'workplace', 'label': 'İşyeri', 'type': 'select'},
     ]
     return generic_list_view(request, Facility, "Binalar/Birimler", 'facility_create', 'facility_update',
-                             [('name', 'Bina/Birim Adı'), ('workplace', 'İşyeri')],
+                             [('name', 'Bina/Birim Adı'), ('workplace', 'İşyeri'), ('address', 'Adres'), ('location_link_html', 'Konum')],
                              'facility_bulk_delete', None, filter_config, None) # No export/import yet
 
 @login_required
