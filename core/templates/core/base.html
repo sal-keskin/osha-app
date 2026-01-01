@@ -11,6 +11,87 @@
         [data-bs-theme="dark"] body { background-color: #212529; }
         .card { border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .navbar-brand { font-weight: bold; }
+
+        /* Input Styling */
+        .form-control, .form-select {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .form-control:focus, .form-select:focus {
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+            border-color: #86b7fe;
+        }
+
+        /* Floating Action Button */
+        .fab-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            z-index: 1050;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        /* Mobile Responsive Cards */
+        @media (max-width: 768px) {
+            .table-responsive-card thead {
+                display: none;
+            }
+            .table-responsive-card tbody tr {
+                display: block;
+                background: #fff;
+                margin-bottom: 1rem;
+                border-radius: 12px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                padding: 16px;
+                border: 1px solid #f0f0f0;
+            }
+            .table-responsive-card tbody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1px solid #f8f9fa;
+                text-align: right;
+                padding: 10px 0;
+            }
+            .table-responsive-card tbody td:last-child {
+                border-bottom: none;
+                justify-content: flex-end;
+                margin-top: 8px;
+            }
+            .table-responsive-card tbody td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: #6c757d;
+                margin-right: 1rem;
+                text-align: left;
+                flex: 1;
+            }
+            /* Collapse/Accordion Override */
+            .table-responsive-card tbody tr.collapse {
+                margin-top: -12px;
+                border-top-left-radius: 0;
+                border-top-right-radius: 0;
+                background-color: #fafafa;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                border-top: none;
+                padding: 0;
+            }
+            .table-responsive-card tbody tr.collapse td {
+                display: block;
+                text-align: left;
+                padding: 0;
+            }
+            .table-responsive-card tbody tr.collapse td::before {
+                content: none;
+            }
+        }
     </style>
 </head>
 <body>

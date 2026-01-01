@@ -4,8 +4,15 @@
 {% block content %}
 <div class="row mb-3">
     <div class="col d-flex justify-content-between align-items-center">
-        <h2>{{ title }}</h2>
-        <div>
+        <div class="d-flex align-items-center">
+            <h2>{{ title }}</h2>
+            {% if filter_config %}
+            <button class="btn btn-outline-secondary ms-3 d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false">
+                <i class="bi bi-funnel"></i>
+            </button>
+            {% endif %}
+        </div>
+        <div class="d-none d-md-block">
             {% if create_url_name %}
             <a href="{% url create_url_name %}" class="btn btn-primary">
                 <i class="bi bi-plus-lg"></i> Yeni Ekle
@@ -15,8 +22,15 @@
     </div>
 </div>
 
+<!-- Mobile FAB -->
+{% if create_url_name %}
+<a href="{% url create_url_name %}" class="btn btn-primary fab-btn d-md-none">
+    <i class="bi bi-plus-lg"></i>
+</a>
+{% endif %}
+
 {% if filter_config %}
-<div class="card mb-3">
+<div class="card mb-3 collapse d-md-block" id="filterCollapse">
     <div class="card-body">
         <form method="get" class="row g-3">
             {% for config in filter_config %}
@@ -46,7 +60,7 @@
 <div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 table-responsive-card">
                 <thead class="table-light">
                     <tr>
                         <th style="width: 50px;"></th>
