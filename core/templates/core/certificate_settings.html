@@ -9,36 +9,26 @@
 </div>
 
 <div class="row">
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-header">Kullanılabilir Değişkenler</div>
-            <div class="card-body">
-                <p class="text-muted small">Aşağıdaki değişkenleri şablon içinde kullanabilirsiniz. PDF oluşturulurken otomatik olarak doldurulacaktır.</p>
-                <ul class="list-group list-group-flush small">
-                    <li class="list-group-item"><code>{{SAYI}}</code> - Sertifika No</li>
-                    <li class="list-group-item"><code>{{TCKN}}</code> - Çalışan TCKN</li>
-                    <li class="list-group-item"><code>{{AD_SOYAD}}</code> - Çalışan Ad Soyad</li>
-                    <li class="list-group-item"><code>{{TARIH}}</code> - Eğitim Tarihi</li>
-                    <li class="list-group-item"><code>{{SURE}}</code> - Eğitim Süresi</li>
-                    <li class="list-group-item"><code>{{IS_YERI}}</code> - İşyeri Adı</li>
-                    <li class="list-group-item"><code>{{EGITICILER}}</code> - Eğitici İsimleri</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-9">
+    <div class="col-md-12">
         <div class="card">
             <div class="card-header">
-                HTML Şablon Editörü
+                Sertifika İçerik Ayarları
             </div>
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label for="{{ form.html_content.id_for_label }}" class="form-label">Şablon İçeriği (HTML)</label>
-                        {{ form.html_content }}
+                        <label for="{{ form.institute_name.id_for_label }}" class="form-label">Kurum Başlığı</label>
+                        {{ form.institute_name }}
+                        <div class="form-text">Sertifikanın en üstünde yer alan kurum adı. Alt satıra geçmek için Enter kullanın.</div>
                     </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.education_topics.id_for_label }}" class="form-label">Eğitim Konuları</label>
+                        {{ form.education_topics }}
+                        <div class="form-text">Sertifikada listelenecek eğitim konuları. Her satıra bir konu yazınız.</div>
+                    </div>
+
                     <button type="submit" class="btn btn-primary">Kaydet</button>
                 </form>
             </div>
