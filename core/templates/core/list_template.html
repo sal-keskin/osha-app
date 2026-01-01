@@ -4,8 +4,17 @@
 {% block content %}
 <div class="row mb-3">
     <div class="col d-flex justify-content-between align-items-center">
-        <h2>{{ title }}</h2>
-        <div>
+        <div class="d-flex align-items-center">
+            <h2>{{ title }}</h2>
+            {% if filter_config %}
+            <button class="btn btn-outline-secondary ms-3 d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false">
+                <i class="bi bi-funnel"></i>
+            </button>
+            {% endif %}
+        </div>
+
+        <!-- Desktop Actions -->
+        <div class="d-none d-md-block">
             {% if export_url_name %}
             <div class="btn-group me-2">
                 <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
@@ -29,17 +38,52 @@
                 <i class="bi bi-trash"></i> Seçilenleri Sil
             </button>
             {% endif %}
-                            {% if create_url_name %}
+
+            {% if create_url_name %}
             <a href="{% url create_url_name %}" class="btn btn-primary">
                 <i class="bi bi-plus-lg"></i> Yeni Ekle
             </a>
-                            {% endif %}
+            {% endif %}
+        </div>
+
+        <!-- Mobile Actions (Dropdown) -->
+        <div class="d-md-none">
+             <div class="dropdown">
+                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    {% if export_url_name %}
+                    <li><h6 class="dropdown-header">Dışa Aktar</h6></li>
+                    <li><a class="dropdown-item" href="{% url export_url_name %}?format=csv{% for key, value in request.GET.items %}{% if key != 'format' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"><i class="bi bi-filetype-csv"></i> CSV İndir</a></li>
+                    <li><a class="dropdown-item" href="{% url export_url_name %}?format=xlsx{% for key, value in request.GET.items %}{% if key != 'format' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"><i class="bi bi-file-earmark-spreadsheet"></i> Excel İndir</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    {% endif %}
+
+                    {% if import_url_name %}
+                    <li><a class="dropdown-item" href="{% url import_url_name %}"><i class="bi bi-upload"></i> İçe Aktar</a></li>
+                    {% endif %}
+
+                    {% if bulk_delete_url_name %}
+                    <!-- Note: Bulk delete is tricky on mobile card view since checkboxes might be hidden or awkward. Keeping it simple or relying on individual delete.
+                         For now, we can show a link but it requires JS interaction with hidden checkboxes.
+                         Let's omit Bulk Delete from mobile dropdown for safety/simplicity unless critical. -->
+                    {% endif %}
+                </ul>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Mobile FAB -->
+{% if create_url_name %}
+<a href="{% url create_url_name %}" class="btn btn-primary fab-btn d-md-none">
+    <i class="bi bi-plus-lg"></i>
+</a>
+{% endif %}
+
 {% if filter_config %}
-<div class="card mb-3">
+<div class="card mb-3 collapse d-md-block" id="filterCollapse">
     <div class="card-body">
         <form method="get" class="row g-3">
             {% for config in filter_config %}
@@ -78,7 +122,7 @@
         <form method="post" action="{% if bulk_delete_url_name %}{% url bulk_delete_url_name %}{% endif %}" id="bulk-delete-form">
             {% csrf_token %}
             <div class="table-responsive">
-                <table class="table table-striped table-hover mb-0">
+                <table class="table table-striped table-hover mb-0 table-responsive-card">
                     <thead class="table-light">
                         <tr>
                             {% if bulk_delete_url_name %}
