@@ -1,0 +1,176 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    .team-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .team-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+
+    .team-header h1 {
+        margin: 0;
+        font-size: 1.75rem;
+    }
+
+    .team-header .subtitle {
+        opacity: 0.9;
+        margin-top: 0.5rem;
+    }
+
+    .legal-info {
+        background: #e7f1ff;
+        border-left: 4px solid #0d6efd;
+        padding: 1rem 1.25rem;
+        border-radius: 0 8px 8px 0;
+        margin-bottom: 2rem;
+    }
+
+    .legal-info h6 {
+        margin: 0 0 0.5rem 0;
+        color: #0d6efd;
+    }
+
+    .legal-info p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #495057;
+    }
+
+    .member-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .member-info h5 {
+        margin: 0 0 0.25rem 0;
+    }
+
+    .member-info .role {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .add-form {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .nav-buttons {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+</style>
+
+<div class="team-container">
+    <div class="team-header">
+        <h1><i class="bi bi-people me-2"></i>Değerlendirme Ekibi</h1>
+        <div class="subtitle">{{ session.title }} • {{ facility.name }}</div>
+    </div>
+
+    <!-- Legal Info -->
+    <div class="legal-info">
+        <h6><i class="bi bi-info-circle me-1"></i> Metodoloji Bilgisi</h6>
+        <p>Bu değerlendirme, <strong>"{{ tool.title }}"</strong> metodolojisi kullanılarak gerçekleştirilmektedir.
+            Değerlendirme, <strong>6331 sayılı İş Sağlığı ve Güvenliği Kanunu</strong> ve ilgili yönetmelikler
+            çerçevesinde
+            tehlikeleri tespit etmek, riskleri değerlendirmek ve gerekli önlemleri tanımlamak amacıyla yapılmaktadır.
+        </p>
+    </div>
+
+    <!-- Add Form -->
+    <div class="add-form">
+        <h5 class="mb-3"><i class="bi bi-person-plus me-2"></i>Yeni Ekip Üyesi Ekle</h5>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Rol</label>
+                    <select name="role" class="form-select" required>
+                        {% for code, label in role_choices %}
+                        <option value="{{ code }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Ad Soyad</label>
+                    <input type="text" name="name" class="form-control" placeholder="Ahmet Yılmaz" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Unvan (Opsiyonel)</label>
+                    <input type="text" name="title" class="form-control" placeholder="Örn: A Sınıfı Uzman">
+                </div>
+            </div>
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Ekle</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Team Members List -->
+    <h5 class="mb-3"><i class="bi bi-people me-2"></i>Mevcut Ekip ({{ team_members.count }})</h5>
+
+    {% if team_members %}
+    {% for member in team_members %}
+    <div class="member-card">
+        <div class="member-info">
+            <h5>{{ member.name }}</h5>
+            <div class="role">{{ member.get_role_display }}{% if member.title %} • {{ member.title }}{% endif %}</div>
+        </div>
+        <form method="post" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="member_id" value="{{ member.pk }}">
+            <button type="submit" class="btn btn-outline-danger btn-sm"
+                onclick="return confirm('Bu üyeyi silmek istediğinizden emin misiniz?')">
+                <i class="bi bi-trash"></i>
+            </button>
+        </form>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        Henüz ekip üyesi eklenmedi. Yukarıdaki formu kullanarak ekip üyelerini ekleyin veya devam edin.
+    </div>
+    {% endif %}
+
+    <!-- Navigation -->
+    <div class="nav-buttons">
+        {% if session.mode == 'FAST_TRACK' %}
+        <a href="{% url 'assessment_fast_run' session.pk %}" class="btn btn-primary btn-lg">
+            <i class="bi bi-lightning-charge-fill me-1"></i> Listeden Seçerek Devam Et
+        </a>
+        {% else %}
+        <a href="{% url 'assessment_session_run' session.pk %}" class="btn btn-primary btn-lg">
+            <i class="bi bi-play-fill me-1"></i> Değerlendirmeye Başla
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="text-center mt-3">
+        <a href="{% url 'facility_detail' facility.pk %}" class="text-muted"><i class="bi bi-arrow-left me-1"></i>
+            Tesise Dön</a>
+    </div>
+</div>
+{% endblock %}

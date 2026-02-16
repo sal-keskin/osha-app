@@ -1,0 +1,518 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    .engagements-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 24px;
+        color: white;
+    }
+
+    .back-link {
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 16px;
+    }
+
+    .hero-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+    }
+
+    .hero-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 10px 20px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .hero-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        color: white;
+    }
+
+    /* Masonry Grid */
+    .masonry-grid {
+        column-count: 1;
+        column-gap: 20px;
+    }
+
+    @media (min-width: 768px) {
+        .masonry-grid {
+            column-count: 2;
+        }
+    }
+
+    @media (min-width: 1200px) {
+        .masonry-grid {
+            column-count: 3;
+        }
+    }
+
+    /* Engagement Card */
+    .engagement-card {
+        break-inside: avoid;
+        background: #fff;
+        border-radius: 16px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        border-left: 4px solid #E5E7EB;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .engagement-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .engagement-card.published {
+        border-left-color: #10B981;
+    }
+
+    .engagement-card.resolved {
+        border-left-color: #22C55E;
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .topic-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-bottom: 12px;
+    }
+
+    .topic-badge.suggestion {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .topic-badge.near_miss {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .topic-badge.hazard {
+        background: #FECACA;
+        color: #7F1D1D;
+    }
+
+    .topic-badge.complaint {
+        background: #F3E8FF;
+        color: #6B21A8;
+    }
+
+    .engagement-message {
+        color: #111827;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 16px;
+    }
+
+    .card-stats {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+        color: #6B7280;
+        border-top: 1px solid #E5E7EB;
+        padding-top: 12px;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .expert-badge {
+        color: #2563EB;
+        font-weight: 700;
+    }
+
+    /* Comments Section */
+    .comments-section {
+        background: #F9FAFB;
+        padding: 16px 20px;
+        border-top: 1px solid #E5E7EB;
+    }
+
+    .comment {
+        padding: 10px 0;
+        border-bottom: 1px solid #E5E7EB;
+    }
+
+    .comment:last-child {
+        border-bottom: none;
+    }
+
+    .comment.professional {
+        background: #EFF6FF;
+        margin: 8px -20px;
+        padding: 12px 20px;
+    }
+
+    .comment-author {
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin-bottom: 4px;
+    }
+
+    .comment-author.professional {
+        color: #2563EB;
+    }
+
+    .comment-text {
+        font-size: 0.9rem;
+        color: #374151;
+    }
+
+    .comment-time {
+        font-size: 0.75rem;
+        color: #9CA3AF;
+        margin-top: 4px;
+    }
+
+    /* Actions */
+    .card-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+
+    .action-btn-sm {
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border: 1px solid #E5E7EB;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .action-btn-sm:hover {
+        background: #F3F4F6;
+    }
+
+    .action-btn-sm.active {
+        background: #D1FAE5;
+        border-color: #10B981;
+        color: #065F46;
+    }
+
+    /* Comment Form */
+    .comment-form {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .comment-input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        font-size: 0.85rem;
+    }
+
+    .comment-submit {
+        padding: 8px 16px;
+        background: #3B82F6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6B7280;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        opacity: 0.3;
+        margin-bottom: 16px;
+    }
+</style>
+
+<div class="engagements-hero">
+    <a href="{% url 'facility_detail' facility.pk %}" class="back-link">
+        <i class="bi bi-arrow-left"></i> {{ facility.name }}
+    </a>
+
+    <h1 class="hero-title"><i class="bi bi-chat-dots"></i> Güvenlik Bildirimleri</h1>
+
+    <div class="hero-actions">
+        <a href="{% url 'facility_qr_code' facility.pk %}" class="hero-btn">
+            <i class="bi bi-qr-code"></i> QR Kodu İndir
+        </a>
+        <a href="{% url 'poll_create' facility.pk %}" class="hero-btn">
+            <i class="bi bi-bar-chart"></i> Yeni Anket
+        </a>
+    </div>
+</div>
+
+{% if engagements %}
+<div class="masonry-grid">
+    {% for engagement in engagements %}
+    <div class="engagement-card {% if engagement.is_public_on_wall %}published{% endif %} {% if engagement.resolved_at %}resolved{% endif %}"
+        id="engagement-{{ engagement.pk }}">
+        <div class="card-body">
+            <!-- Topic Badge -->
+            <span class="topic-badge {{ engagement.topic|lower }}">
+                {% if engagement.topic == 'SUGGESTION' %}💡{% elif engagement.topic == 'NEAR_MISS' %}⚠️{% elif
+                engagement.topic == 'HAZARD' %}🚨{% else %}💬{% endif %}
+                {{ engagement.get_topic_display }}
+            </span>
+
+            {% if engagement.is_anonymous %}
+            <span style="float: right; font-size: 0.8rem; color: #9CA3AF;"><i class="bi bi-incognito"></i> Anonim</span>
+            {% endif %}
+
+            <!-- Message -->
+            <div class="engagement-message">
+                {{ engagement.message }}
+            </div>
+
+            <!-- Stats -->
+            <div class="card-stats">
+                <span>{{ engagement.created_at|date:"d M Y" }}</span>
+                <div style="display: flex; gap: 12px;">
+                    <span class="stat-item">💬 {{ engagement.comments.count }}</span>
+                    <span class="stat-item">❤️ {{ engagement.likes }}</span>
+                    {% if engagement.has_expert_comment %}
+                    <span class="stat-item expert-badge">★ Uzman</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card-actions">
+                <!-- Status Badge -->
+                <span
+                    class="action-btn-sm {% if engagement.status == 'PENDING' %}pending{% elif engagement.status == 'APPROVED' %}active{% else %}rejected{% endif %}"
+                    style="cursor: default; {% if engagement.status == 'PENDING' %}background: #FEF3C7; border-color: #F59E0B; color: #92400E;{% elif engagement.status == 'REJECTED' %}background: #FEE2E2; border-color: #F87171; color: #991B1B;{% endif %}"
+                    id="status-{{ engagement.pk }}">
+                    {% if engagement.status == 'PENDING' %}⏳ Beklemede{% elif engagement.status == 'APPROVED' %}✅
+                    Onaylı{% else %}❌ Reddedildi{% endif %}
+                </span>
+
+                {% if engagement.status == 'PENDING' %}
+                <!-- Approve Button -->
+                <button class="action-btn-sm" style="background: #D1FAE5; border-color: #10B981; color: #065F46;"
+                    onclick="updateStatus({{ engagement.pk }}, 'APPROVED', this)">
+                    <i class="bi bi-check-lg"></i> Onayla
+                </button>
+
+                <!-- Reject Button -->
+                <button class="action-btn-sm" style="background: #FEE2E2; border-color: #F87171; color: #991B1B;"
+                    onclick="updateStatus({{ engagement.pk }}, 'REJECTED', this)">
+                    <i class="bi bi-x-lg"></i> Reddet
+                </button>
+                {% endif %}
+
+                <!-- Wall Toggle -->
+                <button class="action-btn-sm {% if engagement.is_public_on_wall %}active{% endif %}"
+                    onclick="toggleWall({{ engagement.pk }}, this)">
+                    <i class="bi bi-globe"></i>
+                    {% if engagement.is_public_on_wall %}Panoda{% else %}Paylaş{% endif %}
+                </button>
+
+                {% if engagement.resolved_at %}
+                <span class="action-btn-sm active" style="cursor: default;">
+                    <i class="bi bi-check-circle"></i> Çözüldü
+                </span>
+                {% endif %}
+
+                <!-- Delete Button -->
+                <button class="action-btn-sm" style="background: #FEE2E2; border-color: #F87171; color: #991B1B;"
+                    onclick="deleteEngagement({{ engagement.pk }}, this)">
+                    <i class="bi bi-trash"></i> Sil
+                </button>
+            </div>
+        </div>
+
+        <!-- Comments -->
+        <div class="comments-section">
+            <strong style="font-size: 0.85rem; color: #374151; display: block; margin-bottom: 8px;">
+                💬 Yorumlar ({{ engagement.comments.count }})
+            </strong>
+
+            {% for comment in engagement.comments.all %}
+            <div class="comment {% if comment.is_professional %}professional{% endif %}" id="comment-{{ comment.pk }}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div class="comment-author {% if comment.is_professional %}professional{% endif %}">
+                            {% if comment.is_professional %}👨‍⚕️{% endif %} {{ comment.author_name }}
+                        </div>
+                        <div class="comment-text">{{ comment.text }}</div>
+                        <div class="comment-time">{{ comment.created_at|date:"d.m.Y H:i" }}</div>
+                    </div>
+                    <button class="action-btn-sm {% if comment.is_public_on_voice %}active{% endif %}"
+                        style="flex-shrink: 0; font-size: 0.7rem; padding: 4px 8px;"
+                        onclick="toggleCommentVoice({{ comment.pk }}, this)" title="Voice sayfasında göster/gizle">
+                        <i class="bi bi-megaphone"></i>
+                        {% if comment.is_public_on_voice %}Voice{% else %}Gizli{% endif %}
+                    </button>
+                </div>
+            </div>
+            {% empty %}
+            <div style="font-size: 0.85rem; color: #9CA3AF;">Henüz yorum yok</div>
+            {% endfor %}
+
+            <!-- Add Comment Form -->
+            <div class="comment-form">
+                <input type="text" class="comment-input" id="comment-input-{{ engagement.pk }}"
+                    placeholder="Yorum ekle...">
+                <button class="comment-submit" onclick="addComment({{ engagement.pk }})">
+                    <i class="bi bi-send"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="bi bi-chat-dots"></i>
+    <p>Henüz bildirim alınmamış.</p>
+    <p class="text-muted">Çalışanlarınız QR kodu tarayarak bildirim gönderebilir.</p>
+</div>
+{% endif %}
+
+<script>
+    function toggleWall(engagementId, btn) {
+        const isCurrentlyPublic = btn.classList.contains('active');
+        const newValue = !isCurrentlyPublic;
+
+        fetch(`/api/engagements/${engagementId}/toggle-wall/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ is_public: newValue })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    btn.classList.toggle('active', data.is_public_on_wall);
+                    btn.innerHTML = data.is_public_on_wall
+                        ? '<i class="bi bi-globe"></i> Panoda'
+                        : '<i class="bi bi-globe"></i> Paylaş';
+                    document.getElementById(`engagement-${engagementId}`).classList.toggle('published', data.is_public_on_wall);
+                }
+            });
+    }
+
+    function addComment(engagementId) {
+        const input = document.getElementById(`comment-input-${engagementId}`);
+        const text = input.value.trim();
+
+        if (!text) return;
+
+        fetch(`/api/engagements/${engagementId}/comment/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ text: text })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+    }
+
+    function updateStatus(engagementId, newStatus, btn) {
+        fetch(`/api/engagements/${engagementId}/status/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ status: newStatus })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.error || 'Bir hata oluştu');
+                }
+            });
+    }
+
+    function deleteEngagement(engagementId, btn) {
+        if (!confirm('Bu bildirimi silmek istediğinizden emin misiniz?')) {
+            return;
+        }
+
+        fetch(`/api/engagements/${engagementId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById(`engagement-${engagementId}`).remove();
+                } else {
+                    alert(data.error || 'Silinemedi');
+                }
+            });
+    }
+
+    function toggleCommentVoice(commentId, btn) {
+        fetch(`/api/comments/${commentId}/toggle-voice/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    btn.classList.toggle('active', data.is_public_on_voice);
+                    btn.innerHTML = data.is_public_on_voice
+                        ? '<i class="bi bi-megaphone"></i> Voice'
+                        : '<i class="bi bi-megaphone"></i> Gizli';
+                }
+            });
+    }
+</script>
+{% endblock %}

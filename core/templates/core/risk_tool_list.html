@@ -1,0 +1,83 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col d-flex justify-content-between align-items-center">
+        <h2>{{ title }}</h2>
+        <div class="d-flex gap-2">
+            <a href="{% url 'risk_tool_template' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-download"></i> Şablon İndir
+            </a>
+            <a href="{% url 'risk_tool_import' %}" class="btn btn-outline-primary">
+                <i class="bi bi-upload"></i> Excel İçe Aktar
+            </a>
+            <a href="{% url 'risk_tool_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> Yeni Oluştur
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if tools %}
+<div class="row g-3">
+    {% for tool in tools %}
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title mb-0">{{ tool.title }}</h5>
+                    {% if tool.is_active %}
+                    <span class="badge bg-success">Aktif</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Pasif</span>
+                    {% endif %}
+                </div>
+                {% if tool.sector %}
+                <p class="text-muted small mb-2">
+                    <i class="bi bi-tag me-1"></i>{{ tool.sector }}
+                </p>
+                {% endif %}
+                {% if tool.description %}
+                <p class="card-text small text-muted">{{ tool.description|truncatechars:100 }}</p>
+                {% endif %}
+                <div class="d-flex align-items-center gap-3 mt-3">
+                    <span class="badge bg-light text-dark">
+                        <i class="bi bi-folder me-1"></i>{{ tool.categories.count }} Kategori
+                    </span>
+                    <span class="badge bg-light text-dark">
+                        <i class="bi bi-question-circle me-1"></i>{{ tool.question_count }} Soru
+                    </span>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent d-flex gap-2">
+                <a href="{% url 'risk_tool_update' tool.pk %}" class="btn btn-sm btn-outline-primary flex-grow-1">
+                    <i class="bi bi-pencil"></i> Düzenle
+                </a>
+                <a href="{% url 'risk_tool_delete' tool.pk %}" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-clipboard-data text-muted" style="font-size: 4rem;"></i>
+        <h4 class="mt-3">Henüz Değerlendirme Aracı Yok</h4>
+        <p class="text-muted">
+            Risk değerlendirme araçları oluşturarak birimleriniz için değerlendirme başlatabilirsiniz.
+        </p>
+        <div class="d-flex justify-content-center gap-2 mt-3">
+            <a href="{% url 'risk_tool_import' %}" class="btn btn-outline-primary">
+                <i class="bi bi-upload me-1"></i> Excel İçe Aktar
+            </a>
+            <a href="{% url 'risk_tool_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i> Manuel Oluştur
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

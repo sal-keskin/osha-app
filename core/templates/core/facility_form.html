@@ -16,14 +16,14 @@
                     <div class="mb-3">
                         <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
                         {% if field.name == 'coordinates' %}
-                            <div class="input-group">
-                                {{ field }}
-                                <button type="button" class="btn btn-outline-secondary" id="btn-map-picker">
-                                    <i class="bi bi-geo-alt"></i> Harita
-                                </button>
-                            </div>
-                        {% else %}
+                        <div class="input-group">
                             {{ field }}
+                            <button type="button" class="btn btn-outline-secondary" id="btn-map-picker">
+                                <i class="bi bi-geo-alt"></i> Harita
+                            </button>
+                        </div>
+                        {% else %}
+                        {{ field }}
                         {% endif %}
 
                         {% if field.help_text %}
@@ -69,7 +69,8 @@
                                 <td>{{ worker.name }}</td>
                                 <td>{{ worker.tckn }}</td>
                                 <td>
-                                    <a href="{% url 'worker_update' worker.id %}" class="btn btn-sm btn-outline-primary">
+                                    <a href="{% url 'worker_update' worker.id %}"
+                                        class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                 </td>
@@ -79,6 +80,123 @@
                     </table>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if facility %}
+<!-- Risk Assessment Section -->
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Risk Değerlendirme</h5>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                    data-bs-target="#newAssessmentModal">
+                    <i class="bi bi-plus-lg"></i> Yeni Değerlendirme
+                </button>
+            </div>
+            <div class="card-body">
+                {% if assessment_sessions %}
+                <!-- Session List -->
+                <div class="list-group">
+                    {% for session in assessment_sessions %}
+                    <a href="{% url 'assessment_session_run' session.pk %}"
+                        class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">{{ session.title }}</h6>
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar me-1"></i>{{ session.created_at|date:"d M Y" }}
+                                    · {{ session.tool.title }}
+                                </small>
+                            </div>
+                            <span
+                                class="badge {% if session.status == 'COMPLETED' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                                {{ session.get_status_display }}
+                            </span>
+                        </div>
+                        <!-- Progress Bar -->
+                        <div class="progress mt-2" style="height: 4px;">
+                            <div class="progress-bar" role="progressbar"
+                                style="width: {{ session.progress_percentage }}%"></div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <!-- Empty State -->
+                <div class="text-center py-5">
+                    <i class="bi bi-shield-check text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3">Risk Değerlendirmesi Başlat</h5>
+                    <p class="text-muted">Bu birim için henüz bir değerlendirme yapılmadı.</p>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                        data-bs-target="#newAssessmentModal">
+                        <i class="bi bi-plus-lg me-1"></i> Yeni Değerlendirme
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Assessment Modal -->
+<div class="modal fade" id="newAssessmentModal" tabindex="-1" aria-labelledby="newAssessmentModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'assessment_session_create' facility.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newAssessmentModalLabel">Yeni Değerlendirme Başlat</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tool Selection -->
+                    <div class="mb-3">
+                        <label for="id_tool" class="form-label">Değerlendirme Aracı</label>
+                        {{ session_form.tool }}
+                        {% if not risk_tools %}
+                        <div class="form-text text-warning">
+                            <i class="bi bi-exclamation-triangle"></i> Henüz aktif değerlendirme aracı tanımlanmamış.
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Options -->
+                    <div class="mb-3">
+                        <label class="form-label">Başlangıç Seçeneği</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="start_option" id="optionScratch"
+                                value="scratch" checked>
+                            <label class="form-check-label" for="optionScratch">
+                                Sıfırdan Başla
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="start_option" id="optionCopy"
+                                value="copy" disabled>
+                            <label class="form-check-label text-muted" for="optionCopy">
+                                Önceki değerlendirmeyi kopyala <small>(Yakında)</small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Session Name -->
+                    <div class="mb-3">
+                        <label for="id_title" class="form-label">Değerlendirme Adı</label>
+                        {{ session_form.title }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary" {% if not risk_tools %}disabled{% endif %}>
+                        <i class="bi bi-play-fill me-1"></i> Başlat
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -108,7 +226,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const btnMap = document.getElementById('btn-map-picker');
         if (!btnMap) return;
 
@@ -117,7 +235,7 @@
         let map = null;
         let marker = null;
 
-        btnMap.addEventListener('click', function() {
+        btnMap.addEventListener('click', function () {
             mapModal.show();
             setTimeout(() => {
                 if (!map) {
@@ -127,7 +245,7 @@
                         attribution: '© OpenStreetMap contributors'
                     }).addTo(map);
 
-                    map.on('click', function(e) {
+                    map.on('click', function (e) {
                         placeMarker(e.latlng);
                     });
                 }
@@ -156,7 +274,7 @@
             }
         }
 
-        document.getElementById('btn-map-confirm').addEventListener('click', function() {
+        document.getElementById('btn-map-confirm').addEventListener('click', function () {
             if (marker) {
                 const ll = marker.getLatLng();
                 inputCoords.value = `${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}`;

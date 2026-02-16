@@ -1,0 +1,900 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    /* Styling copied from facility_list.html for consistency */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .stats-ribbon {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 16px 0;
+        margin-bottom: 16px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .stats-ribbon::-webkit-scrollbar {
+        display: none;
+    }
+
+    @media (min-width: 1024px) {
+        .stats-ribbon {
+            flex-wrap: wrap;
+            overflow-x: visible;
+        }
+    }
+
+    .stat-chip {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 24px;
+        padding: 10px 18px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+        font-size: 0.85rem;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .stat-chip .emoji {
+        font-size: 1rem;
+    }
+
+    .search-filter-row {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .search-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 12px 16px;
+    }
+
+    .search-wrapper i {
+        color: var(--muted);
+        margin-right: 10px;
+    }
+
+    .search-input {
+        border: none;
+        outline: none;
+        width: 100%;
+        font-size: 1rem;
+        background: transparent;
+        color: var(--foreground);
+    }
+
+    /* User Grid */
+    .user-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    @media (min-width: 1024px) {
+        .user-grid {
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+    }
+
+    .user-card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid var(--border-color);
+        position: relative;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .user-card:hover {
+        border-color: #3f3f46;
+        transform: translateY(-2px);
+    }
+
+    .user-header {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+    }
+
+    .user-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-size: cover;
+        background-position: center;
+        flex-shrink: 0;
+        border: 2px solid var(--border-color);
+    }
+
+    .user-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .user-name {
+        font-weight: 700;
+        font-size: 1rem;
+        margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .user-role {
+        font-size: 0.8rem;
+        color: var(--muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .user-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .detail-item {
+        display: flex;
+        flex-col: column;
+        gap: 4px;
+        font-size: 0.85rem;
+        color: var(--muted);
+    }
+
+    .detail-val {
+        font-weight: 600;
+        color: var(--foreground);
+    }
+
+    .user-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: auto;
+        padding-top: 16px;
+    }
+
+    .btn-action {
+        flex: 1;
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-dark);
+        color: var(--foreground);
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-action:hover {
+        background: var(--border-color);
+    }
+
+    .btn-primary-action {
+        background: #3B82F6;
+        color: white;
+        border: none;
+    }
+
+    .btn-primary-action:hover {
+        background: #2563EB;
+    }
+
+    /* Fab */
+    .fab {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #3B82F6;
+        color: #fff;
+        border: none;
+        box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        cursor: pointer;
+        z-index: 1000;
+        text-decoration: none;
+    }
+
+    .fab:hover {
+        transform: scale(1.05);
+        color: #fff;
+    }
+
+    /* Badges */
+    .badge-active {
+        background: #065F46;
+        color: #D1FAE5;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+    }
+
+    .badge-passive {
+        background: #374151;
+        color: #D1D5DB;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+    }
+
+    /* Toast Notification */
+    .toast-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #fff;
+        padding: 16px 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        z-index: 9999;
+        transform: translateX(120%);
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        min-width: 300px;
+        border-left: 4px solid #3B82F6;
+    }
+
+    .toast-notification.show {
+        transform: translateX(0);
+    }
+
+    .toast-notification.success {
+        border-left-color: #10B981;
+    }
+
+    .toast-notification.error {
+        border-left-color: #EF4444;
+    }
+
+    .toast-icon {
+        font-size: 1.5rem;
+    }
+
+    .toast-msg {
+        font-weight: 500;
+        color: #1F2937;
+    }
+
+    /* Ensure Edit Modal sits on top of Assign Modal */
+    #editAssignmentModal {
+        z-index: 2000 !important;
+    }
+</style>
+<script>
+    // Store assignments data globally (Moved to top for initialization order)
+    var userAssignments = {};
+    function registerAssignments(userId, data) {
+        userAssignments[userId] = data;
+    }
+</script>
+
+<!-- Page Header -->
+<div class="page-header">
+    <h1 class="page-title">Kullanıcılar</h1>
+</div>
+
+<!-- Stats Ribbon -->
+<div class="stats-ribbon">
+    <div class="stat-chip">
+        <span class="emoji">👥</span> {{ total_users }} Toplam
+    </div>
+    <div class="stat-chip">
+        <span class="emoji">✅</span> {{ active_users }} Aktif
+    </div>
+    <div class="stat-chip">
+        <span class="emoji">👷</span> {{ specialist_count }} Uzman
+    </div>
+    <div class="stat-chip">
+        <span class="emoji">👨‍⚕️</span> {{ doctor_count }} Hekim
+    </div>
+</div>
+
+<!-- Search Row -->
+<div class="search-filter-row">
+    <form method="get" class="search-wrapper" id="searchForm">
+        <i class="bi bi-search"></i>
+        <input type="text" name="search" class="search-input" placeholder="İsim, TCKN veya E-posta ara..."
+            value="{{ request.GET.search|default:'' }}" autocomplete="off">
+    </form>
+</div>
+
+<!-- User Grid -->
+<div class="user-grid">
+    {% for user in users %}
+    <div class="user-card">
+        <div class="user-header">
+            <div class="user-avatar"
+                style="background-image: url('https://ui-avatars.com/api/?name={{ user.get_full_name|default:user.username }}&background=random');">
+            </div>
+            <div class="user-info">
+                <h3 class="user-name">
+                    {{ user.get_full_name|default:user.username }}
+                    {% if user.is_active %}
+                    <span class="badge-active">Aktif</span>
+                    {% else %}
+                    <span class="badge-passive">Pasif</span>
+                    {% endif %}
+                </h3>
+                <div class="user-role">
+                    {% if user.safe_profile %}
+                    {{ user.safe_profile.get_role_display }}
+                    {% else %}
+                    {% if user.is_superuser %}
+                    Sistem Yöneticisi
+                    {% else %}
+                    Kullanıcı
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="user-details">
+            <div class="detail-item">
+                Phone
+                <span class="detail-val">
+                    {% if user.safe_profile and user.safe_profile.phone %}
+                    {{ user.safe_profile.phone }}
+                    {% else %}
+                    --
+                    {% endif %}
+                </span>
+            </div>
+            <div class="detail-item">
+                TCKN
+                <span class="detail-val">
+                    {% if user.safe_profile and user.safe_profile.tckn %}
+                    {{ user.safe_profile.tckn|slice:":2" }}*******{{ user.safe_profile.tckn|slice:"-2:" }}
+                    {% else %}
+                    --
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+
+        <div class="user-actions">
+            <!-- Edit Button Triggering Modal -->
+            <button class="btn-action"
+                onclick="openEditModal('{{ user.pk }}', '{{ user.get_full_name|escapejs }}', '{{ user.safe_profile.tckn|default:''|escapejs }}', '{{ user.email|escapejs }}', '{{ user.safe_profile.phone|default:''|escapejs }}', '{{ user.safe_profile.role|escapejs }}', '{{ user.is_active|yesno:'true,false' }}', '{{ user.safe_profile.is_mfa_enabled|yesno:'true,false' }}')">
+                <i class="bi bi-pencil-square"></i> Düzenle
+            </button>
+
+            <!-- Assignments Trigger -->
+            {% if user.safe_profile.role == 'ADMIN' or user.safe_profile.role == 'MANAGER' or user.is_superuser %}
+            <button class="btn-action" disabled
+                style="opacity: 0.7; cursor: default; background: var(--bg-dark); color: #10B981;">
+                <i class="bi bi-shield-lock-fill"></i> Tam Erişim
+            </button>
+            {% else %}
+
+            <button class="btn-action"
+                onclick="openAssignmentsModal('{{ user.pk }}', '{{ user.get_full_name|default:user.username|escapejs }}')">
+                <i class="bi bi-building"></i> {{ user.assignments.count }} İşyeri
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Floating Action Button -->
+<a href="{% url 'user_create' %}" class="fab">
+    <i class="bi bi-person-plus"></i>
+</a>
+
+<!-- BOOTSTRAP MODALS -->
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color);">
+                <h5 class="modal-title" style="color: var(--foreground);">Kullanıcı Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-bold">AD SOYAD</label>
+                            <input type="text" id="editName" class="form-control" readonly disabled>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-bold">E-POSTA</label>
+                            <input type="email" id="editEmail" class="form-control" readonly disabled>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-bold">TCKN</label>
+                            <input type="text" id="editTckn" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-bold">TELEFON</label>
+                            <input type="text" id="editPhone" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-muted small fw-bold">ROL</label>
+                            <select id="editRole" class="form-select">
+                                <option value="ADMIN">Sistem Yöneticisi</option>
+                                <option value="MANAGER">Yardımcı Yönetici</option>
+                                <option value="DOCTOR">İş Yeri Hekimi</option>
+                                <option value="SPECIALIST">İş Güvenliği Uzmanı</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check form-switch pt-2">
+                                <input class="form-check-input" type="checkbox" id="editActive">
+                                <label class="form-check-label" for="editActive">Hesap Aktif</label>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check form-switch pt-2">
+                                <input class="form-check-input" type="checkbox" id="editMfa">
+                                <label class="form-check-label" for="editMfa">2FA Etkin</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-color);">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditForm()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Modal -->
+<div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color);">
+                <h5 class="modal-title" style="color: var(--foreground);">İşyeri Atamaları: <span id="assignUserName"
+                        class="text-primary"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Current Assignments List -->
+                <h6 class="text-muted fw-bold small mb-3">MEVCUT ATAMALAR</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-sm table-borderless" style="color: var(--foreground);">
+                        <thead>
+                            <tr class="text-muted small border-bottom">
+                                <th>İŞYERİ</th>
+                                <th>BAŞLANGIÇ</th>
+                                <th>BİTİŞ</th>
+                                <th class="text-end">DURUM</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assignmentsTableBody">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <hr class="border-secondary opacity-25">
+
+                <!-- New Assignment Form -->
+                <h6 class="text-muted fw-bold small mb-3">YENİ ATAMA EKLE</h6>
+                <div class="alert alert-info small"><i class="bi bi-info-circle"></i> Kullanıcıya yeni bir işyeri
+                    yetkisi verin.</div>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label text-muted small fw-bold">İŞYERİ</label>
+                        <select id="assignWorkplace" class="form-select">
+                            <option value="">Seçiniz...</option>
+                            {% for wp in workplaces %}
+                            <option value="{{ wp.id }}">{{ wp.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small fw-bold">BAŞLANGIÇ</label>
+                        <input type="date" id="assignStartDate" class="form-control">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small fw-bold">BİTİŞ</label>
+                        <input type="date" id="assignEndDate" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-color);">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" onclick="submitAssignment()">Ekle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Assignment Modal -->
+<div class="modal fade" id="editAssignmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding: 10px 16px;">
+                <h6 class="modal-title mb-0" style="color: var(--foreground);">Atama Düzenle</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <form id="editAssignmentForm">
+                    <input type="hidden" id="editAssignId">
+                    <div class="mb-2">
+                        <label class="form-label text-muted small fw-bold mb-1">İŞYERİ</label>
+                        <input type="text" id="editAssignWorkplace" class="form-control form-control-sm" disabled
+                            readonly>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label text-muted small fw-bold mb-1">BAŞLANGIÇ</label>
+                        <input type="date" id="editAssignStart" class="form-control form-control-sm">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold mb-1">BİTİŞ</label>
+                        <input type="date" id="editAssignEnd" class="form-control form-control-sm">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer p-2" style="border-top: 1px solid var(--border-color);">
+                <button type="button" class="btn btn-sm btn-primary w-100"
+                    onclick="submitEditAssignment()">Güncelle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPTS -->
+<script>
+    // Functions
+    console.log('[DEBUG] Script loaded. Checking global variables...');
+    if (typeof userAssignments === 'undefined') {
+        console.error('[CRITICAL] userAssignments is undefined earlier than expected. Defining now.');
+        var userAssignments = {};
+    } else {
+        console.log('[DEBUG] userAssignments exists:', userAssignments);
+    }
+
+    let editModalBS, assignModalBS;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('[DEBUG] DOMContentLoaded fired.');
+
+        const editModalEl = document.getElementById('editModal');
+        const assignModalEl = document.getElementById('assignModal');
+
+        if (editModalEl) {
+            editModalBS = new bootstrap.Modal(editModalEl);
+            console.log('[DEBUG] editModalBS initialized.');
+        } else {
+            console.error('[CRITICAL] editModal element not found!');
+        }
+
+        if (assignModalEl) {
+            assignModalBS = new bootstrap.Modal(assignModalEl);
+            console.log('[DEBUG] assignModalBS initialized.');
+        } else {
+            console.error('[CRITICAL] assignModal element not found!');
+        }
+
+        // --- Z-Index Fix for Nested Modals (Robust JS Approach) ---
+        const editModalElem = document.getElementById('editAssignmentModal');
+        if (editModalElem) {
+            editModalElem.addEventListener('show.bs.modal', function () {
+                // Wait for the backdrop to be created
+                setTimeout(() => {
+                    const backdrops = document.querySelectorAll('.modal-backdrop');
+                    // The last backdrop is likely the new one
+                    if (backdrops.length > 1) {
+                        const newBackdrop = backdrops[backdrops.length - 1];
+                        newBackdrop.style.zIndex = '1990'; // Just below modal (2000)
+                    }
+                }, 10);
+            });
+        }
+    });
+
+    function openEditModal(id, name, tckn, email, phone, role, active, mfa) {
+        console.log('[DEBUG] openEditModal called with ID:', id);
+        if (!editModalBS) {
+            console.error('[CRITICAL] editModalBS is not initialized! Attempting lazy init.');
+            const el = document.getElementById('editModal');
+            if (el) editModalBS = new bootstrap.Modal(el);
+            else { alert('Modal error'); return; }
+        }
+
+        document.getElementById('editUserId').value = id;
+        document.getElementById('editName').value = name;
+        document.getElementById('editTckn').value = tckn;
+        document.getElementById('editEmail').value = email;
+        document.getElementById('editPhone').value = phone;
+        document.getElementById('editRole').value = role || 'SPECIALIST';
+        document.getElementById('editActive').checked = (active === 'true');
+        document.getElementById('editMfa').checked = (mfa === 'true');
+
+        editModalBS.show();
+    }
+
+    function submitEditForm() {
+        const id = document.getElementById('editUserId').value;
+        const data = {
+            tckn: document.getElementById('editTckn').value,
+            phone: document.getElementById('editPhone').value,
+            role: document.getElementById('editRole').value,
+            is_active: document.getElementById('editActive').checked,
+            is_mfa_enabled: document.getElementById('editMfa').checked
+        };
+        fetch(`/settings/users/${id}/update_profile/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    alert('Hata: ' + data.error);
+                }
+            });
+    }
+
+    // Assignment Logic
+    let currentAssignUserId = null;
+    let editAssignModalBS = null; // New Modal Instance
+
+    function openAssignmentsModal(userId, username) {
+        console.log('[DEBUG] openAssignmentsModal called for User:', userId);
+        currentAssignUserId = userId;
+        document.getElementById('assignUserName').innerText = username;
+
+        // Render existing assignments
+        const tbody = document.getElementById('assignmentsTableBody');
+        tbody.innerHTML = '';
+
+        console.log('[DEBUG] userAssignments content:', userAssignments);
+        const assignments = userAssignments[userId] || [];
+        console.log('[DEBUG] Assignments for this user:', assignments);
+
+        if (assignments.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted small py-3">Henüz atama yapılmamış.</td></tr>';
+        } else {
+            assignments.forEach(a => {
+                // Smart Badge Logic
+                const today = new Date().toISOString().split('T')[0];
+                let badgeHtml = '';
+
+                if (a.end_date && a.end_date < today) {
+                    badgeHtml = '<span class="badge bg-secondary text-white" style="font-size: 0.65rem;">Süresi Bitmiş</span>';
+                } else if (a.is_active) {
+                    badgeHtml = '<span class="badge bg-success text-white" style="font-size: 0.65rem;">Aktif</span>';
+                } else {
+                    badgeHtml = '<span class="badge bg-secondary text-white" style="font-size: 0.65rem;">Pasif</span>';
+                }
+
+                const row = `
+                    <tr class="align-middle">
+                        <td class="fw-bold text-dark">
+                            <div class="d-flex align-items-center gap-2">
+                                <span>${a.workplace_name}</span>
+                                ${badgeHtml}
+                            </div>
+                        </td>
+                        <td><span class="text-muted small">${a.start_date}</span></td>
+                        <td><span class="text-muted small">${a.end_date || '∞'}</span></td>
+                        <td class="text-end">
+                            <div class="d-flex align-items-center justify-content-end gap-2">
+                                <a href="javascript:void(0)" 
+                                   onclick="openEditAssignmentModal(${a.id}, '${a.workplace_name.replace(/'/g, "\\'")}', '${a.start_date}', '${a.end_date || ''}')"
+                                   class="text-primary text-decoration-none small fw-bold">
+                                   <i class="bi bi-pencil-fill me-1"></i>Düzenle
+                                </a>
+                                
+                                <span onclick="deleteAssignment(${a.id})" 
+                                      class="badge bg-danger text-white cursor-pointer" 
+                                      style="cursor: pointer; font-size: 0.65rem; padding: 4px 8px;"
+                                      title="Atamayı Kaldır">
+                                    <i class="bi bi-trash-fill me-1"></i>Sil
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        if (!assignModalBS) {
+            console.warn('[WARN] assignModalBS missing, lazy init...');
+            assignModalBS = new bootstrap.Modal(document.getElementById('assignModal'));
+        }
+        assignModalBS.show();
+    }
+
+    function submitAssignment() {
+        if (!currentAssignUserId) return;
+        const wp = document.getElementById('assignWorkplace').value;
+        const start = document.getElementById('assignStartDate').value;
+        const end = document.getElementById('assignEndDate').value;
+
+        if (!wp || !start) { showToast('Lütfen işyeri ve başlangıç tarihi seçin.', 'error'); return; }
+
+        fetch(`/settings/assignments/create/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({
+                user_id: currentAssignUserId,
+                workplace_id: wp,
+                start_date: start,
+                end_date: end
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (assignModalBS) assignModalBS.hide();
+                    showToast('Kayıt Başarıyla Eklendi.', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast('Hata: ' + data.error, 'error');
+                }
+            });
+    }
+
+    // --- NEW EDIT ASSIGNMENT LOGIC ---
+    function openEditAssignmentModal(id, workplaceName, start, end) {
+        if (!editAssignModalBS) {
+            editAssignModalBS = new bootstrap.Modal(document.getElementById('editAssignmentModal'));
+        }
+        document.getElementById('editAssignId').value = id;
+        document.getElementById('editAssignWorkplace').value = workplaceName;
+        document.getElementById('editAssignStart').value = start;
+        document.getElementById('editAssignEnd').value = end;
+
+        editAssignModalBS.show();
+    }
+
+    // --- TOAST NOTIFICATION SYSTEM ---
+    function showToast(message, type = 'success') {
+        // Create element
+        const toast = document.createElement('div');
+        toast.className = `toast-notification ${type}`;
+
+        let icon = type === 'success' ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>';
+
+        toast.innerHTML = `
+            <div class="toast-icon">${icon}</div>
+            <div class="toast-msg">${message}</div>
+        `;
+
+        document.body.appendChild(toast);
+
+        // Trigger animation
+        requestAnimationFrame(() => {
+            toast.classList.add('show');
+        });
+
+        // Remove after delay
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, 4000);
+    }
+
+    function submitEditAssignment() {
+        const id = document.getElementById('editAssignId').value;
+        const start = document.getElementById('editAssignStart').value;
+        const end = document.getElementById('editAssignEnd').value;
+
+        if (!start) { showToast('Başlangıç tarihi zorunludur.', 'error'); return; }
+
+        fetch(`/settings/assignments/${id}/update/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({
+                start_date: start,
+                end_date: end
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (editAssignModalBS) editAssignModalBS.hide();
+                    showToast('Kayıt Başarıyla Güncellendi.', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast('Hata: ' + data.error, 'error');
+                }
+            });
+    }
+
+    // Search Enter Key
+    document.querySelector('.search-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('searchForm').submit();
+        }
+    });
+
+    // Delete Assignment
+    function deleteAssignment(assignId) {
+        if (!confirm('Bu atamayı silmek istediğinize emin misiniz?')) return;
+
+        fetch(`/settings/assignments/${assignId}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast('Kayıt Silindi.', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast('Hata: ' + data.error, 'error');
+                }
+            })
+            .catch(err => showToast('Bir hata oluştu: ' + err, 'error'));
+    }
+
+</script>
+<!-- Output JSON Data -->
+{{ user_assignments|json_script:"user-assignments-data" }}
+
+<script>
+    // Load Assignments Data from JSON Script (Robust)
+    document.addEventListener('DOMContentLoaded', function () {
+        try {
+            const scriptTag = document.getElementById('user-assignments-data');
+            if (scriptTag) {
+                const data = JSON.parse(scriptTag.textContent);
+                // Merge into global object or overwrite. 
+                // Since we defined var userAssignments = {}; at top, we can overwrite or extend.
+                Object.assign(userAssignments, data);
+                console.log('[DEBUG] Assignments loaded via JSON script:', userAssignments);
+            } else {
+                console.error('[CRITICAL] JSON script tag not found.');
+            }
+        } catch (e) {
+            console.error('[CRITICAL] Failed to parse user assignments JSON:', e);
+        }
+    });
+</script>
+{% endblock %}

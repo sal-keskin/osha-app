@@ -1,0 +1,223 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    .report-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .report-header {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+
+    .report-header h1 {
+        margin: 0;
+        font-size: 1.75rem;
+    }
+
+    .report-header .subtitle {
+        opacity: 0.9;
+        margin-top: 0.5rem;
+    }
+
+    .download-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .download-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.2s;
+        border: 2px solid transparent;
+    }
+
+    .download-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .download-card .icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .download-card.excel .icon {
+        color: #217346;
+    }
+
+    .download-card.word .icon {
+        color: #2b579a;
+    }
+
+    .download-card.pdf .icon {
+        color: #dc3545;
+    }
+
+    .download-card.checklist .icon {
+        color: #667eea;
+    }
+
+    .download-card h5 {
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .download-card p {
+        color: #6c757d;
+        font-size: 0.8rem;
+        margin-bottom: 1rem;
+    }
+
+    .final-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .final-section h5 {
+        margin-bottom: 1rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .action-buttons .btn {
+        min-width: 200px;
+        padding: 1rem 2rem;
+    }
+</style>
+
+<div class="report-container">
+    <div class="report-header">
+        <h1><i class="bi bi-file-earmark-text me-2"></i>Raporlama</h1>
+        <div class="subtitle">{{ session.title }} • {{ facility.name }}</div>
+    </div>
+
+    <!-- Download Cards -->
+    <h5 class="mb-3"><i class="bi bi-download me-2"></i>Raporları İndir</h5>
+    <div class="download-cards">
+        {% if not is_library_workflow %}
+        <div class="download-card excel">
+            <div class="icon"><i class="bi bi-file-earmark-excel"></i></div>
+            <h5>Eylem Planı</h5>
+            <p>Risk ve önlemler Excel tablosu</p>
+            <a href="{% url 'export_action_plan_excel' session.pk %}" class="btn btn-success btn-sm">
+                <i class="bi bi-download me-1"></i> Excel
+            </a>
+        </div>
+        {% endif %}
+
+        <div class="download-card word">
+            <div class="icon"><i class="bi bi-file-earmark-word"></i></div>
+            <h5>Tam Rapor</h5>
+            <p>Detaylı değerlendirme raporu</p>
+            <a href="{% url 'export_report_word' session.pk %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-download me-1"></i> Word
+            </a>
+        </div>
+
+        <div class="download-card pdf">
+            <div class="icon"><i class="bi bi-file-earmark-pdf"></i></div>
+            <h5>Risk Özeti</h5>
+            <p>Tespit edilen riskler tablosu</p>
+            <a href="{% url 'export_report_pdf' session.pk %}" class="btn btn-danger btn-sm">
+                <i class="bi bi-download me-1"></i> PDF
+            </a>
+        </div>
+
+        {% if not is_library_workflow %}
+        <div class="download-card checklist">
+            <div class="icon"><i class="bi bi-list-check"></i></div>
+            <h5>Denetim Listesi</h5>
+            <p>Tüm sorular ve cevaplar</p>
+            <a href="{% url 'export_full_checklist_pdf' session.pk %}" class="btn btn-secondary btn-sm">
+                <i class="bi bi-download me-1"></i> PDF
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Form -->
+    <form method="post">
+        {% csrf_token %}
+
+        <!-- Team Members -->
+        <div class="final-section">
+            <h5><i class="bi bi-people-fill me-2"></i>Değerlendirme Ekibi</h5>
+            {% if team_members %}
+            <ul class="list-unstyled mb-0">
+                {% for member in team_members %}
+                <li class="d-flex align-items-center py-1">
+                    <i class="bi bi-person-circle text-primary me-2"></i>
+                    <strong>{{ member.name }}</strong>
+                    <span class="badge bg-secondary ms-2">{{ member.get_role_display }}</span>
+                    {% if member.title %}<span class="text-muted ms-2">- {{ member.title }}</span>{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted mb-0">Ekip üyesi eklenmemiş.</p>
+            {% endif %}
+        </div>
+
+        <!-- Participants -->
+        <div class="final-section">
+            <h5><i class="bi bi-people me-2"></i>Katılımcılar / Görüşülen Çalışanlar</h5>
+            <p class="text-muted small">Değerlendirmede görüşülen veya katılım sağlayan çalışanları listeleyin.</p>
+            <textarea name="participants" class="form-control" rows="2"
+                placeholder="Ahmet Yılmaz (Usta), Ayşe Demir (Ofis), Mehmet Kaya (Teknisyen)...">{{ session.participants }}</textarea>
+        </div>
+
+        <!-- Final Comments -->
+        <div class="final-section">
+            <h5><i class="bi bi-chat-quote me-2"></i>Sonuç Yorumları</h5>
+            <p class="text-muted small">Değerlendirme hakkında genel yorumlarınızı ekleyin (opsiyonel).</p>
+            <textarea name="final_comments" class="form-control" rows="4"
+                placeholder="Yönetici özeti, genel gözlemler, öneriler...">{{ session.final_comments }}</textarea>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            {% if is_library_workflow %}
+            <a href="{% url 'assessment_fast_run' session.pk %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Risklere Dön
+            </a>
+            {% else %}
+            <a href="{% url 'action_plan_list' session.pk %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Eylem Planına Dön
+            </a>
+            {% endif %}
+            <a href="{% url 'assessment_team' session.pk %}" class="btn btn-outline-primary">
+                <i class="bi bi-people me-1"></i> Ekip Yönetimi
+            </a>
+            <button type="submit" class="btn btn-success btn-lg">
+                <i class="bi bi-check2-all me-1"></i> Değerlendirmeyi Tamamla
+            </button>
+        </div>
+    </form>
+
+    {% if session.status == 'COMPLETED' %}
+    <div class="alert alert-success mt-4 text-center">
+        <i class="bi bi-check-circle me-2"></i>
+        <strong>Bu değerlendirme tamamlandı!</strong>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,1926 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    /* Main Layout - 60/40 Split */
+    .fast-runner {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 64px);
+        gap: 0;
+        padding: 8px;
+        overflow: hidden;
+    }
+
+    /* Top: Library Panel - 60% */
+    .library-panel {
+        flex: 3;
+        display: flex;
+        flex-direction: column;
+        background: white;
+        border-radius: 10px 10px 0 0;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+        min-height: 0;
+        border-bottom: 3px solid #e5e7eb;
+    }
+
+    /* Bottom: Cart Panel - 40% */
+    .cart-panel {
+        flex: 2;
+        display: flex;
+        flex-direction: column;
+        background: #f8fafc;
+        border-radius: 0 0 10px 10px;
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    /* Panel Headers */
+    .panel-header {
+        padding: 10px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .panel-header.blue {
+        background: linear-gradient(135deg, #1e40af 0%, #334155 100%);
+        color: white;
+    }
+
+    .panel-header.green {
+        background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+        color: white;
+    }
+
+    .panel-header h5 {
+        margin: 0;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .badge {
+        background: rgba(255, 255, 255, 0.25);
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+        padding: 10px 16px;
+        background: #f8f9fa;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        border-bottom: 1px solid #e5e7eb;
+        flex-shrink: 0;
+    }
+
+    .filter-bar input {
+        flex: 1;
+        min-width: 200px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+
+    .filter-bar select {
+        min-width: 180px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+
+    /* Scrollable Content */
+    .panel-content {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+    }
+
+    /* Library Table - Compact */
+    .library-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+        line-height: 1.3;
+    }
+
+    .library-table th {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        padding: 6px 10px;
+        text-align: left;
+        font-weight: 600;
+        color: #6b7280;
+        font-size: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .library-table td {
+        padding: 5px 10px;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: top;
+    }
+
+    .library-table tr:hover {
+        background: #f8fafc;
+    }
+
+    .lib-group {
+        color: #6b7280;
+        font-size: 0.75rem;
+        max-width: 130px;
+    }
+
+    .lib-tehlike {
+        font-weight: 500;
+        color: #111827;
+        font-size: 0.8rem;
+    }
+
+    .lib-risk {
+        color: #6b7280;
+        font-size: 0.75rem;
+        margin-top: 1px;
+    }
+
+    .btn-add {
+        background: #3B82F6;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 4px 8px;
+        font-size: 0.7rem;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn-add:hover {
+        background: #2563EB;
+    }
+
+    .btn-add:disabled {
+        background: #9CA3AF;
+        cursor: not-allowed;
+    }
+
+    .btn-added {
+        background: #10B981;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 4px 8px;
+        font-size: 0.7rem;
+        cursor: not-allowed;
+        white-space: nowrap;
+    }
+
+    /* Cart List - Compact Rows */
+    .cart-list {
+        padding: 6px;
+    }
+
+    .cart-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 10px;
+        background: #f9fafb;
+        border-radius: 8px;
+        margin-bottom: 6px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .cart-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .cart-item-text {
+        flex: 1;
+        font-size: 0.9rem;
+        color: #374151;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-right: 12px;
+    }
+
+    .cart-item-priority {
+        font-size: 0.75rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-right: 8px;
+    }
+
+    .priority-high {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .priority-medium {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .priority-low {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    /* Score badges based on Kinney risk levels */
+    .score-badge {
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 4px;
+        margin-right: 8px;
+        white-space: nowrap;
+        border: 1px solid;
+    }
+
+    .score-intolerable {
+        background: #dc2626;
+        color: white;
+        border-color: #b91c1c;
+    }
+
+    .score-substantial {
+        background: #f97316;
+        color: white;
+        border-color: #ea580c;
+    }
+
+    .score-important {
+        background: #facc15;
+        color: #713f12;
+        border-color: #eab308;
+    }
+
+    .score-possible {
+        background: #bef264;
+        color: #365314;
+        border-color: #a3e635;
+    }
+
+    .score-trivial {
+        background: #15803d;
+        color: white;
+        border-color: #166534;
+    }
+
+    .score-none {
+        background: #e5e7eb;
+        color: #6b7280;
+        border-color: #d1d5db;
+    }
+
+    .cart-actions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .btn-edit {
+        background: #3B82F6;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 0.8rem;
+        cursor: pointer;
+    }
+
+    .btn-edit:hover {
+        background: #2563EB;
+    }
+
+    .btn-del {
+        background: transparent;
+        color: #EF4444;
+        border: 1px solid #EF4444;
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-size: 0.8rem;
+        cursor: pointer;
+    }
+
+    .btn-del:hover {
+        background: #FEE2E2;
+    }
+
+    /* Footer */
+    .footer-nav {
+        padding: 10px 16px;
+        background: #f8f9fa;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        flex-shrink: 0;
+    }
+
+    .btn-complete {
+        background: #10B981;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+    }
+
+    .btn-complete:hover {
+        background: #059669;
+        color: white;
+    }
+
+    /* Empty States */
+    .empty-state {
+        padding: 30px;
+        text-align: center;
+        color: #9CA3AF;
+    }
+
+    .empty-state i {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-box {
+        background: white;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 85vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-header {
+        padding: 16px 20px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h4 {
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .modal-close {
+        background: transparent;
+        border: none;
+        font-size: 1.5rem;
+        color: #6b7280;
+        cursor: pointer;
+    }
+
+    .modal-body {
+        padding: 20px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .modal-footer {
+        padding: 16px 20px;
+        background: #f8f9fa;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 6px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .info-box {
+        background: #f0f9ff;
+        border-left: 3px solid #3B82F6;
+        padding: 10px 14px;
+        font-size: 0.85rem;
+        color: #1e40af;
+        margin-bottom: 16px;
+        border-radius: 0 8px 8px 0;
+    }
+
+    .btn-cancel {
+        background: #e5e7eb;
+        color: #374151;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .btn-save {
+        background: #10B981;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .btn-save:hover {
+        background: #059669;
+    }
+
+    /* Modal Tabs */
+    .modal-tabs {
+        display: flex;
+        border-bottom: 2px solid #e5e7eb;
+        background: #f8f9fa;
+    }
+
+    .modal-tab {
+        flex: 1;
+        background: transparent;
+        border: none;
+        padding: 12px 16px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+    }
+
+    .modal-tab:hover {
+        color: #374151;
+        background: #f1f5f9;
+    }
+
+    .modal-tab.active {
+        color: #1e40af;
+        border-bottom-color: #1e40af;
+        background: white;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    /* Control Records */
+    .control-record-item {
+        padding: 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        background: white;
+    }
+
+    .control-record-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+    }
+
+    .control-record-date {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #374151;
+    }
+
+    .control-record-auditor {
+        font-size: 0.8rem;
+        color: #6b7280;
+    }
+
+    .control-record-note {
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px dashed #e5e7eb;
+    }
+
+    /* Score Comparison */
+    .score-comparison {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px;
+        background: #f0fdf4;
+        border-radius: 8px;
+        margin-top: 12px;
+    }
+
+    .score-comparison .prev-score {
+        color: #991b1b;
+        font-size: 0.8rem;
+    }
+
+    .score-comparison .arrow {
+        font-size: 1.1rem;
+        color: #10b981;
+    }
+
+    .score-comparison .new-score {
+        color: #065f46;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    /* Cart Score Badge with Comparison */
+    .score-badge.score-comparison {
+        background: transparent;
+        padding: 4px 8px;
+        border: 1px solid #d1d5db;
+        gap: 6px;
+        margin-top: 0;
+    }
+
+    .score-badge.score-comparison span {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 100px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .score-badge.score-comparison .score-trivial {
+        background: #10B981;
+    }
+
+    .score-badge.score-comparison .score-possible {
+        background: #F59E0B;
+    }
+
+    .score-badge.score-comparison .score-important {
+        background: #F97316;
+    }
+
+    .score-badge.score-comparison .score-substantial {
+        background: #EF4444;
+    }
+
+    .score-badge.score-comparison .score-intolerable {
+        background: #DC2626;
+    }
+
+    /* Verified Badge in Cart */
+    .verified-badge {
+        margin-right: 6px;
+        font-size: 0.85rem;
+        cursor: help;
+    }
+
+    /* Add Control Button */
+    .btn-add-control {
+        background: #3B82F6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 12px;
+    }
+
+    .btn-add-control:hover {
+        background: #2563EB;
+    }
+
+    /* Control Form */
+    .control-form {
+        padding: 16px;
+        background: #f8fafc;
+        border-radius: 8px;
+        margin-top: 12px;
+        border: 1px solid #e2e8f0;
+    }
+</style>
+
+<div class="fast-runner">
+    <!-- Top: Library Panel -->
+    <div class="library-panel">
+        <div class="panel-header blue">
+            <h5><i class="bi bi-book me-2"></i>Risk Kütüphanesi</h5>
+            <span class="badge" id="libraryCount">Yükleniyor...</span>
+        </div>
+
+        <div class="filter-bar">
+            <input type="text" id="searchInput" placeholder="Tehlike veya risk ara..." autocomplete="off">
+            <select id="categorySelect">
+                <option value="">Tüm Kategoriler</option>
+                {% for cat in categories %}
+                <option value="{{ cat }}">{{ cat|truncatechars:40 }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-outline-secondary" id="searchBtn">
+                <i class="bi bi-search"></i> Ara
+            </button>
+        </div>
+
+        <div class="panel-content" id="libraryContainer">
+            <div class="empty-state">
+                <i class="bi bi-hourglass-split"></i>
+                <p>Kütüphane yükleniyor...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom: Cart Panel -->
+    <div class="cart-panel">
+        <div class="panel-header green">
+            <h5><i class="bi bi-clipboard-check me-2"></i>Seçilen Riskler</h5>
+            <span class="badge" id="cartCount">{{ added_risks_count }} risk</span>
+        </div>
+
+        <div class="panel-content cart-list" id="cartContainer">
+            {% if added_risks %}
+            {% for risk in added_risks %}
+            <div class="cart-item" data-risk-id="{{ risk.pk }}">
+                <span class="cart-item-text">{{ risk.description|truncatechars:60 }}</span>
+                <span class="score-badge" data-score-badge>{% if risk.kinney_score %}{{ risk.kinney_score }}{% else
+                    %}—{% endif %}</span>
+                <div class="cart-actions">
+                    <button class="btn-edit" onclick="openEditModal({{ risk.pk }})"><i class="bi bi-pencil"></i>
+                        Düzenle</button>
+                    <button class="btn-del" onclick="deleteRisk({{ risk.pk }})"><i class="bi bi-trash"></i></button>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state" id="emptyCart">
+                <i class="bi bi-clipboard-plus"></i>
+                <p>Henüz risk eklenmedi</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="footer-nav">
+            <a href="{% url 'assessment_team' session.pk %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Ekibe Dön
+            </a>
+            <a href="{% url 'assessment_report' session.pk %}" class="btn-complete">
+                <i class="bi bi-check-circle"></i> Değerlendirmeyi Tamamla
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Risk Modal -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-box" style="max-width: 750px;">
+        <div class="modal-header">
+            <h4><i class="bi bi-pencil-square me-2"></i>Risk Detayı</h4>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 0;">
+            <input type="hidden" id="modal-risk-id">
+
+            <!-- Tab Navigation -->
+            <div class="modal-tabs">
+                <button class="modal-tab active" data-tab="risk" onclick="switchTab('risk')">
+                    <i class="bi bi-exclamation-triangle me-1"></i> Risk & Planlama
+                </button>
+                <button class="modal-tab" data-tab="control" onclick="switchTab('control')">
+                    <i class="bi bi-clipboard-check me-1"></i> İzleme ve Kontrol
+                </button>
+            </div>
+
+            <!-- TAB 1: Risk & Planlama (existing zones) -->
+            <div class="tab-content active" id="tab-risk">
+                <!-- ZONE A: THE PROBLEM (White Background) -->
+                <div style="padding: 16px; border-bottom: 1px solid #e5e7eb;">
+                    <div class="info-box" id="modal-legal" style="display: none; margin-bottom: 12px;">
+                        <i class="bi bi-file-text me-1"></i>
+                        <span id="modal-legal-text"></span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.75rem; color: #6b7280;">Kategori</label>
+                            <input type="text" id="modal-category" readonly
+                                style="background: #f3f4f6; font-size: 0.8rem;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.75rem; color: #6b7280;">Etkilenecek Kişiler</label>
+                            <input type="text" id="modal-affected" placeholder="Çalışanlar, Ziyaretçiler..."
+                                style="font-size: 0.8rem;">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 0.75rem; color: #6b7280;">Risk Tanımı</label>
+                        <textarea id="modal-description" rows="2" style="font-size: 0.8rem;"></textarea>
+                    </div>
+                </div>
+
+                <!-- ZONE B: THE SCORE (Yellow/Orange Tint) -->
+                <div
+                    style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 16px; border-bottom: 1px solid #fbbf24;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label style="font-weight: 600; font-size: 0.85rem; margin: 0; color: #92400e;">
+                            <i class="bi bi-calculator me-1"></i> Risk Puanlama
+                        </label>
+                        <div id="scoreBadge"
+                            style="padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: none;">
+                        </div>
+                    </div>
+
+                    <!-- Kinney -->
+                    <div id="scoringKinneySection" style="margin-bottom: 0;">
+                        <label
+                            style="font-size: 0.75rem; color: #78350f; margin-bottom: 4px; display: block;">Fine-Kinney
+                            (P × F × S)</label>
+                        <div
+                            style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px; align-items: end;">
+                            <select id="modal-kinney-p" onchange="calcScore()"
+                                style="font-size: 0.75rem; padding: 6px; background: white;">
+                                <option value="">P Olasılık</option>
+                                <option value="0.2">0.2 - Beklenmez</option>
+                                <option value="0.5">0.5 - Mümkün ama düşük</option>
+                                <option value="1">1 - Mümkün</option>
+                                <option value="3">3 - Olası</option>
+                                <option value="6">6 - Yüksek</option>
+                                <option value="10">10 - Kesin</option>
+                            </select>
+                            <select id="modal-kinney-f" onchange="calcScore()"
+                                style="font-size: 0.75rem; padding: 6px; background: white;">
+                                <option value="">F Frekans</option>
+                                <option value="0.5">0.5 - Yılda 1</option>
+                                <option value="1">1 - Yılda birkaç</option>
+                                <option value="2">2 - Ayda 1</option>
+                                <option value="3">3 - Haftada 1</option>
+                                <option value="6">6 - Günde 1</option>
+                                <option value="10">10 - Sürekli</option>
+                            </select>
+                            <select id="modal-kinney-s" onchange="calcScore()"
+                                style="font-size: 0.75rem; padding: 6px; background: white;">
+                                <option value="">S Şiddet</option>
+                                <option value="1">1 - Küçük hasar</option>
+                                <option value="3">3 - Küçük hasar</option>
+                                <option value="7">7 - Önemli hasar</option>
+                                <option value="15">15 - Kalıcı hasar</option>
+                                <option value="40">40 - Ölüm</option>
+                                <option value="100">100 - Felaket</option>
+                            </select>
+                            <div id="kinneyResult"
+                                style="font-weight: 700; font-size: 0.9rem; min-width: 50px; text-align: center; color: #92400e;">
+                                —</div>
+                        </div>
+                    </div>
+
+                    <!-- Matrix -->
+                    <div id="scoringMatrixSection" style="display: none;">
+                        <label style="font-size: 0.75rem; color: #78350f; margin-bottom: 4px; display: block;">L-Matris
+                            (P ×
+                            S)</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end;">
+                            <select id="modal-matrix-p" onchange="calcScore()"
+                                style="font-size: 0.75rem; padding: 6px; background: white;">
+                                <option value="">Olasılık</option>
+                                <option value="1">1 - Çok düşük</option>
+                                <option value="2">2 - Düşük</option>
+                                <option value="3">3 - Orta</option>
+                                <option value="4">4 - Yüksek</option>
+                                <option value="5">5 - Çok yüksek</option>
+                            </select>
+                            <select id="modal-matrix-s" onchange="calcScore()"
+                                style="font-size: 0.75rem; padding: 6px; background: white;">
+                                <option value="">Şiddet</option>
+                                <option value="1">1 - Önemsiz</option>
+                                <option value="2">2 - Az zararlı</option>
+                                <option value="3">3 - Zararlı</option>
+                                <option value="4">4 - Ciddi</option>
+                                <option value="5">5 - Çok ciddi</option>
+                            </select>
+                            <div id="matrixResult"
+                                style="font-weight: 700; font-size: 0.9rem; min-width: 50px; text-align: center; color: #92400e;">
+                                —</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ZONE C: THE SOLUTION / DÖF (Light Blue Tint) -->
+                <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); padding: 16px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                        <i class="bi bi-tools me-2" style="color: #1d4ed8; font-size: 1.1rem;"></i>
+                        <label style="font-weight: 600; font-size: 0.85rem; margin: 0; color: #1e40af;">
+                            Düzeltici Faaliyet Planı (DÖF)
+                        </label>
+                    </div>
+
+                    <!-- Row 1: Measure -->
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="font-size: 0.75rem; color: #1e40af;">Alınması Gereken Önlem</label>
+                        <textarea id="modal-measure" rows="2" style="font-size: 0.8rem; background: white;"></textarea>
+                    </div>
+
+                    <!-- Row 2: Strategy + Budget -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.75rem; color: #1e40af;">Kontrol Stratejisi</label>
+                            <select id="modal-strategy" style="font-size: 0.8rem; background: white;">
+                                <option value="">Seçiniz...</option>
+                                <option value="ELIMINATE">Yok Etme</option>
+                                <option value="SUBSTITUTE">Yerine Koyma</option>
+                                <option value="ENGINEERING">Mühendislik Kontrolleri</option>
+                                <option value="ADMINISTRATIVE">İdari Önlemler</option>
+                                <option value="PPE">KKD Kullanımı</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.75rem; color: #1e40af;">Tahmini Bütçe</label>
+                            <div style="position: relative;">
+                                <input type="text" id="modal-budget" placeholder="0.00"
+                                    style="font-size: 0.8rem; background: white; padding-right: 30px;">
+                                <span
+                                    style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #6b7280; font-size: 0.8rem;">₺</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Responsible + Due Date -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.75rem; color: #1e40af;">Sorumlu Kişi</label>
+                            <input type="text" id="modal-responsible" placeholder="İsteğe bağlı"
+                                style="font-size: 0.8rem; background: white;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.75rem; color: #1e40af;">Termin Tarihi</label>
+                            <input type="date" id="modal-duedate" style="font-size: 0.8rem; background: white;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: İzleme ve Kontrol -->
+            <div class="tab-content" id="tab-control">
+                <div style="padding: 16px;">
+                    <!-- Empty State -->
+                    <div id="control-empty" class="empty-state" style="padding: 40px 20px;">
+                        <i class="bi bi-clipboard-check" style="font-size: 2rem; color: #9ca3af;"></i>
+                        <p style="margin-top: 12px;">Henüz kontrol kaydı girilmedi</p>
+                    </div>
+
+                    <!-- Control Records List -->
+                    <div id="control-list"></div>
+
+                    <!-- Add Control Button -->
+                    <button class="btn-add-control" id="btn-show-control-form" onclick="showControlForm()">
+                        <i class="bi bi-plus-circle me-1"></i> Yeni Kontrol Ekle
+                    </button>
+
+                    <!-- Add Control Form (hidden initially) -->
+                    <div id="control-form" class="control-form" style="display: none;">
+                        <h6 style="font-size: 0.85rem; font-weight: 600; margin-bottom: 12px; color: #374151;">
+                            <i class="bi bi-plus-circle me-1"></i> Yeni Kontrol Kaydı
+                        </h6>
+
+                        <!-- Row 1: Date + Auditor -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.75rem; color: #6b7280;">Kontrol Tarihi</label>
+                                <input type="date" id="control-date" style="font-size: 0.8rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.75rem; color: #6b7280;">Denetleyen</label>
+                                <input type="text" id="control-auditor" placeholder="Ad Soyad"
+                                    style="font-size: 0.8rem;">
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Notes -->
+                        <div class="form-group" style="margin-bottom: 12px;">
+                            <label style="font-size: 0.75rem; color: #6b7280;">Gözlemler</label>
+                            <textarea id="control-note" rows="2" placeholder="Yapılan kontrol hakkında notlar..."
+                                style="font-size: 0.8rem;"></textarea>
+                        </div>
+
+                        <!-- Row 3: Residual Risk Scoring -->
+                        <div style="background: #fef3c7; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                            <label
+                                style="font-size: 0.75rem; color: #92400e; margin-bottom: 8px; display: block; font-weight: 600;">
+                                <i class="bi bi-calculator me-1"></i> Kalan Risk Puanı
+                            </label>
+
+                            <!-- Kinney Control Scoring -->
+                            <div id="controlKinneySection"
+                                style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px; align-items: end;">
+                                <select id="control-kinney-p" onchange="calcControlScore()"
+                                    style="font-size: 0.75rem; padding: 6px;">
+                                    <option value="">P Olasılık</option>
+                                    <option value="0.2">0.2 - Beklenmez</option>
+                                    <option value="0.5">0.5 - Mümkün ama düşük</option>
+                                    <option value="1">1 - Mümkün</option>
+                                    <option value="3">3 - Olası</option>
+                                    <option value="6">6 - Yüksek</option>
+                                    <option value="10">10 - Kesin</option>
+                                </select>
+                                <select id="control-kinney-f" onchange="calcControlScore()"
+                                    style="font-size: 0.75rem; padding: 6px;">
+                                    <option value="">F Frekans</option>
+                                    <option value="0.5">0.5 - Yılda 1</option>
+                                    <option value="1">1 - Yılda birkaç</option>
+                                    <option value="2">2 - Ayda 1</option>
+                                    <option value="3">3 - Haftada 1</option>
+                                    <option value="6">6 - Günde 1</option>
+                                    <option value="10">10 - Sürekli</option>
+                                </select>
+                                <select id="control-kinney-s" onchange="calcControlScore()"
+                                    style="font-size: 0.75rem; padding: 6px;">
+                                    <option value="">S Şiddet</option>
+                                    <option value="1">1 - Küçük hasar</option>
+                                    <option value="3">3 - Küçük hasar</option>
+                                    <option value="7">7 - Önemli hasar</option>
+                                    <option value="15">15 - Kalıcı hasar</option>
+                                    <option value="40">40 - Ölüm</option>
+                                    <option value="100">100 - Felaket</option>
+                                </select>
+                                <div id="controlKinneyResult"
+                                    style="font-weight: 700; font-size: 0.9rem; min-width: 50px; text-align: center;">—
+                                </div>
+                            </div>
+
+                            <!-- Matrix Control Scoring -->
+                            <div id="controlMatrixSection" style="display: none;">
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end;">
+                                    <select id="control-matrix-p" onchange="calcControlScore()"
+                                        style="font-size: 0.75rem; padding: 6px;">
+                                        <option value="">Olasılık</option>
+                                        <option value="1">1 - Çok düşük</option>
+                                        <option value="2">2 - Düşük</option>
+                                        <option value="3">3 - Orta</option>
+                                        <option value="4">4 - Yüksek</option>
+                                        <option value="5">5 - Çok yüksek</option>
+                                    </select>
+                                    <select id="control-matrix-s" onchange="calcControlScore()"
+                                        style="font-size: 0.75rem; padding: 6px;">
+                                        <option value="">Şiddet</option>
+                                        <option value="1">1 - Önemsiz</option>
+                                        <option value="2">2 - Az zararlı</option>
+                                        <option value="3">3 - Zararlı</option>
+                                        <option value="4">4 - Ciddi</option>
+                                        <option value="5">5 - Çok ciddi</option>
+                                    </select>
+                                    <div id="controlMatrixResult"
+                                        style="font-weight: 700; font-size: 0.9rem; min-width: 50px; text-align: center;">
+                                        —
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Score Comparison -->
+                            <div class="score-comparison" id="score-comparison"
+                                style="display: none; margin-top: 10px;">
+                                <span class="prev-score">Önceki: <strong id="prev-score-value">—</strong></span>
+                                <span class="arrow">→</span>
+                                <span class="new-score">Yeni: <strong id="new-score-value">—</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button class="btn-cancel" onclick="hideControlForm()"
+                                style="padding: 8px 16px; font-size: 0.8rem;">İptal</button>
+                            <button class="btn-save" onclick="saveControlRecord()"
+                                style="padding: 8px 16px; font-size: 0.8rem;">
+                                <i class="bi bi-check-lg"></i> Kaydet
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal()">İptal</button>
+            <button class="btn-save" onclick="saveModal()">
+                <i class="bi bi-check-lg"></i> Kaydet
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========================================
+    // STATE-BASED FAST TRACK ARCHITECTURE
+    // ========================================
+
+    const sessionPk = {{ session.pk }};
+    const scoringMethod = '{{ session.scoring_method }}';  // KINNEY or MATRIX
+
+    // GLOBAL STATE
+    const STATE = {
+        // Tracker: Set of library IDs that have been added to this session
+        addedLibraryIds: new Set(),
+
+        // Map: riskId (DB primary key) -> { libraryId, description, category, ... }
+        riskDataCache: {},
+
+        // Map: libraryId -> riskId (to find DB id from library id for deletion)
+        libraryToRiskMap: {},
+
+        // Library cache: full fetched library data
+        libraryData: [],
+        libraryLoaded: false,
+
+        // Current search/filter state
+        currentQuery: '',
+        currentCategory: ''
+    };
+
+    // ========================================
+    // HELPER FUNCTIONS
+    // ========================================
+
+    function getScoreBadgeClass(score) {
+        if (score >= 400) return 'score-intolerable';
+        if (score >= 200) return 'score-substantial';
+        if (score >= 70) return 'score-important';
+        if (score >= 20) return 'score-possible';
+        return 'score-trivial';
+    }
+
+    function getScoreLabel(score) {
+        if (score >= 400) return 'Tolerans gösterilemez';
+        if (score >= 200) return 'Esaslı';
+        if (score >= 70) return 'Önemli';
+        if (score >= 20) return 'Olası';
+        return 'Önemsiz';
+    }
+
+    // Matrix scoring helpers (L-Matris: P x S, range 1-25)
+    function getMatrixScoreBadgeClass(score) {
+        if (score >= 20) return 'score-intolerable';
+        if (score >= 12) return 'score-substantial';
+        if (score >= 6) return 'score-important';
+        if (score >= 3) return 'score-possible';
+        return 'score-trivial';
+    }
+
+    function getMatrixScoreLabel(score) {
+        if (score >= 20) return 'Tolerans gösterilemez';
+        if (score >= 12) return 'Önemli';
+        if (score >= 6) return 'Orta';
+        if (score >= 3) return 'Düşük';
+        return 'Önemsiz';
+    }
+
+    function getCSRF() {
+        return document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1] || '';
+    }
+
+    function esc(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ========================================
+    // STEP 1 & 2: INITIALIZE STATE FROM SERVER
+    // ========================================
+
+    function initializeState() {
+        // Parse the JSON blob safely rendered by Django
+        const addedRisksData = JSON.parse('{{ added_risks_json|escapejs }}');
+
+        // Populate state from parsed JSON
+        addedRisksData.forEach(function (risk) {
+            if (risk.libraryId) {
+                STATE.addedLibraryIds.add(risk.libraryId);
+                STATE.libraryToRiskMap[risk.libraryId] = risk.id;
+            }
+            STATE.riskDataCache[risk.id] = {
+                libraryId: risk.libraryId,
+                description: risk.description,
+                category: risk.category,
+                legal_basis: risk.legal_basis,
+                measure: risk.measure,
+                affected_persons: risk.affected_persons,
+                due_date: risk.due_date,
+                responsible: risk.responsible,
+                mitigation_strategy: risk.mitigation_strategy,
+                estimated_budget: risk.estimated_budget,
+                kinney_probability: risk.kinney_probability,
+                kinney_frequency: risk.kinney_frequency,
+                kinney_severity: risk.kinney_severity,
+                kinney_score: risk.kinney_score,
+                matrix_probability: risk.matrix_probability,
+                matrix_severity: risk.matrix_severity,
+                matrix_score: risk.matrix_score,
+                has_control_records: risk.has_control_records,
+                latest_residual_score: risk.latest_residual_score
+            };
+        });
+    }
+
+    // ========================================
+    // STEP 3: LIBRARY RENDERING (PAGINATED)
+    // ========================================
+
+    function loadLibrary() {
+        const query = document.getElementById('searchInput').value.trim();
+        const category = document.getElementById('categorySelect').value;
+        const container = document.getElementById('libraryContainer');
+
+        STATE.currentQuery = query;
+        STATE.currentCategory = category;
+
+        container.innerHTML = '<div class="empty-state"><i class="bi bi-hourglass-split"></i><p>Aranıyor...</p></div>';
+
+        fetch(`/api/risk-library/?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&limit=100`)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('libraryCount').textContent = `${data.total} risk`;
+                STATE.libraryData = data.results;
+                STATE.libraryLoaded = true;
+                renderLibraryList(data.results, data.has_more);
+            })
+            .catch(err => {
+                container.innerHTML = '<div class="empty-state text-danger"><i class="bi bi-exclamation-triangle"></i><p>Yükleme hatası</p></div>';
+            });
+    }
+
+    function renderLibraryList(risks, hasMore) {
+        const container = document.getElementById('libraryContainer');
+
+        if (risks.length === 0) {
+            container.innerHTML = '<div class="empty-state"><i class="bi bi-search"></i><p>Sonuç bulunamadı</p></div>';
+            return;
+        }
+
+        let html = `<table class="library-table"><thead><tr>
+            <th style="width:20%">Grup</th>
+            <th>Tehlike & Risk</th>
+            <th style="width:80px">İşlem</th>
+        </tr></thead><tbody>`;
+
+        risks.forEach(risk => {
+            const isAdded = STATE.addedLibraryIds.has(risk.id);
+            const btnClass = isAdded ? 'btn-added' : 'btn-add';
+            const btnText = isAdded ? '✓ Eklendi' : '+ Ekle';
+            const btnDisabled = isAdded ? 'disabled' : '';
+
+            html += `<tr data-library-id="${risk.id}">
+                <td class="lib-group">${esc(risk.grup_adi)}</td>
+                <td>
+                    <div class="lib-tehlike">${esc(risk.tehlike)}</div>
+                    <div class="lib-risk">${esc(risk.risk)}</div>
+                </td>
+                <td>
+                    <button class="${btnClass}" onclick="addRisk(${risk.id}, this)" ${btnDisabled}>
+                        ${btnText}
+                    </button>
+                </td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+        if (hasMore) {
+            html += '<div class="empty-state"><small>İlk 100 sonuç gösteriliyor. Arama yaparak daraltın.</small></div>';
+        }
+        container.innerHTML = html;
+    }
+
+    // Update a single library button without re-rendering entire list
+    function updateLibraryButton(libraryId, isAdded) {
+        const row = document.querySelector(`tr[data-library-id="${libraryId}"]`);
+        if (!row) return;
+
+        const btn = row.querySelector('button');
+        if (!btn) return;
+
+        if (isAdded) {
+            btn.className = 'btn-added';
+            btn.textContent = '✓ Eklendi';
+            btn.disabled = true;
+        } else {
+            btn.className = 'btn-add';
+            btn.textContent = '+ Ekle';
+            btn.disabled = false;
+        }
+    }
+
+    // ========================================
+    // STEP 4: ADD RISK ACTION
+    // ========================================
+
+    function addRisk(libraryId, btn) {
+        btn.disabled = true;
+        btn.textContent = '...';
+
+        fetch(`/assessments/${sessionPk}/add-library-risk/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRF() },
+            body: JSON.stringify({ library_id: libraryId })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Update STATE
+                    STATE.addedLibraryIds.add(libraryId);
+                    STATE.libraryToRiskMap[libraryId] = data.risk_id;
+                    STATE.riskDataCache[data.risk_id] = {
+                        libraryId: libraryId,
+                        description: data.description,
+                        category: data.category,
+                        legal_basis: data.legal_basis,
+                        priority: '',
+                        measure: data.measure || '',
+                        affected_persons: data.affected_persons || '',
+                        due_date: '',
+                        responsible: ''
+                    };
+
+                    // Update library button to show "Added"
+                    updateLibraryButton(libraryId, true);
+
+                    // Add to selected risks list
+                    addRiskToCart(data.risk_id, data.description);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = '+ Ekle';
+            });
+    }
+
+    function addRiskToCart(riskId, description) {
+        const cart = document.getElementById('cartContainer');
+        const empty = document.getElementById('emptyCart');
+        if (empty) empty.remove();
+
+        const item = document.createElement('div');
+        item.className = 'cart-item';
+        item.dataset.riskId = riskId;
+        item.innerHTML = `
+            <span class="cart-item-text">${esc(description).substring(0, 60)}${description.length > 60 ? '...' : ''}</span>
+            <span class="score-badge score-none" data-score-badge>—</span>
+            <div class="cart-actions">
+                <button class="btn-edit" onclick="openEditModal(${riskId})">
+                    <i class="bi bi-pencil"></i> Düzenle
+                </button>
+                <button class="btn-del" onclick="deleteRisk(${riskId})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+        cart.appendChild(item);
+        updateCartCount();
+    }
+
+    // ========================================
+    // DELETE RISK ACTION
+    // ========================================
+
+    function deleteRisk(riskId) {
+        if (!confirm('Bu riski silmek istediğinizden emin misiniz?')) return;
+
+        fetch(`/assessments/${sessionPk}/delete-fast-risk/${riskId}/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRF() }
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Get libraryId from cache before deleting
+                    const riskData = STATE.riskDataCache[riskId];
+                    const libraryId = riskData?.libraryId;
+
+                    // Remove from STATE
+                    if (libraryId) {
+                        STATE.addedLibraryIds.delete(libraryId);
+                        delete STATE.libraryToRiskMap[libraryId];
+
+                        // Update library button back to "Add"
+                        updateLibraryButton(libraryId, false);
+                    }
+                    delete STATE.riskDataCache[riskId];
+
+                    // Remove from DOM
+                    document.querySelector(`[data-risk-id="${riskId}"]`)?.remove();
+                    updateCartCount();
+
+                    // Show empty state if no risks left
+                    if (!document.querySelector('.cart-item')) {
+                        document.getElementById('cartContainer').innerHTML =
+                            '<div class="empty-state" id="emptyCart"><i class="bi bi-clipboard-plus"></i><p>Henüz risk eklenmedi</p></div>';
+                    }
+                }
+            });
+    }
+
+    // ========================================
+    // EDIT MODAL FUNCTIONS
+    // ========================================
+
+    function openEditModal(riskId) {
+        const data = STATE.riskDataCache[riskId];
+        if (!data) return;
+
+        document.getElementById('modal-risk-id').value = riskId;
+        document.getElementById('modal-category').value = data.category || '';
+        document.getElementById('modal-description').value = data.description || '';
+        document.getElementById('modal-measure').value = data.measure || '';
+        document.getElementById('modal-responsible').value = data.responsible || '';
+        document.getElementById('modal-affected').value = data.affected_persons || '';
+        document.getElementById('modal-duedate').value = data.due_date || '';
+
+        // DÖF fields
+        document.getElementById('modal-strategy').value = data.mitigation_strategy || '';
+        document.getElementById('modal-budget').value = data.estimated_budget || '';
+
+        // Scoring fields
+        document.getElementById('modal-kinney-p').value = data.kinney_probability || '';
+        document.getElementById('modal-kinney-f').value = data.kinney_frequency || '';
+        document.getElementById('modal-kinney-s').value = data.kinney_severity || '';
+        document.getElementById('modal-matrix-p').value = data.matrix_probability || '';
+        document.getElementById('modal-matrix-s').value = data.matrix_severity || '';
+
+        if (data.legal_basis) {
+            document.getElementById('modal-legal').style.display = 'block';
+            document.getElementById('modal-legal-text').textContent = data.legal_basis;
+        } else {
+            document.getElementById('modal-legal').style.display = 'none';
+        }
+
+        // Show only the appropriate scoring section
+        document.getElementById('scoringKinneySection').style.display = scoringMethod === 'KINNEY' ? 'block' : 'none';
+        document.getElementById('scoringMatrixSection').style.display = scoringMethod === 'MATRIX' ? 'block' : 'none';
+
+        calcScore();
+        document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('editModal').classList.remove('active');
+    }
+
+    function calcScore() {
+        // Kinney
+        const kP = parseFloat(document.getElementById('modal-kinney-p').value) || 0;
+        const kF = parseFloat(document.getElementById('modal-kinney-f').value) || 0;
+        const kS = parseInt(document.getElementById('modal-kinney-s').value) || 0;
+        const kScore = kP * kF * kS;
+        const kResult = document.getElementById('kinneyResult');
+
+        if (kP && kF && kS) {
+            kResult.textContent = Math.round(kScore);
+            if (kScore < 20) { kResult.style.color = '#10B981'; }
+            else if (kScore < 70) { kResult.style.color = '#F59E0B'; }
+            else if (kScore < 200) { kResult.style.color = '#F97316'; }
+            else { kResult.style.color = '#EF4444'; }
+        } else {
+            kResult.textContent = '—';
+            kResult.style.color = '#6b7280';
+        }
+
+        // Matrix
+        const mP = parseInt(document.getElementById('modal-matrix-p').value) || 0;
+        const mS = parseInt(document.getElementById('modal-matrix-s').value) || 0;
+        const mScore = mP * mS;
+        const mResult = document.getElementById('matrixResult');
+
+        if (mP && mS) {
+            mResult.textContent = mScore;
+            if (mScore <= 4) { mResult.style.color = '#10B981'; }
+            else if (mScore <= 9) { mResult.style.color = '#F59E0B'; }
+            else if (mScore <= 16) { mResult.style.color = '#F97316'; }
+            else { mResult.style.color = '#EF4444'; }
+        } else {
+            mResult.textContent = '—';
+            mResult.style.color = '#6b7280';
+        }
+
+        // Update badge
+        const scoreBadge = document.getElementById('scoreBadge');
+        let displayText = '';
+        let badgeColor = '';
+
+        if (scoringMethod === 'KINNEY' && kP && kF && kS) {
+            const roundedScore = Math.round(kScore);
+            displayText = getScoreLabel(roundedScore) + ' (' + roundedScore + ')';
+            if (kScore >= 400) { badgeColor = 'background:#EF4444;color:white'; }
+            else if (kScore >= 200) { badgeColor = 'background:#F97316;color:white'; }
+            else if (kScore >= 70) { badgeColor = 'background:#F59E0B;color:white'; }
+            else if (kScore >= 20) { badgeColor = 'background:#84CC16;color:white'; }
+            else { badgeColor = 'background:#10B981;color:white'; }
+        } else if (scoringMethod === 'MATRIX' && mP && mS) {
+            displayText = mScore;
+            if (mScore >= 20) { badgeColor = 'background:#EF4444;color:white'; }
+            else if (mScore >= 12) { badgeColor = 'background:#F97316;color:white'; }
+            else if (mScore >= 6) { badgeColor = 'background:#F59E0B;color:white'; }
+            else { badgeColor = 'background:#10B981;color:white'; }
+        }
+
+        if (displayText) {
+            scoreBadge.textContent = displayText;
+            scoreBadge.style.cssText = badgeColor;
+            scoreBadge.style.display = 'inline-block';
+        } else {
+            scoreBadge.style.display = 'none';
+        }
+    }
+
+    function saveModal() {
+        const riskId = document.getElementById('modal-risk-id').value;
+        const description = document.getElementById('modal-description').value;
+        const measure = document.getElementById('modal-measure').value;
+        const responsible = document.getElementById('modal-responsible').value;
+        const affected_persons = document.getElementById('modal-affected').value;
+        const due_date = document.getElementById('modal-duedate').value;
+
+        // DÖF fields
+        const mitigation_strategy = document.getElementById('modal-strategy').value;
+        const estimated_budget = document.getElementById('modal-budget').value;
+
+        // Scoring
+        const kinney_probability = document.getElementById('modal-kinney-p').value;
+        const kinney_frequency = document.getElementById('modal-kinney-f').value;
+        const kinney_severity = document.getElementById('modal-kinney-s').value;
+        const matrix_probability = document.getElementById('modal-matrix-p').value;
+        const matrix_severity = document.getElementById('modal-matrix-s').value;
+
+        // Determine scoring method
+        let scoring_method_to_send = ''; // Use a different variable name to avoid conflict with global scoringMethod
+        if (kinney_probability && kinney_frequency && kinney_severity) {
+            scoring_method_to_send = 'KINNEY';
+        } else if (matrix_probability && matrix_severity) {
+            scoring_method_to_send = 'MATRIX';
+        }
+
+        fetch(`/assessments/${sessionPk}/update-fast-risk/${riskId}/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRF() },
+            body: JSON.stringify({
+                description, measure, responsible, affected_persons, due_date,
+                mitigation_strategy, estimated_budget,
+                scoring_method: scoring_method_to_send,
+                kinney_probability, kinney_frequency, kinney_severity,
+                matrix_probability, matrix_severity
+            })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Update STATE cache
+                    const cache = STATE.riskDataCache[riskId];
+                    if (cache) {
+                        cache.description = description;
+                        cache.measure = measure;
+                        cache.responsible = responsible;
+                        cache.affected_persons = affected_persons;
+                        cache.due_date = due_date;
+                        cache.mitigation_strategy = mitigation_strategy;
+                        cache.estimated_budget = estimated_budget;
+                        cache.kinney_probability = kinney_probability;
+                        cache.kinney_frequency = kinney_frequency;
+                        cache.kinney_severity = kinney_severity;
+                        cache.matrix_probability = matrix_probability;
+                        cache.matrix_severity = matrix_severity;
+                    }
+
+                    // Update cart item
+                    const item = document.querySelector(`[data-risk-id="${riskId}"]`);
+                    if (item) {
+                        const textSpan = item.querySelector('.cart-item-text');
+                        if (textSpan) {
+                            textSpan.textContent = description.substring(0, 60) + (description.length > 60 ? '...' : '');
+                        }
+
+                        // Update score badge - preserve comparison if residual score exists
+                        let scoreBadge = item.querySelector('[data-score-badge]');
+                        if (!scoreBadge) {
+                            scoreBadge = item.querySelector('.score-badge');
+                        }
+                        if (!scoreBadge && textSpan) {
+                            scoreBadge = document.createElement('span');
+                            scoreBadge.className = 'score-badge score-none';
+                            scoreBadge.setAttribute('data-score-badge', '');
+                            textSpan.after(scoreBadge);
+                        }
+
+                        // Update cache with new scores
+                        if (cache) {
+                            cache.kinney_score = data.kinney_score;
+                            cache.matrix_score = data.matrix_score;
+                        }
+
+                        // Determine which score to use based on scoring method
+                        const residualScore = cache?.latest_residual_score;
+                        let score, getBadgeClass, getLabel;
+                        if (scoringMethod === 'MATRIX') {
+                            score = data.matrix_score;
+                            getBadgeClass = getMatrixScoreBadgeClass;
+                            getLabel = getMatrixScoreLabel;
+                        } else {
+                            score = data.kinney_score;
+                            getBadgeClass = getScoreBadgeClass;
+                            getLabel = getScoreLabel;
+                        }
+
+                        if (score !== null && score !== undefined) {
+                            if (residualScore) {
+                                // Preserve comparison display
+                                scoreBadge.innerHTML = `<span class="${getBadgeClass(score)}">${getLabel(score)} (${score})</span> → <span class="${getBadgeClass(residualScore)}">${getLabel(residualScore)} (${residualScore})</span>`;
+                                scoreBadge.className = 'score-badge score-comparison';
+                            } else {
+                                scoreBadge.textContent = getLabel(score) + ' (' + score + ')';
+                                scoreBadge.className = 'score-badge ' + getBadgeClass(score);
+                            }
+                        } else {
+                            scoreBadge.textContent = '—';
+                            scoreBadge.className = 'score-badge score-none';
+                        }
+                    }
+
+                    closeModal();
+                }
+            });
+    }
+
+    // ========================================
+    // UTILITY FUNCTIONS
+    // ========================================
+
+    function updateCartCount() {
+        const count = document.querySelectorAll('.cart-item').length;
+        document.getElementById('cartCount').textContent = `${count} risk`;
+    }
+
+    // Style cart badges on page load with proper labels and colors
+    function styleCartBadges() {
+        document.querySelectorAll('.cart-item').forEach(item => {
+            const riskId = item.dataset.riskId;
+            const riskData = STATE.riskDataCache[riskId];
+            if (!riskData) return;
+
+            const badge = item.querySelector('[data-score-badge]');
+            if (!badge) return;
+
+            // Determine which score to use based on scoring method
+            let originalScore, residualScore, getBadgeClass, getLabel;
+            if (scoringMethod === 'MATRIX') {
+                originalScore = riskData.matrix_score;
+                residualScore = riskData.latest_residual_score;
+                getBadgeClass = getMatrixScoreBadgeClass;
+                getLabel = getMatrixScoreLabel;
+            } else {
+                originalScore = riskData.kinney_score;
+                residualScore = riskData.latest_residual_score;
+                getBadgeClass = getScoreBadgeClass;
+                getLabel = getScoreLabel;
+            }
+
+            if (originalScore && residualScore) {
+                // Show comparison: original > residual
+                badge.innerHTML = `<span class="${getBadgeClass(originalScore)}">${getLabel(originalScore)} (${originalScore})</span> → <span class="${getBadgeClass(residualScore)}">${getLabel(residualScore)} (${residualScore})</span>`;
+                badge.className = 'score-badge score-comparison';
+            } else if (originalScore) {
+                badge.textContent = getLabel(originalScore) + ' (' + originalScore + ')';
+                badge.className = 'score-badge ' + getBadgeClass(originalScore);
+            } else {
+                badge.textContent = '—';
+                badge.className = 'score-badge score-none';
+            }
+        });
+    }
+
+
+    // ========================================
+    // INITIALIZATION
+    // ========================================
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initializeState();
+        styleCartBadges();
+        loadLibrary();
+    });
+
+    document.getElementById('searchBtn').addEventListener('click', loadLibrary);
+    document.getElementById('searchInput').addEventListener('keypress', e => { if (e.key === 'Enter') loadLibrary(); });
+    document.getElementById('categorySelect').addEventListener('change', loadLibrary);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    // ========================================
+    // TAB SWITCHING
+    // ========================================
+
+    function switchTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.modal-tab').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.tab === tabName) btn.classList.add('active');
+        });
+
+        // Update tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.getElementById('tab-' + tabName).classList.add('active');
+
+        // Load control records when switching to control tab
+        if (tabName === 'control') {
+            loadControlRecords();
+        }
+    }
+
+    // ========================================
+    // CONTROL RECORDS
+    // ========================================
+
+    let currentOriginalScore = null;
+
+    function loadControlRecords() {
+        const riskId = document.getElementById('modal-risk-id').value;
+        if (!riskId) return;
+
+        const list = document.getElementById('control-list');
+        const empty = document.getElementById('control-empty');
+
+        fetch(`/assessments/${sessionPk}/risk/${riskId}/control-records/`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    currentOriginalScore = data.original_score;
+
+                    if (data.records.length === 0) {
+                        empty.style.display = 'block';
+                        list.innerHTML = '';
+                    } else {
+                        empty.style.display = 'none';
+                        list.innerHTML = data.records.map(rec => renderControlRecord(rec)).join('');
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Error loading control records:', err);
+            });
+    }
+
+    function renderControlRecord(record) {
+        // Use appropriate helpers based on scoring method
+        const getBadgeClass = scoringMethod === 'MATRIX' ? getMatrixScoreBadgeClass : getScoreBadgeClass;
+        const getLabel = scoringMethod === 'MATRIX' ? getMatrixScoreLabel : getScoreLabel;
+        const scoreClass = getBadgeClass(record.residual_score);
+        const scoreLabel = getLabel(record.residual_score);
+
+        return `
+            <div class="control-record-item">
+                <div class="control-record-header">
+                    <span class="control-record-date">${record.control_date_display}</span>
+                    <span class="score-badge ${scoreClass}">${scoreLabel} (${record.residual_score || '—'})</span>
+                </div>
+                <div class="control-record-auditor">
+                    <i class="bi bi-person me-1"></i> ${esc(record.auditor_name)}
+                </div>
+                ${record.observation_note ? `<div class="control-record-note">${esc(record.observation_note)}</div>` : ''}
+            </div>
+        `;
+    }
+
+    function showControlForm() {
+        document.getElementById('control-form').style.display = 'block';
+        document.getElementById('btn-show-control-form').style.display = 'none';
+
+        // Show appropriate scoring section based on method
+        document.getElementById('controlKinneySection').style.display = scoringMethod === 'KINNEY' ? 'grid' : 'none';
+        document.getElementById('controlMatrixSection').style.display = scoringMethod === 'MATRIX' ? 'block' : 'none';
+
+        // Get current risk data to pre-fill the form (inheritance)
+        const riskId = document.getElementById('modal-risk-id').value;
+        const riskData = STATE.riskDataCache[riskId];
+
+        if (riskData) {
+            if (scoringMethod === 'MATRIX') {
+                document.getElementById('control-matrix-p').value = riskData.matrix_probability || '';
+                document.getElementById('control-matrix-s').value = riskData.matrix_severity || '';
+            } else {
+                document.getElementById('control-kinney-p').value = riskData.kinney_probability || '';
+                document.getElementById('control-kinney-f').value = riskData.kinney_frequency || '';
+                document.getElementById('control-kinney-s').value = riskData.kinney_severity || '';
+            }
+        }
+
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('control-date').value = today;
+        document.getElementById('control-auditor').value = '';
+        document.getElementById('control-note').value = '';
+
+        calcControlScore();
+    }
+
+    function hideControlForm() {
+        document.getElementById('control-form').style.display = 'none';
+        document.getElementById('btn-show-control-form').style.display = 'block';
+        document.getElementById('score-comparison').style.display = 'none';
+    }
+
+    function calcControlScore() {
+        const resultEl = scoringMethod === 'MATRIX' ? document.getElementById('controlMatrixResult') : document.getElementById('controlKinneyResult');
+        const comparisonEl = document.getElementById('score-comparison');
+        const getLabel = scoringMethod === 'MATRIX' ? getMatrixScoreLabel : getScoreLabel;
+        let newScore = 0;
+        let hasValues = false;
+
+        if (scoringMethod === 'MATRIX') {
+            const mP = parseInt(document.getElementById('control-matrix-p').value) || 0;
+            const mS = parseInt(document.getElementById('control-matrix-s').value) || 0;
+            newScore = mP * mS;
+            hasValues = mP && mS;
+
+            if (hasValues) {
+                resultEl.textContent = newScore;
+                if (newScore <= 4) resultEl.style.color = '#10B981';
+                else if (newScore <= 9) resultEl.style.color = '#F59E0B';
+                else if (newScore <= 16) resultEl.style.color = '#F97316';
+                else resultEl.style.color = '#EF4444';
+            }
+        } else {
+            const kP = parseFloat(document.getElementById('control-kinney-p').value) || 0;
+            const kF = parseFloat(document.getElementById('control-kinney-f').value) || 0;
+            const kS = parseInt(document.getElementById('control-kinney-s').value) || 0;
+            newScore = Math.round(kP * kF * kS);
+            hasValues = kP && kF && kS;
+
+            if (hasValues) {
+                resultEl.textContent = newScore;
+                if (newScore < 20) resultEl.style.color = '#10B981';
+                else if (newScore < 70) resultEl.style.color = '#F59E0B';
+                else if (newScore < 200) resultEl.style.color = '#F97316';
+                else resultEl.style.color = '#EF4444';
+            }
+        }
+
+        if (hasValues) {
+            // Show comparison
+            if (currentOriginalScore) {
+                comparisonEl.style.display = 'flex';
+                document.getElementById('prev-score-value').textContent = currentOriginalScore + ' (' + getLabel(currentOriginalScore) + ')';
+                document.getElementById('new-score-value').textContent = newScore + ' (' + getLabel(newScore) + ')';
+            }
+        } else {
+            resultEl.textContent = '—';
+            resultEl.style.color = '#6b7280';
+            comparisonEl.style.display = 'none';
+        }
+    }
+
+    function saveControlRecord() {
+        const riskId = document.getElementById('modal-risk-id').value;
+        const controlDate = document.getElementById('control-date').value;
+        const auditorName = document.getElementById('control-auditor').value;
+        const note = document.getElementById('control-note').value;
+
+        if (!controlDate || !auditorName) {
+            alert('Lütfen tarih ve denetleyen bilgisini girin.');
+            return;
+        }
+
+        // Build request body based on scoring method
+        let requestBody = {
+            control_date: controlDate,
+            auditor_name: auditorName,
+            observation_note: note,
+            scoring_method: scoringMethod
+        };
+
+        let newResidualScore = 0;
+        if (scoringMethod === 'MATRIX') {
+            const mP = document.getElementById('control-matrix-p').value;
+            const mS = document.getElementById('control-matrix-s').value;
+            requestBody.matrix_probability = mP;
+            requestBody.matrix_severity = mS;
+            newResidualScore = (parseInt(mP) || 0) * (parseInt(mS) || 0);
+        } else {
+            const kP = document.getElementById('control-kinney-p').value;
+            const kF = document.getElementById('control-kinney-f').value;
+            const kS = document.getElementById('control-kinney-s').value;
+            requestBody.kinney_probability = kP;
+            requestBody.kinney_frequency = kF;
+            requestBody.kinney_severity = kS;
+            newResidualScore = Math.round((parseFloat(kP) || 0) * (parseFloat(kF) || 0) * (parseInt(kS) || 0));
+        }
+
+        fetch(`/assessments/${sessionPk}/risk/${riskId}/control-records/add/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRF() },
+            body: JSON.stringify(requestBody)
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    hideControlForm();
+                    loadControlRecords();
+
+                    // Update STATE
+                    if (STATE.riskDataCache[riskId]) {
+                        STATE.riskDataCache[riskId].has_control_records = true;
+                        STATE.riskDataCache[riskId].latest_residual_score = newResidualScore;
+                    }
+
+                    // Update cart item display with score comparison
+                    const cartItem = document.querySelector(`[data-risk-id="${riskId}"]`);
+                    if (cartItem) {
+                        const badge = cartItem.querySelector('[data-score-badge]');
+                        if (badge) {
+                            const getBadgeClass = scoringMethod === 'MATRIX' ? getMatrixScoreBadgeClass : getScoreBadgeClass;
+                            const getLabel = scoringMethod === 'MATRIX' ? getMatrixScoreLabel : getScoreLabel;
+                            const originalScore = scoringMethod === 'MATRIX' ? STATE.riskDataCache[riskId].matrix_score : STATE.riskDataCache[riskId].kinney_score;
+                            badge.innerHTML = `<span class="${getBadgeClass(originalScore)}">${getLabel(originalScore)} (${originalScore})</span> → <span class="${getBadgeClass(newResidualScore)}">${getLabel(newResidualScore)} (${newResidualScore})</span>`;
+                            badge.className = 'score-badge score-comparison';
+                        }
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Error saving control record:', err);
+                alert('Kayıt sırasında bir hata oluştu.');
+            });
+    }
+
+    function updateCartVerifiedBadge(riskId, hasRecords) {
+        const cartItem = document.querySelector(`[data-risk-id="${riskId}"]`);
+        if (!cartItem) return;
+
+        const textSpan = cartItem.querySelector('.cart-item-text');
+        const existingBadge = cartItem.querySelector('.verified-badge');
+
+        if (hasRecords && !existingBadge && textSpan) {
+            const badge = document.createElement('span');
+            badge.className = 'verified-badge';
+            badge.title = 'Kontrol kaydı mevcut';
+            badge.textContent = '📋';
+            cartItem.insertBefore(badge, textSpan);
+        } else if (!hasRecords && existingBadge) {
+            existingBadge.remove();
+        }
+    }
+
+</script>
+{% endblock %}

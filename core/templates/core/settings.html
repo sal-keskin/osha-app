@@ -12,7 +12,8 @@
         <div class="list-group">
             <a href="#general" class="list-group-item list-group-item-action active" data-bs-toggle="list">Genel</a>
             <!-- Link to separate page -->
-            <a href="{% url 'certificate_settings' %}" class="list-group-item list-group-item-action">Sertifika Tasarımı</a>
+            <a href="{% url 'certificate_settings' %}" class="list-group-item list-group-item-action">Sertifika
+                Tasarımı</a>
             <a href="{% url 'user_list' %}" class="list-group-item list-group-item-action">Kullanıcılar</a>
             <a href="{% url 'log_list' %}" class="list-group-item list-group-item-action">İşlem Kayıtları</a>
         </div>
@@ -23,9 +24,66 @@
                 <div class="card">
                     <div class="card-header">Görünüm Ayarları</div>
                     <div class="card-body">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="darkModeSwitch">
-                            <label class="form-check-label" for="darkModeSwitch">Karanlık Mod (Dark Mode)</label>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="bi bi-moon-stars fs-4" id="themeIcon"></i>
+                                <div>
+                                    <strong>Karanlık Mod</strong>
+                                    <p class="text-muted mb-0 small">Arayüz temasını değiştirin</p>
+                                </div>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="darkModeSwitch"
+                                    style="width: 3rem; height: 1.5rem;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Time & Timezone Card -->
+                <div class="card mt-3">
+                    <div class="card-header">Saat ve Zaman Dilimi</div>
+                    <div class="card-body">
+                        <!-- Live Clock Display -->
+                        <div class="d-flex align-items-center justify-content-between mb-4">
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="bi bi-clock fs-4"></i>
+                                <div>
+                                    <strong>Sistem Saati</strong>
+                                    <p class="text-muted mb-0 small">Canlı olarak güncellenir</p>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div id="liveTime" class="fs-3 fw-bold text-primary"
+                                    style="font-variant-numeric: tabular-nums;">--:--:--</div>
+                                <div id="liveDate" class="text-muted small">--</div>
+                            </div>
+                        </div>
+
+                        <!-- Timezone Selection -->
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="bi bi-globe fs-4"></i>
+                                <div>
+                                    <strong>Zaman Dilimi</strong>
+                                    <p class="text-muted mb-0 small">Tercih ettiğiniz zaman dilimini seçin</p>
+                                </div>
+                            </div>
+                            <div style="min-width: 250px;">
+                                <select class="form-select" id="timezoneSelect">
+                                    <option value="Europe/Istanbul">Türkiye (UTC+3)</option>
+                                    <option value="Europe/London">Londra (UTC+0/+1)</option>
+                                    <option value="Europe/Paris">Paris (UTC+1/+2)</option>
+                                    <option value="Europe/Berlin">Berlin (UTC+1/+2)</option>
+                                    <option value="Europe/Moscow">Moskova (UTC+3)</option>
+                                    <option value="America/New_York">New York (UTC-5/-4)</option>
+                                    <option value="America/Los_Angeles">Los Angeles (UTC-8/-7)</option>
+                                    <option value="Asia/Dubai">Dubai (UTC+4)</option>
+                                    <option value="Asia/Tokyo">Tokyo (UTC+9)</option>
+                                    <option value="Asia/Shanghai">Şanghay (UTC+8)</option>
+                                    <option value="Australia/Sydney">Sidney (UTC+10/+11)</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -35,24 +93,92 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const darkModeSwitch = document.getElementById('darkModeSwitch');
-    const htmlElement = document.documentElement;
+    document.addEventListener('DOMContentLoaded', function () {
+        // === Dark Mode Toggle ===
+        const darkModeSwitch = document.getElementById('darkModeSwitch');
+        const themeIcon = document.getElementById('themeIcon');
+        const htmlElement = document.documentElement;
 
-    // Check current theme
-    if (localStorage.getItem('theme') === 'dark') {
-        darkModeSwitch.checked = true;
-    }
-
-    darkModeSwitch.addEventListener('change', function() {
-        if (this.checked) {
-            htmlElement.setAttribute('data-bs-theme', 'dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            htmlElement.setAttribute('data-bs-theme', 'light');
-            localStorage.setItem('theme', 'light');
+        function updateUI() {
+            const isDark = htmlElement.getAttribute('data-bs-theme') === 'dark';
+            darkModeSwitch.checked = isDark;
+            themeIcon.className = isDark ? 'bi bi-moon-stars fs-4' : 'bi bi-sun fs-4';
         }
+
+        updateUI();
+
+        darkModeSwitch.addEventListener('change', function () {
+            if (this.checked) {
+                htmlElement.setAttribute('data-bs-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                htmlElement.setAttribute('data-bs-theme', 'light');
+                localStorage.setItem('theme', 'light');
+            }
+            updateUI();
+        });
+
+        // === Timezone & Live Clock ===
+        const timezoneSelect = document.getElementById('timezoneSelect');
+        const liveTime = document.getElementById('liveTime');
+        const liveDate = document.getElementById('liveDate');
+
+        // Turkish day and month names
+        const dayNames = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+        const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+
+        // Load saved timezone or default to Istanbul
+        const savedTimezone = localStorage.getItem('timezone') || 'Europe/Istanbul';
+        timezoneSelect.value = savedTimezone;
+
+        // Update clock function
+        function updateClock() {
+            const timezone = timezoneSelect.value;
+            const now = new Date();
+
+            // Format time in selected timezone
+            const timeOptions = {
+                timeZone: timezone,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            };
+
+            const dateOptions = {
+                timeZone: timezone,
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            };
+
+            try {
+                // Get formatted time
+                const timeStr = now.toLocaleTimeString('tr-TR', timeOptions);
+                liveTime.textContent = timeStr;
+
+                // Get date parts for Turkish format
+                const dateFormatter = new Intl.DateTimeFormat('tr-TR', dateOptions);
+                const dateStr = dateFormatter.format(now);
+                liveDate.textContent = dateStr;
+            } catch (e) {
+                liveTime.textContent = now.toLocaleTimeString('tr-TR');
+                liveDate.textContent = now.toLocaleDateString('tr-TR');
+            }
+        }
+
+        // Initial update
+        updateClock();
+
+        // Update every second
+        setInterval(updateClock, 1000);
+
+        // Save timezone preference when changed
+        timezoneSelect.addEventListener('change', function () {
+            localStorage.setItem('timezone', this.value);
+            updateClock(); // Immediately update to show new timezone
+        });
     });
-});
 </script>
 {% endblock %}

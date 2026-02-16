@@ -1,217 +1,578 @@
 {% extends 'core/base.html' %}
-{% load core_extras %}
 
 {% block content %}
-<div class="row mb-3">
-    <div class="col d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-            <h2>{{ title }}</h2>
-            {% if filter_config %}
-            <button class="btn btn-outline-secondary ms-3 d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false">
-                <i class="bi bi-funnel"></i>
-            </button>
+<style>
+    /* Page-Specific Layout Styles Only (Copied from workplace_list.html for consistency) */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .more-menu-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--muted);
+        padding: 8px;
+        cursor: pointer;
+        border-radius: 8px;
+    }
+
+    .more-menu-btn:hover {
+        background: var(--card-bg);
+    }
+
+    /* Stats Ribbon */
+    .stats-ribbon {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 16px 0;
+        margin-bottom: 16px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .stats-ribbon::-webkit-scrollbar {
+        display: none;
+    }
+
+    @media (min-width: 1024px) {
+        .stats-ribbon {
+            flex-wrap: wrap;
+            overflow-x: visible;
+        }
+    }
+
+    .stat-chip {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 24px;
+        padding: 10px 18px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+        font-size: 0.85rem;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .stat-chip .emoji {
+        font-size: 1rem;
+    }
+
+    .stat-chip.stat-green {
+        background: #065F46;
+        border-color: #10B981;
+        color: #D1FAE5;
+    }
+
+    .stat-chip.stat-orange {
+        background: #92400E;
+        border-color: #F59E0B;
+        color: #FEF3C7;
+    }
+
+    .stat-chip.stat-red {
+        background: #991B1B;
+        border-color: #EF4444;
+        color: #FEE2E2;
+    }
+
+    /* Search & Filter Row */
+    .search-filter-row {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .search-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 12px 16px;
+    }
+
+    .search-wrapper i {
+        color: var(--muted);
+        margin-right: 10px;
+    }
+
+    .search-input {
+        border: none;
+        outline: none;
+        width: 100%;
+        font-size: 1rem;
+        background: transparent;
+        color: var(--foreground);
+    }
+
+    .search-input::placeholder {
+        color: var(--muted);
+    }
+
+    .filter-btn {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        color: var(--foreground);
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s;
+    }
+
+    .filter-btn:hover {
+        background: var(--border-color);
+    }
+
+    .filter-btn.has-filter::after {
+        content: '';
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 8px;
+        height: 8px;
+        background: #EF4444;
+        border-radius: 50%;
+    }
+
+    /* Filter Drawer */
+    .filter-drawer-backdrop {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1040;
+    }
+
+    .filter-drawer-backdrop.show {
+        display: block;
+    }
+
+    .filter-drawer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--card-bg);
+        border-radius: 20px 20px 0 0;
+        border: 1px solid var(--border-color);
+        border-bottom: none;
+        padding: 24px;
+        z-index: 1050;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+        max-height: 80vh;
+        overflow-y: auto;
+        visibility: hidden;
+    }
+
+    .filter-drawer.show {
+        transform: translateY(0);
+        visibility: visible;
+    }
+
+    @media (min-width: 768px) {
+        .filter-drawer {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            bottom: auto;
+            transform: translate(-50%, -50%) scale(0.9);
+            opacity: 0;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 90%;
+            visibility: hidden;
+        }
+
+        .filter-drawer.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+            visibility: visible;
+        }
+    }
+
+    .drawer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .drawer-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .drawer-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--muted);
+        cursor: pointer;
+    }
+
+    .filter-group {
+        margin-bottom: 20px;
+    }
+
+    .filter-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    .drawer-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
+    .btn-clear {
+        flex: 1;
+        padding: 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        background: var(--bg-dark);
+        font-weight: 600;
+        color: var(--foreground);
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+    }
+
+    .btn-apply {
+        flex: 1;
+        padding: 14px;
+        border: none;
+        border-radius: 12px;
+        background: #3B82F6;
+        font-weight: 600;
+        color: #fff;
+        cursor: pointer;
+    }
+
+    /* Workplace Cards */
+    .workplace-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    @media (min-width: 1024px) {
+        .workplace-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+    }
+
+    .workplace-card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 16px 20px;
+        border: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .workplace-card:hover {
+        border-color: #3f3f46;
+        transform: translateY(-2px);
+    }
+
+    .workplace-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .workplace-name {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .workplace-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .info-badge {
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 6px;
+        background: var(--bg-dark);
+        color: var(--muted);
+        border: 1px solid var(--border-color);
+    }
+
+    .employee-count {
+        font-size: 0.85rem;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .card-arrow {
+        color: var(--muted);
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-left: 12px;
+    }
+
+    /* Floating Action Button */
+    .fab {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #3B82F6;
+        color: #fff;
+        border: none;
+        box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        z-index: 1000;
+    }
+
+    .fab:hover {
+        background: #2563EB;
+        transform: scale(1.05);
+        color: #fff;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--muted);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+</style>
+
+<!-- Page Header -->
+<div class="page-header">
+    <h1 class="page-title">Birimler</h1>
+
+    <div class="dropdown">
+        <button class="more-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-three-dots"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            {% if import_url_name %}
+            <li><a class="dropdown-item" href="{% url import_url_name %}"><i class="bi bi-upload"></i> İçe Aktar</a>
+            </li>
             {% endif %}
-        </div>
-        <div class="d-none d-md-block">
-            {% if create_url_name %}
-            <a href="{% url create_url_name %}" class="btn btn-primary">
-                <i class="bi bi-plus-lg"></i> Yeni Ekle
-            </a>
+            {% if export_url_name %}
+            <li><a class="dropdown-item" href="{% url export_url_name %}?format=csv"><i
+                        class="bi bi-file-earmark-spreadsheet"></i> CSV İndir</a></li>
+            <li><a class="dropdown-item" href="{% url export_url_name %}?format=xlsx"><i
+                        class="bi bi-file-earmark-excel"></i> Excel İndir</a></li>
             {% endif %}
-        </div>
+        </ul>
     </div>
 </div>
 
-<!-- Mobile FAB -->
+<!-- Workplace Filter (Top) -->
+<div class="mb-4">
+    <form method="get" id="topWorkplaceForm">
+        {% if search_query %}
+        <input type="hidden" name="search" value="{{ search_query }}">
+        {% endif %}
+        <select name="workplace" class="form-select p-3 shadow-sm border-0"
+            style="border-radius: 12px; font-weight: 600; background: var(--card-bg); color: var(--foreground);"
+            onchange="document.getElementById('topWorkplaceForm').submit()">
+            <option value="">📁 Tüm İşyerleri</option>
+            {% for wp in workplaces %}
+            <option value="{{ wp.pk }}" {% if workplace_filter == wp.pk %}selected{% endif %}>{{ wp.name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<!-- Stats Ribbon -->
+<div class="stats-ribbon">
+    <div class="stat-chip">
+        <span class="emoji">🏬</span>
+        {{ stats.total_facilities }} Birim
+    </div>
+    <div class="stat-chip">
+        <span class="emoji">👥</span>
+        {{ stats.total_workers }} Çalışan
+    </div>
+    <div
+        class="stat-chip {% if stats.training_pct >= 90 %}stat-green{% elif stats.training_pct >= 70 %}stat-orange{% else %}stat-red{% endif %}">
+        <span class="emoji">🎓</span>
+        %{{ stats.training_pct }} Eğitim
+    </div>
+    <div
+        class="stat-chip {% if stats.exam_pct >= 90 %}stat-green{% elif stats.exam_pct >= 70 %}stat-orange{% else %}stat-red{% endif %}">
+        <span class="emoji">❤️‍🩹</span>
+        %{{ stats.exam_pct }} Muayene
+    </div>
+    <div class="stat-chip">
+        <span class="emoji">🚑</span>
+        {{ stats.first_aid_count }} İlk Yardım
+    </div>
+</div>
+
+<!-- Search & Filter Row -->
+<div class="search-filter-row">
+    <form method="get" class="search-wrapper" id="searchForm">
+        <i class="bi bi-search"></i>
+        <input type="text" name="search" class="search-input" placeholder="Birim ara..." value="{{ search_query }}"
+            autocomplete="off">
+        {% if workplace_filter %}
+        <input type="hidden" name="workplace" value="{{ workplace_filter }}">
+        {% endif %}
+    </form>
+    <button type="button" class="filter-btn {% if workplace_filter %}has-filter{% endif %}"
+        onclick="openFilterDrawer()">
+        <i class="bi bi-funnel"></i>
+        <span class="d-none d-md-inline">Filtrele</span>
+    </button>
+</div>
+
+<!-- Filter Drawer -->
+<div class="filter-drawer-backdrop" id="filterBackdrop" onclick="closeFilterDrawer()"></div>
+<div class="filter-drawer" id="filterDrawer">
+    <div class="drawer-header">
+        <h3 class="drawer-title">Filtreler</h3>
+        <button class="drawer-close" onclick="closeFilterDrawer()">
+            <i class="bi bi-x"></i>
+        </button>
+    </div>
+
+    <form method="get" id="filterForm">
+        {% if search_query %}
+        <input type="hidden" name="search" value="{{ search_query }}">
+        {% endif %}
+
+        <div class="filter-group">
+            <span class="filter-label">İşyeri Seçimi</span>
+            <div class="filter-options" style="display: block;">
+                <select name="workplace" class="form-select w-100"
+                    style="background: var(--bg-dark); color: var(--foreground); border-color: var(--border-color); padding: 12px; border-radius: 12px;">
+                    <option value="">Tümü</option>
+                    {% for wp in workplaces %}
+                    <option value="{{ wp.pk }}" {% if workplace_filter == wp.pk %}selected{% endif %}>{{ wp.name }}
+                    </option>
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="drawer-actions">
+            <a href="{% url 'facility_list' %}" class="btn-clear">Temizle</a>
+            <button type="submit" class="btn-apply">Uygula</button>
+        </div>
+    </form>
+</div>
+
+<!-- Facility Grid -->
+<div class="workplace-grid">
+    {% if items %}
+    {% for item in items %}
+    <a href="{% url 'facility_detail' item.pk %}" class="workplace-card">
+        <div class="workplace-info">
+            <div class="workplace-name">{{ item.name }}</div>
+            <div class="workplace-meta">
+                <span class="info-badge">
+                    <i class="bi bi-building"></i> {{ item.workplace.name }}
+                </span>
+                <span class="employee-count">
+                    <i class="bi bi-people-fill"></i> {{ item.total_workers_count }} Çalışan
+                </span>
+            </div>
+        </div>
+        <i class="bi bi-chevron-right card-arrow"></i>
+    </a>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state" style="grid-column: 1 / -1;">
+        <i class="bi bi-building"></i>
+        <p>Henüz birim bulunmuyor.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Floating Action Button -->
 {% if create_url_name %}
-<a href="{% url create_url_name %}" class="btn btn-primary fab-btn d-md-none">
+<a href="{% url create_url_name %}" class="fab">
     <i class="bi bi-plus-lg"></i>
 </a>
 {% endif %}
 
-{% if filter_config %}
-<div class="card mb-3 collapse d-md-block" id="filterCollapse">
-    <div class="card-body">
-        <form method="get" class="row g-3">
-            {% for config in filter_config %}
-            <div class="col-md-3">
-                <label for="filter-{{ config.field }}" class="form-label">{{ config.label|default:config.field|title }}</label>
-                {% if config.type == 'select' %}
-                <select name="{{ config.field }}" id="filter-{{ config.field }}" class="form-select">
-                    <option value="">Tümü</option>
-                    {% for opt_val, opt_label in config.options %}
-                    <option value="{{ opt_val }}" {% if config.value|stringformat:"s" == opt_val|stringformat:"s" %}selected{% endif %}>{{ opt_label }}</option>
-                    {% endfor %}
-                </select>
-                {% else %}
-                <input type="text" name="{{ config.field }}" id="filter-{{ config.field }}" class="form-control" value="{{ config.value|default:'' }}" placeholder="Ara...">
-                {% endif %}
-            </div>
-            {% endfor %}
-            <div class="col-md-3 d-flex align-items-end">
-                <button type="submit" class="btn btn-secondary me-2">Filtrele</button>
-                <a href="{{ request.path }}" class="btn btn-outline-secondary">Temizle</a>
-            </div>
-        </form>
-    </div>
-</div>
-{% endif %}
-
-<!-- Mobile List View -->
-<div class="ios-list-group d-md-none">
-    {% for facility in items %}
-    <div class="ios-list-item" onclick="toggleIosDetails(this)">
-        <div class="ios-item-header">
-            <div class="ios-item-title">{{ facility.name }}</div>
-            <div class="ios-badges">
-                <span class="ios-badge"><i class="bi bi-people"></i> {{ facility.worker_count }}</span>
-                <i class="bi bi-chevron-down ios-chevron"></i>
-            </div>
-        </div>
-        <div class="ios-item-details">
-            <div class="ios-detail-row">
-                <span class="ios-detail-label">İşyeri</span>
-                <span>{{ facility.workplace.name }}</span>
-            </div>
-            <div class="ios-detail-row">
-                <span class="ios-detail-label">Adres</span>
-                <span>{{ facility.address|default:"-" }}</span>
-            </div>
-            <div class="ios-detail-row">
-                <span class="ios-detail-label">Konum</span>
-                <span>{{ facility.location_link_html }}</span>
-            </div>
-            <div class="mt-2">
-                <a href="{% url update_url_name facility.id %}" class="ios-edit-btn">Düzenle</a>
-            </div>
-        </div>
-    </div>
-    {% empty %}
-    <div class="p-4 text-center text-muted">Kayıt bulunamadı.</div>
-    {% endfor %}
-</div>
-
-<div class="card d-none d-md-block">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width: 50px;"></th>
-                        <th>
-                            <a href="?{% url_replace sort='name' %}{% if current_sort == 'name' %}&sort=-name{% endif %}" class="text-decoration-none text-dark">
-                                Bina/Birim Adı {% if current_sort == 'name' %}<i class="bi bi-arrow-down"></i>{% elif current_sort == '-name' %}<i class="bi bi-arrow-up"></i>{% endif %}
-                            </a>
-                        </th>
-                        <th>
-                            <a href="?{% url_replace sort='workplace__name' %}{% if current_sort == 'workplace__name' %}&sort=-workplace__name{% endif %}" class="text-decoration-none text-dark">
-                                İşyeri {% if current_sort == 'workplace__name' %}<i class="bi bi-arrow-down"></i>{% elif current_sort == '-workplace__name' %}<i class="bi bi-arrow-up"></i>{% endif %}
-                            </a>
-                        </th>
-                        <th>Adres</th>
-                        <th>Konum</th>
-                        <th>
-                            <a href="?{% url_replace sort='worker_count' %}{% if current_sort == 'worker_count' %}&sort=-worker_count{% endif %}" class="text-decoration-none text-dark">
-                                Çalışan Sayısı {% if current_sort == 'worker_count' %}<i class="bi bi-arrow-down"></i>{% elif current_sort == '-worker_count' %}<i class="bi bi-arrow-up"></i>{% endif %}
-                            </a>
-                        </th>
-                        <th>İşlemler</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for facility in items %}
-                    <tr>
-                        <td>
-                            <button class="btn btn-sm btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFacility{{ facility.id }}" aria-expanded="false">
-                                <i class="bi bi-plus-circle fs-5"></i>
-                            </button>
-                        </td>
-                        <td>{{ facility.name }}</td>
-                        <td>{{ facility.workplace.name }}</td>
-                        <td>{{ facility.address|default:"-"|truncatechars:30 }}</td>
-                        <td>{{ facility.location_link_html }}</td>
-                        <td>{{ facility.worker_set.count }}</td>
-                        <td>
-                            <a href="{% url update_url_name facility.id %}" class="btn btn-sm btn-outline-secondary">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    <tr class="collapse bg-light" id="collapseFacility{{ facility.id }}">
-                        <td colspan="7" class="p-0">
-                            <div class="p-3">
-                                <h6>Bu birimdeki çalışanlar:</h6>
-                                {% if facility.worker_set.exists %}
-                                <table class="table table-sm table-bordered bg-white mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th>Ad Soyad</th>
-                                            <th>TCKN</th>
-                                            <th>Eğitim Durumu</th>
-                                            <th>Muayene Durumu</th>
-                                            <th style="width: 200px;">İşlemler</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for worker in facility.worker_set.all %}
-                                        <tr>
-                                            <td>{{ worker.name }}</td>
-                                            <td>{{ worker.tckn }}</td>
-                                            <td>{{ worker.education_status }}</td>
-                                            <td>{{ worker.examination_status }}</td>
-                                            <td>
-                                                <div class="btn-group btn-group-sm">
-                                                    <a href="{% url 'worker_update' worker.id %}" class="btn btn-outline-primary">Düzenle</a>
-                                                    <a href="{% url 'examination_create' %}?worker_id={{ worker.id }}" class="btn btn-outline-success">Muayene Ekle</a>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                                {% else %}
-                                <p class="text-muted mb-0 small">Bu birime bağlı çalışan bulunmamaktadır.</p>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="text-center py-4 text-muted">
-                            Kayıt bulunamadı.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
 <script>
-    function toggleIosDetails(element) {
-        const details = element.querySelector('.ios-item-details');
-        const chevron = element.querySelector('.ios-chevron');
-        if (details.style.display === 'block') {
-            details.style.display = 'none';
-            chevron.style.transform = 'rotate(0deg)';
-            element.querySelector('.ios-item-header').style.backgroundColor = '';
-        } else {
-            details.style.display = 'block';
-            chevron.style.transform = 'rotate(180deg)';
+    document.querySelector('.search-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            document.getElementById('searchForm').submit();
         }
+    });
+
+    function openFilterDrawer() {
+        document.getElementById('filterBackdrop').classList.add('show');
+        document.getElementById('filterDrawer').classList.add('show');
+        document.body.style.overflow = 'hidden';
     }
 
-    // Toggle icon functionality
-    document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const icon = this.querySelector('i');
-            if (icon.classList.contains('bi-plus-circle')) {
-                icon.classList.replace('bi-plus-circle', 'bi-dash-circle');
-            } else {
-                icon.classList.replace('bi-dash-circle', 'bi-plus-circle');
-            }
-        });
+    function closeFilterDrawer() {
+        document.getElementById('filterBackdrop').classList.remove('show');
+        document.getElementById('filterDrawer').classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeFilterDrawer();
+        }
     });
 </script>
 {% endblock %}

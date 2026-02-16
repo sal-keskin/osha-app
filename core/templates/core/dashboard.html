@@ -1,143 +1,389 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block content %}
 <style>
-    .dashboard-widget {
-        height: 140px;
-        background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        position: relative;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        transition: transform 0.2s;
-        text-decoration: none;
-        border: 1px solid #f0f0f0;
-    }
-    .dashboard-widget:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-    }
-    .widget-icon {
+    /* Dashboard Specific Styles */
+    /* Search dropdown styles */
+    .search-dropdown {
         position: absolute;
-        top: 16px;
-        left: 16px;
-        font-size: 1.5rem;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        z-index: 100;
+        max-height: 300px;
+        overflow-y: auto;
+        display: none;
     }
-    .widget-number {
-        font-size: 2.5rem;
-        font-weight: 800;
-        text-align: center;
-        color: #333;
-        margin-top: auto;
-        margin-bottom: auto;
+
+    [data-bs-theme="dark"] .search-dropdown {
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     }
-    .widget-label {
-        text-align: center;
-        color: #8E8E93;
-        font-size: 0.9rem;
-        font-weight: 500;
+
+    .search-dropdown.active {
+        display: block;
+    }
+
+    .search-result-item {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
+        transition: background 0.15s;
+        text-decoration: none;
+        color: var(--text-main);
+    }
+
+    .search-result-item:hover {
+        background: var(--bg-main);
+    }
+
+    .search-result-item:last-child {
+        border-bottom: none;
+    }
+
+    .search-result-type {
+        font-size: 0.625rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .search-result-type.workplace {
+        background: #fff7ed;
+        color: #ea580c;
+    }
+
+    .search-result-type.facility {
+        background: #f0fdf4;
+        color: #16a34a;
     }
 </style>
 
-<div class="row mb-4">
-    <div class="col-12 text-center">
-        <h2 class="display-6 fw-bold">Yönetim Paneli</h2>
-    </div>
-</div>
-
-<!-- Attention Banner -->
-{% if attention and attention.has_issues %}
-<div class="alert alert-dismissible fade show mb-4" role="alert" style="background-color: #FEF2F2; color: #991B1B; border: 1px solid #FCA5A5; border-radius: 12px;">
-    <div class="d-flex align-items-start">
-        <i class="bi bi-exclamation-triangle-fill me-3 fs-4 mt-1"></i>
+<div class="py-4 py-lg-5">
+    <!-- Header -->
+    <div
+        class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
         <div>
-            <h5 class="alert-heading fw-bold mb-2">Dikkat Gerektiren Durumlar</h5>
-            <ul class="mb-0 ps-3">
-                {% if attention.missing_edu %}<li>📚 <strong>{{ attention.missing_edu }}</strong> Çalışanın eğitimi eksik.</li>{% endif %}
-                {% if attention.missing_exam %}<li>❤️‍🩹 <strong>{{ attention.missing_exam }}</strong> Çalışanın muayenesi eksik.</li>{% endif %}
-                {% if attention.expiring_exam %}<li>📅 <strong>{{ attention.expiring_exam }}</strong> Çalışanın bu ay muayene yenilenmesi gerekiyor.</li>{% endif %}
-                {% if attention.expiring_edu %}<li>📅 <strong>{{ attention.expiring_edu }}</strong> Çalışanın bu ay eğitimi yenilenmesi gerekiyor.</li>{% endif %}
-            </ul>
+            <p id="greeting" class="text-muted fs-5 fw-medium mb-0"></p>
+        </div>
+        <!-- Search Bar -->
+        <div class="position-relative w-100" style="max-width: 320px;">
+            <div class="position-relative">
+                <span
+                    class="material-symbols-outlined position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"
+                    style="font-size: 1.25rem;">search</span>
+                <input type="text" id="dashboardSearch" placeholder="İş yeri veya birim ara..."
+                    class="form-control ps-5 py-2">
+            </div>
+            <div id="searchDropdown" class="search-dropdown"></div>
         </div>
     </div>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+
+    <!-- Attention Banner -->
+    {% if attention and attention.missing_exam %}
+    <div class="warning-banner d-flex align-items-center justify-content-between">
+        <div class="position-absolute top-0 start-0 bottom-0" style="width: 4px; background-color: #fbbf24;"></div>
+
+        <div class="d-flex align-items-center gap-3 position-relative z-1">
+            <div class="icon-box bg-white text-warning border-warning border-opacity-25 shadow-sm">
+                <span class="material-symbols-outlined fs-5">error</span>
+            </div>
+
+            <div>
+                <h3 class="h6 fw-bold mb-1 d-flex align-items-center gap-2">
+                    Dikkat Gerektiren Durumlar
+                    <span
+                        class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25 rounded-pill text-uppercase"
+                        style="font-size: 0.65rem; letter-spacing: 0.05em;">
+                        Kritik Uyarı
+                    </span>
+                </h3>
+                <p class="small text-muted mb-0">
+                    <strong class="text-body fw-bold">{{ attention.missing_exam }}</strong>
+                    çalışanın muayenesi eksik olarak saptandı.
+                </p>
+            </div>
+        </div>
+
+        <button type="button" onclick="this.closest('.warning-banner').remove()"
+            class="btn btn-sm btn-link text-decoration-none text-muted fw-bold d-flex align-items-center gap-1 p-0 hover-opacity-75">
+            <span class="d-none d-sm-inline">Kapat</span>
+            <span class="material-symbols-outlined fs-6">close</span>
+        </button>
+    </div>
+    {% endif %}
+
+    <!-- Dashboard Cards Grid -->
+    <div class="row row-cols-2 row-cols-lg-4 g-2 g-md-3">
+
+        <!-- İş Yerleri (Orange) -->
+        <div class="col">
+            <a href="{% url 'workplace_list' %}" class="dashboard-card group text-decoration-none">
+                <div class="position-absolute top-0 end-0 m-3 badge rounded-pill theme-orange border">
+                    {{ workplace_count }}
+                </div>
+
+                <div class="icon-box theme-orange mb-2">
+                    <span class="material-symbols-outlined fs-4">domain</span>
+                </div>
+
+                <div class="d-flex align-items-end justify-content-between mt-auto">
+                    <h3 class="h6 fw-bold mb-0 text-body">İş Yerleri</h3>
+                    <span class="material-symbols-outlined text-muted fs-5">arrow_forward</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Birimler (Green) -->
+        <div class="col">
+            <a href="{% url 'facility_list' %}" class="dashboard-card group text-decoration-none">
+                <div class="position-absolute top-0 end-0 m-3 badge rounded-pill theme-green border">
+                    {{ facility_count }}
+                </div>
+
+                <div class="icon-box theme-green mb-2">
+                    <span class="material-symbols-outlined fs-4">account_tree</span>
+                </div>
+
+                <div class="d-flex align-items-end justify-content-between mt-auto">
+                    <h3 class="h6 fw-bold mb-0 text-body">Birimler</h3>
+                    <span class="material-symbols-outlined text-muted fs-5">arrow_forward</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Çalışanlar (Indigo) -->
+        <div class="col">
+            <a href="{% url 'worker_list' %}" class="dashboard-card group text-decoration-none">
+                <div class="position-absolute top-0 end-0 m-3 badge rounded-pill theme-indigo border">
+                    {{ worker_count }}
+                </div>
+
+                <div class="icon-box theme-indigo mb-2">
+                    <span class="material-symbols-outlined fs-4">groups</span>
+                </div>
+
+                <div class="d-flex align-items-end justify-content-between mt-auto">
+                    <h3 class="h6 fw-bold mb-0 text-body">Çalışanlar</h3>
+                    <span class="material-symbols-outlined text-muted fs-5">arrow_forward</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Profesyoneller (Amber) -->
+        <div class="col">
+            <a href="{% url 'professional_list' %}" class="dashboard-card group text-decoration-none">
+                <div class="position-absolute top-0 end-0 m-3 badge rounded-pill theme-amber border">
+                    {{ professional_count }}
+                </div>
+
+                <div class="icon-box theme-amber mb-2">
+                    <span class="material-symbols-outlined fs-4">medical_services</span>
+                </div>
+
+                <div class="d-flex align-items-end justify-content-between mt-auto">
+                    <h3 class="h6 fw-bold mb-0 text-body">Profesyoneller</h3>
+                    <span class="material-symbols-outlined text-muted fs-5">arrow_forward</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Eğitimler (Stone) -->
+        <div class="col">
+            <a href="{% url 'education_list' %}" class="dashboard-card group text-decoration-none">
+                <div class="position-absolute top-0 end-0 m-3 badge rounded-pill theme-stone border">
+                    {{ education_count }}
+                </div>
+
+                <div class="icon-box theme-stone mb-2">
+                    <span class="material-symbols-outlined fs-4">school</span>
+                </div>
+
+                <div class="d-flex align-items-end justify-content-between mt-auto">
+                    <h3 class="h6 fw-bold mb-0 text-body">Eğitimler</h3>
+                    <span class="material-symbols-outlined text-muted fs-5">arrow_forward</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Denetimler (Sky) -->
+        <div class="col">
+            <a href="{% url 'inspection_list' %}" class="dashboard-card group text-decoration-none">
+                <div class="position-absolute top-0 end-0 m-3 badge rounded-pill theme-sky border">
+                    {{ inspection_count }}
+                </div>
+
+                <div class="icon-box theme-sky mb-2">
+                    <span class="material-symbols-outlined fs-4">fact_check</span>
+                </div>
+
+                <div class="d-flex align-items-end justify-content-between mt-auto">
+                    <h3 class="h6 fw-bold mb-0 text-body">Denetimler</h3>
+                    <span class="material-symbols-outlined text-muted fs-5">arrow_forward</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Muayeneler (Pink) -->
+        <div class="col">
+            <a href="{% url 'examination_list' %}" class="dashboard-card group text-decoration-none">
+                <div class="position-absolute top-0 end-0 m-3 badge rounded-pill theme-pink border">
+                    {{ examination_count }}
+                </div>
+
+                <div class="icon-box theme-pink mb-2">
+                    <span class="material-symbols-outlined fs-4">cardiology</span>
+                </div>
+
+                <div class="d-flex align-items-end justify-content-between mt-auto">
+                    <h3 class="h6 fw-bold mb-0 text-body">Muayeneler</h3>
+                    <span class="material-symbols-outlined text-muted fs-5">arrow_forward</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Formlar (Teal) -->
+        <div class="col">
+            <a href="{% url 'risk_tool_list' %}" class="dashboard-card group text-decoration-none">
+                <div class="position-absolute top-0 end-0 m-3 badge rounded-pill theme-teal border">
+                    {{ risk_tool_count }}
+                </div>
+
+                <div class="icon-box theme-teal mb-2">
+                    <span class="material-symbols-outlined fs-4">description</span>
+                </div>
+
+                <div class="d-flex align-items-end justify-content-between mt-auto">
+                    <h3 class="h6 fw-bold mb-0 text-body">Formlar</h3>
+                    <span class="material-symbols-outlined text-muted fs-5">arrow_forward</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Değerlendirmeler (Violet) -->
+        <div class="col">
+            <a href="{% url 'assessment_list' %}" class="dashboard-card group text-decoration-none">
+                <div class="position-absolute top-0 end-0 m-3 badge rounded-pill theme-violet border">
+                    {{ assessment_count }}
+                </div>
+
+                <div class="icon-box theme-violet mb-2">
+                    <span class="material-symbols-outlined fs-4">assignment</span>
+                </div>
+
+                <div class="d-flex align-items-end justify-content-between mt-auto">
+                    <h3 class="h6 fw-bold mb-0 text-body">Değerlendirmeler</h3>
+                    <span class="material-symbols-outlined text-muted fs-5">arrow_forward</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- İstatistikler (Cyan) -->
+        <div class="col">
+            <a href="{% url 'statistics' %}" class="dashboard-card group text-decoration-none">
+                <div class="position-absolute top-0 end-0 m-3 badge rounded-pill theme-cyan border">
+                    <span class="material-symbols-outlined" style="font-size: 1rem;">analytics</span>
+                </div>
+
+                <div class="icon-box theme-cyan mb-2">
+                    <span class="material-symbols-outlined fs-4">bar_chart</span>
+                </div>
+
+                <div class="d-flex align-items-end justify-content-between mt-auto">
+                    <h3 class="h6 fw-bold mb-0 text-body">İstatistikler</h3>
+                    <span class="material-symbols-outlined text-muted fs-5">arrow_forward</span>
+                </div>
+            </a>
+        </div>
+
+    </div>
 </div>
-{% endif %}
+{% endblock %}
 
-<div class="row g-3">
-    <!-- Workplace -->
-    <div class="col-6 col-md-4 col-lg-3">
-        <a href="{% url 'workplace_list' %}" class="dashboard-widget">
-            <div class="widget-icon text-primary"><i class="bi bi-building"></i></div>
-            <div class="widget-number">{{ workplace_count }}</div>
-            <div class="widget-label">İşyerleri</div>
-        </a>
-    </div>
+{% block extra_js %}
+<script>
+    // Time-based greeting
+    (function () {
+        const hour = new Date().getHours();
+        const username = "{{ user.username }}";
+        let greeting = "";
 
-    <!-- Facility -->
-    <div class="col-6 col-md-4 col-lg-3">
-        <a href="{% url 'facility_list' %}" class="dashboard-widget">
-            <div class="widget-icon text-info"><i class="bi bi-houses"></i></div>
-            <div class="widget-number">{{ facility_count }}</div>
-            <div class="widget-label">Binalar</div>
-        </a>
-    </div>
+        if (hour >= 6 && hour < 10) {
+            greeting = "Günaydın " + username + " ☀️";
+        } else if (hour >= 10 && hour < 18) {
+            greeting = "İyi günler " + username + " 👷";
+        } else {
+            greeting = "İyi akşamlar " + username + " 🌙";
+        }
 
-    <!-- Worker -->
-    <div class="col-6 col-md-4 col-lg-3">
-        <a href="{% url 'worker_list' %}" class="dashboard-widget">
-            <div class="widget-icon text-success"><i class="bi bi-people"></i></div>
-            <div class="widget-number">{{ worker_count }}</div>
-            <div class="widget-label">Çalışanlar</div>
-        </a>
-    </div>
+        const greetingEl = document.getElementById('greeting');
+        if (greetingEl) greetingEl.textContent = greeting;
+    })();
 
-    <!-- Professional -->
-    <div class="col-6 col-md-4 col-lg-3">
-        <a href="{% url 'professional_list' %}" class="dashboard-widget">
-            <div class="widget-icon text-warning"><i class="bi bi-person-badge"></i></div>
-            <div class="widget-number">{{ professional_count }}</div>
-            <div class="widget-label">Profesyoneller</div>
-        </a>
-    </div>
+    // Search Script
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('dashboardSearch');
+        const searchDropdown = document.getElementById('searchDropdown');
+        if (!searchInput || !searchDropdown) return;
 
-    <!-- Education -->
-    <div class="col-6 col-md-4 col-lg-3">
-        <a href="{% url 'education_list' %}" class="dashboard-widget">
-            <div class="widget-icon text-danger"><i class="bi bi-mortarboard"></i></div>
-            <div class="widget-number">{{ education_count }}</div>
-            <div class="widget-label">Eğitimler</div>
-        </a>
-    </div>
+        let searchTimeout;
 
-    <!-- Inspection -->
-    <div class="col-6 col-md-4 col-lg-3">
-        <a href="{% url 'inspection_list' %}" class="dashboard-widget">
-            <div class="widget-icon text-secondary"><i class="bi bi-clipboard-check"></i></div>
-            <div class="widget-number">{{ inspection_count }}</div>
-            <div class="widget-label">Denetimler</div>
-        </a>
-    </div>
+        searchInput.addEventListener('input', function () {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
 
-    <!-- Examination -->
-    <div class="col-6 col-md-4 col-lg-3">
-        <a href="{% url 'examination_list' %}" class="dashboard-widget">
-            <div class="widget-icon text-danger"><i class="bi bi-heart-pulse"></i></div>
-            <div class="widget-number">{{ examination_count }}</div>
-            <div class="widget-label">Muayeneler</div>
-        </a>
-    </div>
+            if (query.length < 2) {
+                searchDropdown.classList.remove('active');
+                searchDropdown.innerHTML = '';
+                return;
+            }
 
-    <!-- Statistics (Extra) -->
-    <div class="col-6 col-md-4 col-lg-3">
-        <a href="{% url 'statistics' %}" class="dashboard-widget">
-            <div class="widget-icon text-dark"><i class="bi bi-bar-chart-line"></i></div>
-            <div class="widget-number"><i class="bi bi-arrow-right"></i></div>
-            <div class="widget-label">İstatistikler</div>
-        </a>
-    </div>
-</div>
+            searchTimeout = setTimeout(() => {
+                fetch(`/api/dashboard-search/?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.results.length === 0) {
+                            searchDropdown.innerHTML = '<div class="p-4 text-center text-slate-500 text-sm">Sonuç bulunamadı</div>';
+                        } else {
+                            searchDropdown.innerHTML = data.results.map(item => `
+                                <a href="${item.url}" class="search-result-item block">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <div class="font-semibold text-slate-900 dark:text-slate-200 text-sm">${item.name}</div>
+                                            <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">${item.description}</div>
+                                        </div>
+                                        <span class="search-result-type ${item.type}">${item.type === 'workplace' ? 'İş Yeri' : 'Birim'}</span>
+                                    </div>
+                                </a>
+                            `).join('');
+                        }
+                        searchDropdown.classList.add('active');
+                    })
+                    .catch(err => {
+                        console.error('Search error:', err);
+                    });
+            }, 300);
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
+                searchDropdown.classList.remove('active');
+            }
+        });
+
+        // Close dropdown on escape
+        searchInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                searchDropdown.classList.remove('active');
+            }
+        });
+    });
+</script>
 {% endblock %}

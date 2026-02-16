@@ -1,0 +1,1260 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    /* Hero Header */
+    .workplace-hero {
+        background: #fff;
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .hero-breadcrumb {
+        margin-bottom: 16px;
+    }
+
+    .back-link {
+        color: #3B82F6;
+        text-decoration: none;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .back-link:hover {
+        color: #2563EB;
+    }
+
+    .hero-title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .hero-title-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .workplace-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+
+    .hazard-badge {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .hazard-badge.low {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .hazard-badge.medium {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .hazard-badge.high {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .edit-btn {
+        background: #fff;
+        border: 1px solid #E5E7EB;
+        border-radius: 10px;
+        padding: 8px 16px;
+        color: #6B7280;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .edit-btn:hover {
+        background: #F9FAFB;
+        color: #374151;
+        border-color: #D1D5DB;
+    }
+
+    /* Stats Ribbon - Responsive Grid */
+    .stats-ribbon {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    @media (min-width: 640px) {
+        .stats-ribbon {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .stats-ribbon {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+    }
+
+    .stat-chip {
+        background: #F3F4F6;
+        border-radius: 12px;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #374151;
+        text-align: center;
+    }
+
+    @media (min-width: 1024px) {
+        .stat-chip {
+            border-radius: 24px;
+            padding: 10px 18px;
+            font-size: 0.85rem;
+            justify-content: flex-start;
+        }
+    }
+
+    .stat-chip .emoji {
+        font-size: 1rem;
+    }
+
+    /* Color-coded percentages */
+    .stat-chip.stat-green {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .stat-chip.stat-orange {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .stat-chip.stat-red {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    /* Tab Navigation */
+    .tab-nav {
+        display: flex;
+        gap: 4px;
+        background: #F3F4F6;
+        border-radius: 14px;
+        padding: 4px;
+        margin-bottom: 24px;
+        overflow-x: auto;
+    }
+
+    .tab-btn {
+        padding: 12px 20px;
+        border-radius: 10px;
+        border: none;
+        background: transparent;
+        color: #6B7280;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+    .tab-btn:hover {
+        color: #374151;
+    }
+
+    .tab-btn.active {
+        background: #fff;
+        color: #111827;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Tab Content */
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    /* Two-Column Grid Layout for Desktop */
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    @media (min-width: 1024px) {
+        .content-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    /* Identity Card */
+    .identity-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        border: 1px solid #F3F4F6;
+        height: fit-content;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        background: #F9FAFB;
+    }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+
+
+
+    .identity-row {
+        display: flex;
+        padding: 12px 0;
+        border-bottom: 1px solid #F3F4F6;
+    }
+
+    .identity-row:last-child {
+        border-bottom: none;
+    }
+
+    .identity-label {
+        width: 130px;
+        color: #6B7280;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+
+    .identity-value {
+        color: #111827;
+        font-size: 0.9rem;
+        flex: 1;
+    }
+
+    /* Quick Actions */
+    .quick-actions-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        border: 1px solid #F3F4F6;
+    }
+
+    .action-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .action-card {
+        background: #FAFAFA;
+        border: 1px solid #E5E7EB;
+        border-radius: 14px;
+        padding: 20px 16px;
+        text-align: center;
+        text-decoration: none;
+        color: #374151;
+        transition: all 0.2s;
+    }
+
+    .action-card:hover {
+        border-color: #3B82F6;
+        background: #fff;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .action-card i {
+        font-size: 1.5rem;
+        color: #3B82F6;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .action-card span {
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    /* Workers Tab */
+    .filter-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    .filter-select {
+        padding: 10px 16px;
+        border: 1px solid #E5E7EB;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        background: #fff;
+        min-width: 200px;
+    }
+
+    .worker-card {
+        background: #fff;
+        border: 1px solid #F3F4F6;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .worker-card:hover {
+        border-color: #E5E7EB;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .worker-info h4 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #111827;
+        margin: 0 0 4px 0;
+    }
+
+    .worker-info p {
+        font-size: 0.8rem;
+        color: #6B7280;
+        margin: 0;
+    }
+
+    .worker-badges {
+        display: flex;
+        gap: 6px;
+    }
+
+    .status-badge {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+    }
+
+    .status-badge.success {
+        background: #D1FAE5;
+        color: #059669;
+    }
+
+    .status-badge.warning {
+        background: #FEF3C7;
+        color: #D97706;
+    }
+
+    .status-badge.danger {
+        background: #FEE2E2;
+        color: #DC2626;
+    }
+
+    /* Accordion Styles */
+    .accordion-card {
+        background: #fff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        overflow: hidden;
+        transition: all 0.2s;
+    }
+
+    .accordion-header {
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        background: #fff;
+        user-select: none;
+    }
+
+    .accordion-header:hover {
+        background: #F9FAFB;
+    }
+
+    .accordion-title {
+        font-weight: 700;
+        font-size: 1rem;
+        color: #111827;
+        margin: 0;
+    }
+
+    .accordion-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .worker-count-badge {
+        background: #F3F4F6;
+        color: #4B5563;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .accordion-icon {
+        color: #9CA3AF;
+        transition: transform 0.3s ease;
+        display: inline-block;
+    }
+
+    .accordion-card.expanded .accordion-icon {
+        transform: rotate(180deg);
+    }
+
+    /* Facility Row - Direct Navigation */
+    .facility-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .facility-row {
+        background: #fff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        padding: 16px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-decoration: none;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .facility-row:hover {
+        background: #F9FAFB;
+        border-color: #D1D5DB;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .facility-info {
+        flex: 1;
+    }
+
+    .facility-row .facility-name {
+        font-weight: 700;
+        font-size: 1rem;
+        color: #111827;
+        margin-bottom: 4px;
+    }
+
+    .facility-meta {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .facility-address {
+        color: #6B7280;
+        font-size: 0.85rem;
+    }
+
+    .facility-stats {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .assessment-count-badge {
+        background: #DBEAFE;
+        color: #1E40AF;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .stat-badge {
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .stat-badge.stat-blue {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .stat-badge.stat-green {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .stat-badge.stat-orange {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .stat-badge.stat-red {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .facility-arrow {
+        color: #9CA3AF;
+        font-size: 1.2rem;
+        transition: transform 0.2s;
+    }
+
+    .facility-row:hover .facility-arrow {
+        color: #3B82F6;
+        transform: translateX(4px);
+    }
+
+    /* Accordion Action Bar */
+    .accordion-action-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background: #F3F4F6;
+        border-bottom: 1px solid #E5E7EB;
+        margin: -8px -16px 12px -16px;
+    }
+
+    .worker-summary {
+        font-size: 0.85rem;
+        color: #6B7280;
+        font-weight: 500;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-view-facility {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: #DBEAFE;
+        color: #1E40AF;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-view-facility:hover {
+        background: #BFDBFE;
+        color: #1E3A8A;
+    }
+
+    .btn-add-worker {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: #fff;
+        color: #374151;
+        border: 1px solid #D1D5DB;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-add-worker:hover {
+        background: #F9FAFB;
+        border-color: #9CA3AF;
+    }
+
+    /* Training Accordion Cards */
+    .training-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .training-card {
+        background: #fff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .training-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.2s;
+    }
+
+    .training-header:hover {
+        background: #F9FAFB;
+    }
+
+    .training-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+    }
+
+    .training-icon {
+        font-size: 1.5rem;
+    }
+
+    .training-title {
+        font-weight: 700;
+        font-size: 1rem;
+        color: #111827;
+    }
+
+    .participant-badge {
+        background: #F3F4F6;
+        color: #4B5563;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .training-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .date-badge,
+    .duration-badge,
+    .educator-badge {
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .date-badge {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .duration-badge {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .educator-badge {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .training-chevron {
+        color: #9CA3AF;
+        transition: transform 0.3s;
+    }
+
+    .training-card.expanded .training-chevron {
+        transform: rotate(180deg);
+    }
+
+    .training-body {
+        display: none;
+        border-top: 1px solid #E5E7EB;
+        background: #F9FAFB;
+    }
+
+    .training-card.expanded .training-body {
+        display: block;
+    }
+
+    .training-action-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 16px;
+        border-bottom: 1px solid #E5E7EB;
+        background: #F3F4F6;
+    }
+
+    .btn-sm-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 10px;
+        background: #fff;
+        color: #374151;
+        border: 1px solid #D1D5DB;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-sm-action:hover {
+        background: #F9FAFB;
+        border-color: #9CA3AF;
+    }
+
+    .participant-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .participant-table th,
+    .participant-table td {
+        padding: 10px 16px;
+        text-align: left;
+        border-bottom: 1px solid #E5E7EB;
+    }
+
+    .participant-table th {
+        background: #F3F4F6;
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: #6B7280;
+    }
+
+    .participant-table td {
+        font-size: 0.9rem;
+        color: #111827;
+    }
+
+    .participant-table tbody tr:hover {
+        background: #fff;
+    }
+
+    .status-valid {
+        color: #059669;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    /* Full width section for facilities in overview */
+    .full-width-section {
+        grid-column: 1 / -1;
+    }
+
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 16px;
+    }
+
+    .accordion-body {
+        display: none;
+        background: #F9FAFB;
+        border-top: 1px solid #E5E7EB;
+        padding: 8px 16px;
+    }
+
+    .accordion-card.expanded .accordion-body {
+        display: block;
+    }
+
+    .facility-worker-row {
+        display: flex;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #E5E7EB;
+    }
+
+    .facility-worker-row:last-child {
+        border-bottom: none;
+    }
+
+    .worker-avatar {
+        width: 32px;
+        height: 32px;
+        background: #DBEAFE;
+        color: #1E40AF;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-right: 12px;
+        flex-shrink: 0;
+    }
+
+    .worker-details {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .worker-name-text {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #374151;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .worker-job-title {
+        font-size: 0.8rem;
+        color: #6B7280;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .facility-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        font-size: 0.85rem;
+    }
+
+    .edit-facility-link {
+        color: #6B7280;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border-radius: 6px;
+    }
+
+    .edit-facility-link:hover {
+        background: #E5E7EB;
+        color: #374151;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #9CA3AF;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 12px;
+    }
+</style>
+
+<!-- Hero Header -->
+<div class="workplace-hero">
+    <div class="hero-breadcrumb">
+        <a href="{% url 'workplace_list' %}" class="back-link">
+            <i class="bi bi-chevron-left"></i> Geri
+        </a>
+    </div>
+
+    <div class="hero-title-row">
+        <div class="hero-title-left">
+            <h1 class="workplace-name">{{ workplace.name }}</h1>
+            <span
+                class="hazard-badge {% if workplace.hazard_class == 'LOW' %}low{% elif workplace.hazard_class == 'MEDIUM' %}medium{% else %}high{% endif %}">
+                {{ workplace.get_hazard_class_display }}
+            </span>
+        </div>
+        <a href="{% url 'workplace_update' workplace.pk %}" class="edit-btn">
+            <i class="bi bi-pencil"></i> Düzenle
+        </a>
+    </div>
+
+    <!-- Stats Ribbon - Pill/Chip Style -->
+    <div class="stats-ribbon">
+        <div class="stat-chip">
+            <span class="emoji">🏬</span>
+            {{ facility_count }} Birim
+        </div>
+        <div class="stat-chip">
+            <span class="emoji">👥</span>
+            {{ total_workers }} Çalışan
+        </div>
+        <div
+            class="stat-chip {% if education_percentage >= 90 %}stat-green{% elif education_percentage >= 70 %}stat-orange{% else %}stat-red{% endif %}">
+            <span class="emoji">🎓</span>
+            %{{ education_percentage }} Eğitim
+        </div>
+        <div
+            class="stat-chip {% if examination_percentage >= 90 %}stat-green{% elif examination_percentage >= 70 %}stat-orange{% else %}stat-red{% endif %}">
+            <span class="emoji">❤️‍🩹</span>
+            %{{ examination_percentage }} Muayene
+        </div>
+        <div class="stat-chip">
+            <span class="emoji">🚑</span>
+            {{ first_aid_count }} İlk Yardım
+        </div>
+    </div>
+</div>
+
+<!-- Tab Navigation -->
+<div class="tab-nav">
+    <a href="?tab=overview" class="tab-btn {% if active_tab == 'overview' %}active{% endif %}">Genel</a>
+    <a href="?tab=facilities" class="tab-btn {% if active_tab == 'facilities' %}active{% endif %}">Birimler</a>
+    <a href="?tab=workers" class="tab-btn {% if active_tab == 'workers' %}active{% endif %}">Çalışanlar</a>
+    <a href="?tab=trainings" class="tab-btn {% if active_tab == 'trainings' %}active{% endif %}">Eğitimler</a>
+    <a href="?tab=equipment" class="tab-btn {% if active_tab == 'equipment' %}active{% endif %}">Ekipman</a>
+</div>
+
+<!-- Tab 1: Overview -->
+<div class="tab-content {% if active_tab == 'overview' %}active{% endif %}" id="tab-overview">
+    <div class="content-grid">
+        <!-- Left Column: Identity Card -->
+        <div class="identity-card">
+            <div class="card-header">
+                <h3 class="card-title">Kimlik Kartı</h3>
+            </div>
+            <div class="identity-row">
+                <span class="identity-label">NACE Kodu:</span>
+                <span class="identity-value">{{ workplace.nace_code|default:"-" }}</span>
+            </div>
+            <div class="identity-row">
+                <span class="identity-label">SGK No:</span>
+                <span class="identity-value">{{ workplace.detsis_number }}</span>
+            </div>
+            <div class="identity-row">
+                <span class="identity-label">Adres:</span>
+                <span class="identity-value">{{ workplace.address|default:"-" }}</span>
+            </div>
+            <div class="identity-row">
+                <span class="identity-label">İşveren Vekili:</span>
+                <span class="identity-value">{{ workplace.employer_representative|default:"-" }}</span>
+            </div>
+            <div class="identity-row">
+                <span class="identity-label">Telefon:</span>
+                <span class="identity-value">{{ workplace.phone_number|default:"-" }}</span>
+            </div>
+            {% if workplace.activity_description %}
+            <div class="identity-row">
+                <span class="identity-label">Faaliyet:</span>
+                <span class="identity-value">{{ workplace.activity_description }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column: Quick Actions -->
+        <div class="quick-actions-card">
+            <div class="card-header">
+                <h3 class="card-title">Hızlı İşlemler</h3>
+            </div>
+            <div class="action-grid">
+                <a href="{% url 'worker_create' %}?workplace={{ workplace.pk }}" class="action-card">
+                    <i class="bi bi-person-plus"></i>
+                    <span>Çalışan Ekle</span>
+                </a>
+                <a href="{% url 'facility_create' %}?workplace={{ workplace.pk }}" class="action-card">
+                    <i class="bi bi-building-add"></i>
+                    <span>Yeni Birim</span>
+                </a>
+                <a href="#" class="action-card" onclick="alert('Rapor özelliği yakında')">
+                    <i class="bi bi-printer"></i>
+                    <span>Rapor Yazdır</span>
+                </a>
+                <a href="{% url 'workplace_update' workplace.pk %}" class="action-card">
+                    <i class="bi bi-gear"></i>
+                    <span>Ayarlar</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Full Width Row: Connected Facilities -->
+        <div class="full-width-section mt-4">
+            <h3 class="section-title">Bağlı Birimler</h3>
+            {% if facilities %}
+            <div class="accordion-list">
+                {% for facility in facilities %}
+                <div class="accordion-card">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="accordion-title">{{ facility.name }}</div>
+                        <div class="accordion-meta">
+                            <span class="worker-count-badge">
+                                👥 {{ facility.worker_set.count }}
+                            </span>
+                            <i class="bi bi-chevron-down accordion-icon"></i>
+                        </div>
+                    </div>
+                    <div class="accordion-body">
+                        <!-- Action Bar -->
+                        <div class="accordion-action-bar">
+                            <span class="worker-summary">{{ facility.worker_set.count }} Kayıtlı Çalışan</span>
+                            <div class="action-buttons">
+                                <a href="{% url 'facility_detail' facility.pk %}" class="btn-view-facility">
+                                    <i class="bi bi-box-arrow-up-right"></i> Birimi Görüntüle
+                                </a>
+                                <a href="{% url 'worker_create' %}?workplace={{ workplace.pk }}&facility={{ facility.pk }}"
+                                    class="btn-add-worker">
+                                    <i class="bi bi-plus"></i> Çalışan Ekle
+                                </a>
+                            </div>
+                        </div>
+
+                        {% if facility.worker_set.exists %}
+                        {% for worker in facility.worker_set.all %}
+                        <div class="facility-worker-row">
+                            <div class="worker-avatar">
+                                {{ worker.name|slice:":2"|upper }}
+                            </div>
+                            <div class="worker-details">
+                                <h5 class="worker-name-text">{{ worker.name }}</h5>
+                                <p class="worker-job-title">{{ worker.profession.name|default:"Tanımsız" }}</p>
+                            </div>
+                            <a href="{% url 'worker_update' worker.pk %}" class="btn btn-sm btn-light ms-auto">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="text-center py-3 text-muted">
+                            <small>Bu birimde kayıtlı çalışan yok.</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-houses"></i>
+                <p>Bu işyerine ait henüz birim bulunmuyor.</p>
+                <a href="{% url 'facility_create' %}?workplace={{ workplace.pk }}" class="btn btn-primary mt-2">
+                    <i class="bi bi-plus-lg"></i> İlk Birimi Ekle
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Tab 1.5: Facilities (Birimler) -->
+<div class="tab-content {% if active_tab == 'facilities' %}active{% endif %}" id="tab-facilities">
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{% url 'facility_create' %}?workplace={{ workplace.pk }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Yeni Birim
+        </a>
+    </div>
+
+    {% if facilities_with_stats %}
+    <div class="facility-list">
+        {% for item in facilities_with_stats %}
+        <a href="{% url 'facility_detail' item.facility.pk %}" class="facility-row">
+            <div class="facility-info">
+                <div class="facility-name">{{ item.facility.name }}</div>
+            </div>
+            <div class="facility-stats">
+                <span class="stat-badge stat-blue">👥 {{ item.worker_count }}</span>
+                <span
+                    class="stat-badge {% if item.edu_percentage >= 90 %}stat-green{% elif item.edu_percentage >= 70 %}stat-orange{% else %}stat-red{% endif %}">🎓
+                    %{{ item.edu_percentage }}</span>
+                <span
+                    class="stat-badge {% if item.exam_percentage >= 90 %}stat-green{% elif item.exam_percentage >= 70 %}stat-orange{% else %}stat-red{% endif %}">❤️‍🩹
+                    %{{ item.exam_percentage }}</span>
+                <span class="stat-badge stat-blue">🚑 {{ item.first_aid_count }}</span>
+                <i class="bi bi-chevron-right facility-arrow"></i>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-houses"></i>
+        <p>Bu işyerine ait henüz birim bulunmuyor.</p>
+        <a href="{% url 'facility_create' %}?workplace={{ workplace.pk }}" class="btn btn-primary mt-2">
+            <i class="bi bi-plus-lg"></i> İlk Birimi Ekle
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Tab 2: Workers -->
+<div class="tab-content {% if active_tab == 'workers' %}active{% endif %}" id="tab-workers">
+    <div class="filter-bar">
+        <!-- Search removed as requested -->
+        <a href="{% url 'worker_create' %}?workplace={{ workplace.pk }}{% if facility_filter %}&facility={{ facility_filter }}{% endif %}"
+            class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Çalışan Ekle
+        </a>
+    </div>
+
+    {% if workers %}
+    {% for worker in workers %}
+    <a href="{% url 'worker_update' worker.pk %}" class="worker-card">
+        <div class="worker-info">
+            <h4>{{ worker.name }}</h4>
+            <p>{{ worker.tckn }} · {{ worker.facility.name|default:"Birim Yok" }}</p>
+        </div>
+        <div class="worker-badges">
+            <span
+                class="status-badge {% if worker.education_status == 'Geçerli' %}success{% elif worker.education_status == 'Yaklaşıyor' %}warning{% else %}danger{% endif %}"
+                title="Eğitim">
+                <i class="bi bi-mortarboard-fill"></i>
+            </span>
+            <span
+                class="status-badge {% if worker.examination_status == 'Geçerli' %}success{% elif worker.examination_status == 'Yaklaşıyor' %}warning{% else %}danger{% endif %}"
+                title="Muayene">
+                <i class="bi bi-heart-pulse-fill"></i>
+            </span>
+        </div>
+    </a>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-people"></i>
+        {% if facility_filter %}
+        <p>Bu birimde henüz çalışan bulunmuyor.</p>
+        {% else %}
+        <p>Bu işyerinde henüz çalışan bulunmuyor.</p>
+        {% endif %}
+        <a href="{% url 'worker_create' %}?workplace={{ workplace.pk }}{% if facility_filter %}&facility={{ facility_filter }}{% endif %}"
+            class="btn btn-primary mt-2">
+            <i class="bi bi-plus-lg"></i> İlk Çalışanı Ekle
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Tab 3: Trainings -->
+<div class="tab-content {% if active_tab == 'trainings' %}active{% endif %}" id="tab-trainings">
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{% url 'education_create' %}?workplace={{ workplace.pk }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Eğitim Ekle
+        </a>
+    </div>
+
+    {% if education_sessions %}
+    <div class="training-list">
+        {% for edu in education_sessions %}
+        <div class="training-card">
+            <div class="training-header" onclick="toggleTraining(this)">
+                <div class="training-info">
+                    <span class="training-icon">🎓</span>
+                    <div class="training-title">{{ edu.topic }}</div>
+                    <span class="participant-badge">{{ edu.workers.count }} Katılımcı</span>
+                </div>
+                <div class="training-meta">
+                    <span class="date-badge">📅 {{ edu.date|date:"d.m.Y" }}</span>
+                    <span class="duration-badge">⏱️ {{ edu.duration }} saat</span>
+                    {% for pro in edu.professionals.all %}
+                    <span class="educator-badge">👨‍🏫 {{ pro.name }}</span>
+                    {% endfor %}
+                    <i class="bi bi-chevron-down training-chevron"></i>
+                </div>
+            </div>
+            <div class="training-body">
+                <div class="training-action-bar">
+                    <span class="text-muted">{{ edu.workers.count }} Kayıtlı Katılımcı</span>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'education_update' edu.pk %}" class="btn-sm-action">
+                            <i class="bi bi-pencil"></i> Düzenle
+                        </a>
+                    </div>
+                </div>
+                {% if edu.workers.exists %}
+                <table class="participant-table">
+                    <thead>
+                        <tr>
+                            <th>Çalışan Adı</th>
+                            <th>Birim</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for worker in edu.workers.all %}
+                        <tr>
+                            <td>{{ worker.name }}</td>
+                            <td>{{ worker.facility.name|default:"-" }}</td>
+                            <td><span class="status-valid">✓ Katıldı</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-center py-3 text-muted">
+                    <small>Bu eğitimde katılımcı yok.</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-mortarboard"></i>
+        <p>Bu işyerinde henüz eğitim kaydı bulunmuyor.</p>
+        <a href="{% url 'education_create' %}?workplace={{ workplace.pk }}" class="btn btn-primary mt-2">
+            <i class="bi bi-plus-lg"></i> İlk Eğitimi Ekle
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Tab 4: Equipment -->
+<div class="tab-content {% if active_tab == 'equipment' %}active{% endif %}" id="tab-equipment">
+    <div class="empty-state">
+        <i class="bi bi-tools"></i>
+        <p>Ekipman listesi yakında eklenecek.</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleAccordion(element) {
+        const card = element.closest('.accordion-card');
+        if (card) {
+            card.classList.toggle('expanded');
+        }
+    }
+
+    function toggleTraining(element) {
+        const card = element.closest('.training-card');
+        if (card) {
+            card.classList.toggle('expanded');
+        }
+    }
+</script>
+{% endblock %}

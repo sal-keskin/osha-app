@@ -1,0 +1,60 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    .poll-form-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 30px;
+        max-width: 600px;
+        margin: 0 auto;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .form-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 24px;
+    }
+
+    .form-title i {
+        color: #10B981;
+    }
+</style>
+
+<div class="container py-4">
+    <a href="{% url 'facility_engagements' facility.pk %}" class="text-decoration-none mb-4 d-inline-block">
+        <i class="bi bi-arrow-left"></i> {{ facility.name }} Bildirimleri
+    </a>
+
+    <div class="poll-form-card">
+        <h1 class="form-title"><i class="bi bi-bar-chart"></i> Yeni Anket Oluştur</h1>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">{{ form.question.label }}</label>
+                {{ form.question }}
+                {% if form.question.errors %}
+                <div class="text-danger small mt-1">{{ form.question.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold">{{ form.options.label }}</label>
+                {{ form.options }}
+                {% if form.options.errors %}
+                <div class="text-danger small mt-1">{{ form.options.errors.0 }}</div>
+                {% endif %}
+                <small class="text-muted">Her seçeneği yeni bir satıra yazın</small>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100 py-2">
+                <i class="bi bi-check-lg me-2"></i>Anketi Oluştur
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -6,6 +6,11 @@ import sys
 
 def main():
     """Run administrative tasks."""
+    # macOS/Homebrew fix for WeasyPrint/Pango/Cairo
+    import platform
+    if platform.system() == 'Darwin':
+        os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = '/opt/homebrew/lib:' + os.environ.get('DYLD_FALLBACK_LIBRARY_PATH', '')
+
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "osha_app.settings")
     try:
         from django.core.management import execute_from_command_line

@@ -2,3 +2,12 @@ __pycache__/
 *.pyc
 db.sqlite3
 .env
+venv/
+.DS_Store
+*.log
+tmp_uploads/
+debug_*.py
+server.log
+.vscode/
+.agent/
+static/admin/

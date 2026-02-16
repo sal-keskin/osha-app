@@ -1,0 +1,39 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">{{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Dikkat!</strong> Bu işlem geri alınamaz.
+                </div>
+
+                <p class="mb-3">
+                    <strong>"{{ object }}"</strong> öğesini silmek istediğinizden emin misiniz?
+                </p>
+
+                <p class="text-muted small mb-4">
+                    Bu işlem, ilişkili tüm verileri de silecektir.
+                </p>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2">
+                        {% if cancel_args %}
+                        <a href="{% url cancel_url cancel_args %}" class="btn btn-secondary flex-grow-1">İptal</a>
+                        {% else %}
+                        <a href="{% url cancel_url %}" class="btn btn-secondary flex-grow-1">İptal</a>
+                        {% endif %}
+                        <button type="submit" class="btn btn-danger flex-grow-1">Sil</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

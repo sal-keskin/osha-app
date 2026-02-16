@@ -12,29 +12,30 @@
         <form method="post">
             {% csrf_token %}
             {% for field in form %}
-                <div class="mb-3" id="div_{{ field.name }}">
-                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+            <div class="mb-3" id="div_{{ field.name }}">
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
 
-                    {% if field.name == 'profession' %}
-                        <div class="input-group">
-                            {{ field }}
-                            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addProfessionModal">
-                                <i class="bi bi-plus-lg"></i>
-                            </button>
-                        </div>
-                    {% else %}
-                        {{ field }}
-                    {% endif %}
-
-                    {% if field.errors %}
-                        <div class="text-danger small mt-1">
-                            {{ field.errors.0 }}
-                        </div>
-                    {% endif %}
-                    {% if field.help_text %}
-                        <div class="form-text">{{ field.help_text }}</div>
-                    {% endif %}
+                {% if field.name == 'profession' %}
+                <div class="input-group">
+                    {{ field }}
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
+                        data-bs-target="#addProfessionModal">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
                 </div>
+                {% else %}
+                {{ field }}
+                {% endif %}
+
+                {% if field.errors %}
+                <div class="text-danger small mt-1">
+                    {{ field.errors.0 }}
+                </div>
+                {% endif %}
+                {% if field.help_text %}
+                <div class="form-text">{{ field.help_text }}</div>
+                {% endif %}
+            </div>
             {% endfor %}
 
             <div class="d-flex justify-content-end">
@@ -45,6 +46,7 @@
     </div>
 </div>
 
+{% if user.profile.has_medical_access %}
 {% if examinations %}
 <div class="card mt-4">
     <div class="card-header">
@@ -67,10 +69,10 @@
                         <td>{{ exam.date }}</td>
                         <td>
                             {% if exam.is_caution %}
-                                <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
-                                {{ exam.caution_note|truncatechars:50 }}
+                            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                            {{ exam.caution_note|truncatechars:50 }}
                             {% else %}
-                                -
+                            -
                             {% endif %}
                         </td>
                         <td>{{ exam.get_decision_display }}</td>
@@ -87,147 +89,148 @@
     </div>
 </div>
 {% endif %}
+{% endif %}
 
 <!-- Add Profession Modal -->
 <div class="modal fade" id="addProfessionModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Yeni Meslek Ekle</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-            <label for="new_profession_name" class="form-label">Meslek Adı</label>
-            <input type="text" class="form-control" id="new_profession_name">
-            <div id="profession-error" class="text-danger small mt-1 d-none"></div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Meslek Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="new_profession_name" class="form-label">Meslek Adı</label>
+                    <input type="text" class="form-control" id="new_profession_name">
+                    <div id="profession-error" class="text-danger small mt-1 d-none"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="save-profession-btn">Kaydet</button>
+            </div>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-        <button type="button" class="btn btn-primary" id="save-profession-btn">Kaydet</button>
-      </div>
     </div>
-  </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const saveBtn = document.getElementById('save-profession-btn');
-    const nameInput = document.getElementById('new_profession_name');
-    const errorDiv = document.getElementById('profession-error');
-    const selectBox = document.getElementById('id_profession');
-    const modalElement = document.getElementById('addProfessionModal');
-    const modal = new bootstrap.Modal(modalElement);
+    document.addEventListener('DOMContentLoaded', function () {
+        const saveBtn = document.getElementById('save-profession-btn');
+        const nameInput = document.getElementById('new_profession_name');
+        const errorDiv = document.getElementById('profession-error');
+        const selectBox = document.getElementById('id_profession');
+        const modalElement = document.getElementById('addProfessionModal');
+        const modal = new bootstrap.Modal(modalElement);
 
-    saveBtn.addEventListener('click', function() {
-        const name = nameInput.value.trim();
-        if (!name) {
-            showError('Lütfen bir meslek adı giriniz.');
-            return;
+        saveBtn.addEventListener('click', function () {
+            const name = nameInput.value.trim();
+            if (!name) {
+                showError('Lütfen bir meslek adı giriniz.');
+                return;
+            }
+
+            // Loading state
+            const originalText = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Kaydediliyor...';
+
+            // AJAX request to create profession
+            fetch('{% url "api_create_profession" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ name: name })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Add new option to select box and select it
+                        const option = new Option(data.profession.name, data.profession.id);
+                        selectBox.add(option, undefined);
+                        selectBox.value = data.profession.id;
+
+                        // Close modal and reset
+                        modal.hide();
+                        nameInput.value = '';
+                        errorDiv.classList.add('d-none');
+                    } else {
+                        showError(data.error || 'Bir hata oluştu.');
+                    }
+                })
+                .catch(error => {
+                    showError('Sunucu hatası: ' + error);
+                })
+                .finally(() => {
+                    // Restore button
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalText;
+                });
+        });
+
+        function showError(msg) {
+            errorDiv.textContent = msg;
+            errorDiv.classList.remove('d-none');
         }
 
-        // Loading state
-        const originalText = saveBtn.innerHTML;
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Kaydediliyor...';
+        // Toggle First Aid Expiry Date
+        const firstAidCheckbox = document.getElementById('id_first_aid_certificate');
+        const firstAidExpiryDiv = document.getElementById('div_first_aid_expiry_date');
+        // The generic form loop wraps fields in divs with id="div_FIELDNAME"
+        // However, if the wrapper ID logic is consistent, this should work.
+        // Let's ensure the template renders it. The template loop does: <div class="mb-3" id="div_{{ field.name }}">
 
-        // AJAX request to create profession
-        fetch('{% url "api_create_profession" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ name: name })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Add new option to select box and select it
-                const option = new Option(data.profession.name, data.profession.id);
-                selectBox.add(option, undefined);
-                selectBox.value = data.profession.id;
-
-                // Close modal and reset
-                modal.hide();
-                nameInput.value = '';
-                errorDiv.classList.add('d-none');
-            } else {
-                showError(data.error || 'Bir hata oluştu.');
+        function toggleFirstAidExpiry() {
+            if (firstAidCheckbox && firstAidExpiryDiv) {
+                if (firstAidCheckbox.checked) {
+                    firstAidExpiryDiv.style.display = 'block';
+                } else {
+                    firstAidExpiryDiv.style.display = 'none';
+                }
             }
-        })
-        .catch(error => {
-            showError('Sunucu hatası: ' + error);
-        })
-        .finally(() => {
-            // Restore button
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalText;
-        });
+        }
+
+        if (firstAidCheckbox) {
+            firstAidCheckbox.addEventListener('change', toggleFirstAidExpiry);
+            toggleFirstAidExpiry();
+        }
+
+        // Facility Filtering
+        const workplaceSelect = document.getElementById('id_workplace');
+        const facilitySelect = document.getElementById('id_facility');
+
+        if (workplaceSelect && facilitySelect) {
+            workplaceSelect.addEventListener('change', function () {
+                const workplaceId = this.value;
+                facilitySelect.innerHTML = '<option value="">---------</option>'; // Reset options
+
+                if (workplaceId) {
+                    fetch(`{% url "get_facilities_json" %}?workplace_id=${workplaceId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            data.facilities.forEach(facility => {
+                                const option = new Option(facility.name, facility.id);
+                                facilitySelect.add(option);
+                            });
+                            // If editing, we might want to re-select the existing facility,
+                            // but Django form rendering usually handles the initial selection
+                            // if the options are available. However, since we cleared them,
+                            // we might lose the initial selection if we trigger this on load.
+                            // Better approach: Only trigger fetch if user changes it,
+                            // OR ensure initial load handles it.
+                            // Django renders the current value's option by default even if we filter queryset in form init.
+                        })
+                        .catch(error => console.error('Error:', error));
+                }
+            });
+
+            // Optional: Trigger change on load if you want to filter even initial options,
+            // but typically Django form handles initial valid options.
+            // If we want dependent behavior strictly (only showing valid options), we should trigger it.
+            // But we need to preserve the selected value.
+        }
     });
-
-    function showError(msg) {
-        errorDiv.textContent = msg;
-        errorDiv.classList.remove('d-none');
-    }
-
-    // Toggle First Aid Expiry Date
-    const firstAidCheckbox = document.getElementById('id_first_aid_certificate');
-    const firstAidExpiryDiv = document.getElementById('div_first_aid_expiry_date');
-    // The generic form loop wraps fields in divs with id="div_FIELDNAME"
-    // However, if the wrapper ID logic is consistent, this should work.
-    // Let's ensure the template renders it. The template loop does: <div class="mb-3" id="div_{{ field.name }}">
-
-    function toggleFirstAidExpiry() {
-        if (firstAidCheckbox && firstAidExpiryDiv) {
-            if (firstAidCheckbox.checked) {
-                firstAidExpiryDiv.style.display = 'block';
-            } else {
-                firstAidExpiryDiv.style.display = 'none';
-            }
-        }
-    }
-
-    if (firstAidCheckbox) {
-        firstAidCheckbox.addEventListener('change', toggleFirstAidExpiry);
-        toggleFirstAidExpiry();
-    }
-
-    // Facility Filtering
-    const workplaceSelect = document.getElementById('id_workplace');
-    const facilitySelect = document.getElementById('id_facility');
-
-    if (workplaceSelect && facilitySelect) {
-        workplaceSelect.addEventListener('change', function() {
-            const workplaceId = this.value;
-            facilitySelect.innerHTML = '<option value="">---------</option>'; // Reset options
-
-            if (workplaceId) {
-                fetch(`{% url "get_facilities_json" %}?workplace_id=${workplaceId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        data.facilities.forEach(facility => {
-                            const option = new Option(facility.name, facility.id);
-                            facilitySelect.add(option);
-                        });
-                        // If editing, we might want to re-select the existing facility,
-                        // but Django form rendering usually handles the initial selection
-                        // if the options are available. However, since we cleared them,
-                        // we might lose the initial selection if we trigger this on load.
-                        // Better approach: Only trigger fetch if user changes it,
-                        // OR ensure initial load handles it.
-                        // Django renders the current value's option by default even if we filter queryset in form init.
-                    })
-                    .catch(error => console.error('Error:', error));
-            }
-        });
-
-        // Optional: Trigger change on load if you want to filter even initial options,
-        // but typically Django form handles initial valid options.
-        // If we want dependent behavior strictly (only showing valid options), we should trigger it.
-        // But we need to preserve the selected value.
-    }
-});
 </script>
 {% endblock %}

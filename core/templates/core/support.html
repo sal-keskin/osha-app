@@ -1,0 +1,206 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .support-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .support-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 2.5rem;
+    }
+
+    .support-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--foreground);
+        margin-bottom: 0.5rem;
+    }
+
+    .support-subtitle {
+        color: var(--muted);
+        font-size: 0.875rem;
+        margin-bottom: 2rem;
+    }
+
+    .contact-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .contact-item {
+        background: var(--bg-main);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .contact-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #10b981, #047857);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .contact-info h4 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--foreground);
+        margin-bottom: 0.25rem;
+    }
+
+    .contact-info p {
+        color: var(--muted);
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    .contact-info a {
+        color: #10b981;
+        text-decoration: none;
+    }
+
+    .contact-info a:hover {
+        text-decoration: underline;
+    }
+
+    .faq-section {
+        margin-top: 2rem;
+    }
+
+    .faq-section h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--foreground);
+        margin-bottom: 1rem;
+    }
+
+    .faq-item {
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem 0;
+    }
+
+    .faq-item:last-child {
+        border-bottom: none;
+    }
+
+    .faq-question {
+        font-weight: 600;
+        color: var(--foreground);
+        margin-bottom: 0.5rem;
+    }
+
+    .faq-answer {
+        color: var(--muted);
+        font-size: 0.9375rem;
+        line-height: 1.6;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #10b981;
+        font-weight: 600;
+        text-decoration: none;
+        margin-bottom: 1.5rem;
+    }
+
+    .back-link:hover {
+        color: #059669;
+    }
+</style>
+
+<div class="support-container">
+    <a href="{% url 'dashboard' %}" class="back-link">
+        <i class="bi bi-arrow-left"></i>
+        Panele Dön
+    </a>
+
+    <div class="support-card">
+        <h1 class="support-title">Teknik Destek</h1>
+        <p class="support-subtitle">Size yardımcı olmaktan mutluluk duyarız</p>
+
+        <div class="contact-grid">
+            <div class="contact-item">
+                <div class="contact-icon">
+                    <i class="bi bi-envelope"></i>
+                </div>
+                <div class="contact-info">
+                    <h4>E-posta</h4>
+                    <p><a href="mailto:destek@farkora.com">destek@farkora.com</a></p>
+                </div>
+            </div>
+
+            <div class="contact-item">
+                <div class="contact-icon">
+                    <i class="bi bi-telephone"></i>
+                </div>
+                <div class="contact-info">
+                    <h4>Telefon</h4>
+                    <p><a href="tel:+908501234567">0850 123 45 67</a></p>
+                </div>
+            </div>
+
+            <div class="contact-item">
+                <div class="contact-icon">
+                    <i class="bi bi-clock"></i>
+                </div>
+                <div class="contact-info">
+                    <h4>Çalışma Saatleri</h4>
+                    <p>Hafta içi 09:00 - 18:00</p>
+                </div>
+            </div>
+
+            <div class="contact-item">
+                <div class="contact-icon">
+                    <i class="bi bi-geo-alt"></i>
+                </div>
+                <div class="contact-info">
+                    <h4>Adres</h4>
+                    <p>İstanbul, Türkiye</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-section">
+            <h3>Sık Sorulan Sorular</h3>
+
+            <div class="faq-item">
+                <div class="faq-question">Şifremi unuttum, ne yapmalıyım?</div>
+                <div class="faq-answer">Giriş sayfasındaki "Şifremi Unuttum" bağlantısını kullanarak veya destek
+                    ekibimizle iletişime geçerek şifrenizi sıfırlayabilirsiniz.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Verilerimi nasıl dışa aktarabilirim?</div>
+                <div class="faq-answer">Her liste sayfasında bulunan "Dışa Aktar" butonu ile verilerinizi Excel veya CSV
+                    formatında indirebilirsiniz.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">PDF raporları açılmıyor, ne yapmalıyım?</div>
+                <div class="faq-answer">PDF oluşturma için sistemde bazı ek bileşenlerin kurulu olması gerekmektedir.
+                    Destek ekibimizle iletişime geçin.</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

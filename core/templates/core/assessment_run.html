@@ -1,0 +1,560 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    .assessment-container {
+        display: flex;
+        min-height: calc(100vh - 120px);
+        margin: -1rem;
+    }
+
+    .assessment-sidebar {
+        width: 300px;
+        min-width: 300px;
+        background: #f8f9fa;
+        border-right: 1px solid #e9ecef;
+        overflow-y: auto;
+        max-height: calc(100vh - 120px);
+    }
+
+    .sidebar-header {
+        padding: 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .sidebar-header h5 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .sidebar-progress {
+        margin-top: 0.5rem;
+    }
+
+    .sidebar-progress-bar {
+        height: 4px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .sidebar-progress-fill {
+        height: 100%;
+        background: white;
+        transition: width 0.3s;
+    }
+
+    .sidebar-progress-text {
+        font-size: 0.75rem;
+        opacity: 0.9;
+        margin-top: 0.25rem;
+    }
+
+    .nav-category {
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .nav-category-header {
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #495057;
+        background: #f1f3f5;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .nav-category-header:hover {
+        background: #e9ecef;
+    }
+
+    .nav-topic {
+        padding-left: 1rem;
+    }
+
+    .nav-topic-header {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: #6c757d;
+    }
+
+    .nav-question {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+        color: #495057;
+        text-decoration: none;
+        border-left: 3px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .nav-question:hover {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .nav-question.active {
+        background: #e9ecef;
+        border-left-color: #667eea;
+        font-weight: 500;
+    }
+
+    .status-icon {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+    }
+
+    .status-icon.unanswered {
+        border: 2px solid #adb5bd;
+        background: white;
+    }
+
+    .status-icon.yes {
+        background: #28a745;
+        color: white;
+    }
+
+    .status-icon.yes::after {
+        content: '✓';
+    }
+
+    .status-icon.no {
+        background: #dc3545;
+        color: white;
+    }
+
+    .status-icon.no::after {
+        content: '✕';
+    }
+
+    .status-icon.na {
+        background: #6c757d;
+        color: white;
+    }
+
+    .status-icon.na::after {
+        content: '—';
+    }
+
+    .nav-question-text {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .assessment-panel {
+        flex: 1;
+        padding: 2rem;
+        overflow-y: auto;
+        max-height: calc(100vh - 120px);
+    }
+
+    .question-card {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .question-header {
+        margin-bottom: 2rem;
+    }
+
+    .question-counter {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+    }
+
+    .question-text {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #212529;
+        line-height: 1.4;
+    }
+
+    .answer-options {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .answer-option {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    .answer-option input[type="radio"] {
+        display: none;
+    }
+
+    .answer-option label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem 1.5rem;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 500;
+        background: white;
+    }
+
+    .answer-option label:hover {
+        border-color: #adb5bd;
+    }
+
+    .answer-option input:checked+label {
+        border-color: #667eea;
+        background: #f0f4ff;
+    }
+
+    .answer-option.yes input:checked+label {
+        border-color: #28a745;
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .answer-option.no input:checked+label {
+        border-color: #dc3545;
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .answer-option.na input:checked+label {
+        border-color: #6c757d;
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .risk-warning {
+        padding: 1rem;
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        display: none;
+    }
+
+    .risk-warning.visible {
+        display: block;
+    }
+
+    .notes-section {
+        margin-bottom: 2rem;
+    }
+
+    .info-accordion {
+        margin-bottom: 1.5rem;
+    }
+
+    .info-accordion-item {
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+    }
+
+    .info-accordion-header {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    .info-accordion-header.explanation {
+        background: #e7f1ff;
+        color: #0d6efd;
+    }
+
+    .info-accordion-header.legal {
+        background: #f8f9fa;
+        color: #495057;
+    }
+
+    .info-accordion-body {
+        padding: 1rem;
+        background: white;
+        border: 1px solid #e9ecef;
+        border-top: none;
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    .question-image {
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+
+    .question-image img {
+        max-width: 100%;
+        max-height: 300px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .question-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .footer-left,
+    .footer-right {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    @media (max-width: 991px) {
+        .assessment-sidebar {
+            display: none;
+        }
+
+        .assessment-sidebar.show {
+            display: block;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 1050;
+            width: 300px;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
+    }
+</style>
+
+<button class="btn btn-outline-secondary mb-3 d-lg-none" onclick="toggleSidebar()"><i class="bi bi-list"></i>
+    Navigasyon</button>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="assessment-container">
+    <div class="assessment-sidebar" id="assessmentSidebar">
+        <div class="sidebar-header">
+            <h5>{{ tool.title }}</h5>
+            <div class="sidebar-progress">
+                <div class="sidebar-progress-bar">
+                    <div class="sidebar-progress-fill" id="progressFill" style="width: {{ progress_percentage }}%">
+                    </div>
+                </div>
+                <div class="sidebar-progress-text"><span id="progressText">{{ current_index|add:1 }}</span> / {{
+                    total_questions }} soru</div>
+            </div>
+        </div>
+        <div class="nav-tree">
+            {% for category in categories_data %}
+            <div class="nav-category">
+                <div class="nav-category-header" data-bs-toggle="collapse" data-bs-target="#cat-{{ category.id }}"><i
+                        class="bi bi-chevron-down"></i> {{ category.title }}</div>
+                <div class="collapse show" id="cat-{{ category.id }}">
+                    {% for topic in category.topics %}
+                    <div class="nav-topic">
+                        <div class="nav-topic-header">{{ topic.title }}</div>
+                        {% for q in topic.questions %}
+                        <a href="?q={{ q.id }}"
+                            class="nav-question {% if q.id == current_question.id %}active{% endif %}"
+                            data-question-id="{{ q.id }}">
+                            <span class="status-icon {{ q.status }}" data-status-icon="{{ q.id }}"></span>
+                            <span class="nav-question-text">{{ q.content }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="nav-category" style="border-top: 2px solid #667eea;">
+            <a href="{% url 'custom_risk_list' session.pk %}" class="nav-category-header"
+                style="background: #e7f1ff; color: #667eea;">
+                <i class="bi bi-plus-circle"></i> Ek Riskler
+                {% if custom_risks_count %}<span class="badge bg-primary ms-auto">{{ custom_risks_count }}</span>{% endif %}
+            </a>
+            {% regroup custom_risks by category as risks_by_category %}
+            {% for category_group in risks_by_category %}
+            <div class="nav-topic">
+                <div class="nav-topic-header" style="color: #667eea; font-weight: 500;">
+                    <i class="bi bi-tag-fill me-1" style="font-size: 0.7rem;"></i>
+                    {{ category_group.grouper|default:"Genel Riskler" }}
+                </div>
+                {% for cr in category_group.list %}
+                <a href="{% url 'custom_risk_update' session.pk cr.pk %}" class="nav-question">
+                    <span class="status-icon {{ cr.status_class }}"></span>
+                    <span class="nav-question-text">Ω.{{ forloop.counter }} {{ cr.description|truncatechars:35 }}</span>
+                </a>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="assessment-panel">
+        <div class="question-card">
+            <div class="question-header">
+                <div class="question-counter">Soru {{ current_index|add:1 }} / {{ total_questions }} &bull; {{
+                    current_question.topic.category.title }} &rarr; {{ current_question.topic.title }}</div>
+                <div class="question-text">{{ current_question.content }}</div>
+            </div>
+
+            {% if current_question.image_url %}<div class="question-image"><img src="{{ current_question.image_url }}"
+                    alt="Soru görseli"></div>{% endif %}
+
+            <div class="answer-options">
+                <div class="answer-option yes">
+                    <input type="radio" name="response" id="answerYes" value="YES" {% if current_answer and current_answer.response == 'YES' %}checked{% endif %}>
+                    <label for="answerYes"><i class="bi bi-check-lg me-2"></i> Evet</label>
+                </div>
+                <div class="answer-option no">
+                    <input type="radio" name="response" id="answerNo" value="NO" {% if current_answer and current_answer.response == 'NO' %}checked{% endif %}>
+                    <label for="answerNo"><i class="bi bi-x-lg me-2"></i> Hayır</label>
+                </div>
+                <div class="answer-option na">
+                    <input type="radio" name="response" id="answerNA" value="NA" {% if current_answer and current_answer.response == 'NA' %}checked{% endif %}>
+                    <label for="answerNA"><i class="bi bi-dash-lg me-2"></i> İlgili Değil</label>
+                </div>
+            </div>
+            <div class="risk-warning" id="riskWarning"><i
+                    class="bi bi-exclamation-triangle me-2"></i><strong>Dikkat:</strong> "Hayır" yanıtı, Eylem Planına
+                kaydedilecektir.</div>
+
+            <div class="notes-section">
+                <label class="form-label"><i class="bi bi-chat-left-text me-1"></i> Notlar (opsiyonel)</label>
+                <textarea class="form-control" id="answerNotes" rows="2"
+                    placeholder="Bu soru hakkında notlarınızı ekleyin...">{% if current_answer %}{{ current_answer.notes }}{% endif %}</textarea>
+            </div>
+
+            {% if current_question.explanation_text or current_question.legal_reference %}
+            <div class="info-accordion">
+                {% if current_question.explanation_text %}
+                <div class="info-accordion-item">
+                    <div class="info-accordion-header explanation" data-bs-toggle="collapse"
+                        data-bs-target="#explanationCollapse"><i class="bi bi-chevron-down"></i> <i
+                            class="bi bi-info-circle"></i> Bilgi / Açıklama</div>
+                    <div class="collapse" id="explanationCollapse">
+                        <div class="info-accordion-body">{{ current_question.explanation_text|linebreaks }}</div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if current_question.legal_reference %}
+                <div class="info-accordion-item">
+                    <div class="info-accordion-header legal" data-bs-toggle="collapse" data-bs-target="#legalCollapse">
+                        <i class="bi bi-chevron-down"></i> <i class="bi bi-file-text"></i> Yasal Dayanak
+                    </div>
+                    <div class="collapse" id="legalCollapse">
+                        <div class="info-accordion-body">{{ current_question.legal_reference|linebreaks }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="question-footer">
+                <div class="footer-left">{% if prev_question %}<a href="?q={{ prev_question.id }}"
+                        class="btn btn-outline-secondary"><i class="bi bi-chevron-left"></i> Önceki</a>{% endif %}</div>
+                <div class="footer-right">
+                    <button type="button" class="btn btn-primary" onclick="saveAnswer(false)"><i
+                            class="bi bi-check2"></i> Kaydet</button>
+                    {% if next_question %}<button type="button" class="btn btn-dark" onclick="saveAnswer(true)">Kaydet &
+                        İlerle <i class="bi bi-chevron-right"></i></button>{% else %}<button type="button"
+                        class="btn btn-success" onclick="saveAndGoToActionPlan()"><i class="bi bi-clipboard-check"></i>
+                        Kaydet & Eylem Planına Geç</button>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var sessionId = {{ session.pk }};
+    var questionId = {{ current_question.id }};
+    var csrfToken = '{{ csrf_token }}';
+    var nextQuestionUrl = '{% if next_question %}?q={{ next_question.id }}{% endif %}';
+    var actionPlanUrl = '{% url "action_plan_intro" session.pk %}';
+    var saveUrl = '/assessments/' + sessionId + '/save-answer/';
+
+    document.querySelectorAll('input[name="response"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            document.getElementById('riskWarning').classList.toggle('visible', this.value === 'NO');
+        });
+    });
+
+    var checked = document.querySelector('input[name="response"]:checked');
+    if (checked && checked.value === 'NO') document.getElementById('riskWarning').classList.add('visible');
+
+    function saveAnswer(goNext) {
+        var response = document.querySelector('input[name="response"]:checked');
+        var notes = document.getElementById('answerNotes').value;
+        if (!response) { alert('Lütfen bir yanıt seçin.'); return; }
+        fetch(saveUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ question_id: questionId, response: response.value, notes: notes })
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.success) {
+                    var icon = document.querySelector('[data-status-icon="' + questionId + '"]');
+                    if (icon) icon.className = 'status-icon ' + response.value.toLowerCase();
+                    if (data.progress !== undefined) document.getElementById('progressFill').style.width = data.progress + '%';
+                    if (goNext && nextQuestionUrl) { window.location.href = nextQuestionUrl; }
+                    else { alert('Kaydedildi!'); }
+                } else { alert('Hata: ' + (data.error || 'Bilinmeyen hata')); }
+            })
+            .catch(function (err) { console.error(err); alert('Bağlantı hatası.'); });
+    }
+
+    function toggleSidebar() {
+        document.getElementById('assessmentSidebar').classList.toggle('show');
+        document.querySelector('.sidebar-overlay').classList.toggle('show');
+    }
+
+    function saveAndGoToActionPlan() {
+        var response = document.querySelector('input[name="response"]:checked');
+        var notes = document.getElementById('answerNotes').value;
+        if (!response) { alert('Lütfen bir yanıt seçin.'); return; }
+        fetch(saveUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ question_id: questionId, response: response.value, notes: notes })
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.success) {
+                    window.location.href = actionPlanUrl;
+                } else { alert('Hata: ' + (data.error || 'Bilinmeyen hata')); }
+            })
+            .catch(function (err) { console.error(err); alert('Bağlantı hatası.'); });
+    }
+</script>
+{% endblock %}

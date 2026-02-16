@@ -1,0 +1,165 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .back-link {
+        color: #6c757d;
+        text-decoration: none;
+    }
+
+    .back-link:hover {
+        color: #495057;
+    }
+
+    .answer-options {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .answer-option {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .answer-option input[type="radio"] {
+        display: none;
+    }
+
+    .answer-option label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem 1.5rem;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 500;
+        background: white;
+    }
+
+    .answer-option label:hover {
+        border-color: #adb5bd;
+    }
+
+    .answer-option input:checked+label {
+        border-color: #667eea;
+        background: #f0f4ff;
+    }
+
+    .answer-option.yes input:checked+label {
+        border-color: #28a745;
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .answer-option.no input:checked+label {
+        border-color: #dc3545;
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .risk-warning {
+        padding: 1rem;
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        display: none;
+    }
+
+    .risk-warning.visible {
+        display: block;
+    }
+</style>
+
+<div class="form-container">
+    <a href="{% url 'custom_risk_list' session.pk %}" class="back-link"><i class="bi bi-arrow-left me-1"></i> Ek
+        Risklere Dön</a>
+
+    <div class="card mt-3">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-shield-plus me-2"></i>{{ title }}</h4>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-4">
+                    <label for="id_description" class="form-label fw-bold">Risk Tanımı *</label>
+                    {{ form.description }}
+                    <div class="form-text">Tespit ettiğiniz riski detaylı olarak açıklayın.</div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Bu risk kabul edilebilir mi?</label>
+                    <div class="answer-options">
+                        <div class="answer-option yes">
+                            <input type="radio" name="is_acceptable" id="acceptableYes" value="True" {% if
+                                form.instance.is_acceptable==True %}checked{% endif %}>
+                            <label for="acceptableYes">
+                                <i class="bi bi-check-lg me-2"></i> Evet - Kabul Edilebilir
+                            </label>
+                        </div>
+                        <div class="answer-option no">
+                            <input type="radio" name="is_acceptable" id="acceptableNo" value="False" {% if
+                                form.instance.is_acceptable==False %}checked{% endif %}>
+                            <label for="acceptableNo">
+                                <i class="bi bi-x-lg me-2"></i> Hayır - Risk Mevcut
+                            </label>
+                        </div>
+                    </div>
+                    <div class="risk-warning" id="riskWarning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Dikkat:</strong> Bu risk Eylem Planına kaydedilecektir.
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="id_evidence" class="form-label fw-bold">Bilgi / Kanıt</label>
+                    {{ form.evidence }}
+                    <div class="form-text">Fotoğraf referansları, gözlemler veya kanıtları ekleyin.</div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="id_notes" class="form-label">Notlar (opsiyonel)</label>
+                    {{ form.notes }}
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'custom_risk_list' session.pk %}" class="btn btn-outline-secondary">İptal</a>
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="save" class="btn btn-success">
+                            <i class="bi bi-check2"></i> Kaydet
+                        </button>
+                        {% if not custom_risk %}
+                        <button type="submit" name="save_another" class="btn btn-primary">
+                            Kaydet & Yeni Ekle <i class="bi bi-plus-lg"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('input[name="is_acceptable"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            document.getElementById('riskWarning').classList.toggle('visible', this.value === 'False');
+        });
+    });
+    var checked = document.querySelector('input[name="is_acceptable"]:checked');
+    if (checked && checked.value === 'False') document.getElementById('riskWarning').classList.add('visible');
+</script>
+{% endblock %}

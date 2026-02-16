@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 825 600" preserveAspectRatio="xMidYMid meet">
+  <!-- Books/Education pattern -->
+  <rect width="100%" height="100%" fill="transparent"/>
+  <!-- Book stack -->
+  <rect x="110" y="444" width="412" height="96" fill="rgba(255,255,255,0.3)"/>
+  <rect x="110" y="339" width="412" height="96" fill="rgba(255,255,255,0.4)"/>
+  <rect x="110" y="233" width="412" height="96" fill="rgba(255,255,255,0.5)"/>
+  <!-- Bookmark ribbon -->
+  <path fill="rgba(255,255,255,0.7)" d="M 127 492 L 129 492 L 166 450 C 167 449 168 449 169 450 L 206 492 L 208 492 L 208 224 L 127 224 Z"/>
+</svg>

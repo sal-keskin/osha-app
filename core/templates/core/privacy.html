@@ -1,0 +1,100 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .policy-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .policy-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 2.5rem;
+    }
+
+    .policy-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--foreground);
+        margin-bottom: 0.5rem;
+    }
+
+    .policy-subtitle {
+        color: var(--muted);
+        font-size: 0.875rem;
+        margin-bottom: 2rem;
+    }
+
+    .policy-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .policy-section h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--foreground);
+        margin-bottom: 0.75rem;
+    }
+
+    .policy-section p {
+        color: var(--muted);
+        line-height: 1.7;
+        font-size: 0.9375rem;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #10b981;
+        font-weight: 600;
+        text-decoration: none;
+        margin-bottom: 1.5rem;
+    }
+
+    .back-link:hover {
+        color: #059669;
+    }
+</style>
+
+<div class="policy-container">
+    <a href="{% url 'dashboard' %}" class="back-link">
+        <i class="bi bi-arrow-left"></i>
+        Panele Dön
+    </a>
+
+    <div class="policy-card">
+        <h1 class="policy-title">Gizlilik Politikası</h1>
+        <p class="policy-subtitle">Son güncelleme: Ocak 2026</p>
+
+        <div class="policy-section">
+            <h3>1. Toplanan Veriler</h3>
+            <p>Farkora İSG Yönetim Sistemi, iş güvenliği ve sağlık hizmetlerini yönetmek amacıyla çalışan bilgileri,
+                sağlık kayıtları, eğitim verileri ve risk değerlendirme sonuçlarını toplamaktadır. Bu veriler yalnızca
+                yasal yükümlülüklerin yerine getirilmesi amacıyla işlenmektedir.</p>
+        </div>
+
+        <div class="policy-section">
+            <h3>2. Verilerin Kullanımı</h3>
+            <p>Toplanan veriler; İSG mevzuatına uygunluğun sağlanması, çalışan sağlık takibi, eğitim planlaması ve risk
+                yönetimi amacıyla kullanılmaktadır. Verileriniz üçüncü taraflarla paylaşılmamaktadır.</p>
+        </div>
+
+        <div class="policy-section">
+            <h3>3. Veri Güvenliği</h3>
+            <p>Tüm veriler şifreli olarak saklanmakta ve endüstri standardı güvenlik protokolleri ile korunmaktadır.
+                Sisteme erişim yetkili personelle sınırlandırılmıştır.</p>
+        </div>
+
+        <div class="policy-section">
+            <h3>4. Haklarınız</h3>
+            <p>KVKK kapsamında verilerinize erişim, düzeltme ve silme talebinde bulunabilirsiniz. Talepleriniz için
+                teknik destek sayfamızdan bizimle iletişime geçebilirsiniz.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

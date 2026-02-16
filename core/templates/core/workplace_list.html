@@ -1,251 +1,635 @@
 {% extends 'core/base.html' %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">{{ title }}</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <div class="btn-group me-2">
-            <a href="{% url create_url_name %}" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-plus-lg"></i> Yeni Ekle
-            </a>
+<style>
+    /* Page-Specific Layout Styles Only */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .more-menu-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--muted);
+        padding: 8px;
+        cursor: pointer;
+        border-radius: 8px;
+    }
+
+    .more-menu-btn:hover {
+        background: var(--card-bg);
+    }
+
+    /* Stats Ribbon */
+    .stats-ribbon {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 16px 0;
+        margin-bottom: 16px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .stats-ribbon::-webkit-scrollbar {
+        display: none;
+    }
+
+    @media (min-width: 1024px) {
+        .stats-ribbon {
+            flex-wrap: wrap;
+            overflow-x: visible;
+        }
+    }
+
+    .stat-chip {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 24px;
+        padding: 10px 18px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+        font-size: 0.85rem;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .stat-chip .emoji {
+        font-size: 1rem;
+    }
+
+    .stat-chip.stat-green {
+        background: #065F46;
+        border-color: #10B981;
+        color: #D1FAE5;
+    }
+
+    .stat-chip.stat-orange {
+        background: #92400E;
+        border-color: #F59E0B;
+        color: #FEF3C7;
+    }
+
+    .stat-chip.stat-red {
+        background: #991B1B;
+        border-color: #EF4444;
+        color: #FEE2E2;
+    }
+
+    /* Search & Filter Row */
+    .search-filter-row {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .search-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 12px 16px;
+    }
+
+    .search-wrapper i {
+        color: var(--muted);
+        margin-right: 10px;
+    }
+
+    .search-input {
+        border: none;
+        outline: none;
+        width: 100%;
+        font-size: 1rem;
+        background: transparent;
+        color: var(--foreground);
+    }
+
+    .search-input::placeholder {
+        color: var(--muted);
+    }
+
+    .filter-btn {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        color: var(--foreground);
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s;
+    }
+
+    .filter-btn:hover {
+        background: var(--border-color);
+    }
+
+    .filter-btn.has-filter::after {
+        content: '';
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 8px;
+        height: 8px;
+        background: #EF4444;
+        border-radius: 50%;
+    }
+
+    /* Filter Drawer */
+    .filter-drawer-backdrop {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1040;
+    }
+
+    .filter-drawer-backdrop.show {
+        display: block;
+    }
+
+    .filter-drawer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--card-bg);
+        border-radius: 20px 20px 0 0;
+        border: 1px solid var(--border-color);
+        border-bottom: none;
+        padding: 24px;
+        z-index: 1050;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+        max-height: 80vh;
+        overflow-y: auto;
+        visibility: hidden;
+    }
+
+    .filter-drawer.show {
+        transform: translateY(0);
+        visibility: visible;
+    }
+
+    @media (min-width: 768px) {
+        .filter-drawer {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            bottom: auto;
+            transform: translate(-50%, -50%) scale(0.9);
+            opacity: 0;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 90%;
+            visibility: hidden;
+        }
+
+        .filter-drawer.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+            visibility: visible;
+        }
+    }
+
+    .drawer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .drawer-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .drawer-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--muted);
+        cursor: pointer;
+    }
+
+    .filter-group {
+        margin-bottom: 20px;
+    }
+
+    .filter-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    .filter-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .filter-option {
+        padding: 10px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        background: var(--bg-dark);
+        color: var(--foreground);
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .filter-option:hover {
+        background: var(--card-bg);
+    }
+
+    .filter-option.active {
+        background: var(--foreground);
+        color: var(--bg-dark);
+        border-color: var(--foreground);
+    }
+
+    .filter-option.low {
+        border-color: #10B981;
+        color: #10B981;
+    }
+
+    .filter-option.low.active {
+        background: #10B981;
+        color: #fff;
+    }
+
+    .filter-option.medium {
+        border-color: #F59E0B;
+        color: #F59E0B;
+    }
+
+    .filter-option.medium.active {
+        background: #F59E0B;
+        color: #fff;
+    }
+
+    .filter-option.high {
+        border-color: #EF4444;
+        color: #EF4444;
+    }
+
+    .filter-option.high.active {
+        background: #EF4444;
+        color: #fff;
+    }
+
+    .drawer-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
+    .btn-clear {
+        flex: 1;
+        padding: 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        background: var(--bg-dark);
+        font-weight: 600;
+        color: var(--foreground);
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+    }
+
+    .btn-apply {
+        flex: 1;
+        padding: 14px;
+        border: none;
+        border-radius: 12px;
+        background: #3B82F6;
+        font-weight: 600;
+        color: #fff;
+        cursor: pointer;
+    }
+
+    /* Workplace Cards */
+    .workplace-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    @media (min-width: 1024px) {
+        .workplace-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+    }
+
+    .workplace-card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 16px 20px;
+        border: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .workplace-card:hover {
+        border-color: #3f3f46;
+        transform: translateY(-2px);
+    }
+
+    .workplace-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .workplace-name {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .workplace-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .hazard-badge {
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 6px;
+    }
+
+    .hazard-badge.low {
+        background: #065F46;
+        color: #D1FAE5;
+    }
+
+    .hazard-badge.medium {
+        background: #92400E;
+        color: #FEF3C7;
+    }
+
+    .hazard-badge.high {
+        background: #991B1B;
+        color: #FEE2E2;
+    }
+
+    .employee-count {
+        font-size: 0.85rem;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .card-arrow {
+        color: var(--muted);
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-left: 12px;
+    }
+
+    /* Floating Action Button */
+    .fab {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #3B82F6;
+        color: #fff;
+        border: none;
+        box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        z-index: 1000;
+    }
+
+    .fab:hover {
+        background: #2563EB;
+        transform: scale(1.05);
+        color: #fff;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--muted);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+</style>
+
+<!-- Page Header -->
+<div class="page-header">
+    <h1 class="page-title">İş Yerleri</h1>
+
+    <div class="dropdown">
+        <button class="more-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-three-dots"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
             {% if import_url_name %}
-            <a href="{% url import_url_name %}" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-upload"></i> İçe Aktar
-            </a>
+            <li><a class="dropdown-item" href="{% url import_url_name %}"><i class="bi bi-upload"></i> İçe Aktar</a>
+            </li>
             {% endif %}
             {% if export_url_name %}
-            <div class="btn-group">
-                <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-download"></i> Dışa Aktar
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{% url export_url_name %}?format=csv{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">CSV İndir</a></li>
-                    <li><a class="dropdown-item" href="{% url export_url_name %}?format=xlsx{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}">Excel İndir</a></li>
-                </ul>
-            </div>
+            <li><a class="dropdown-item" href="{% url export_url_name %}?format=csv"><i
+                        class="bi bi-file-earmark-spreadsheet"></i> CSV İndir</a></li>
+            <li><a class="dropdown-item" href="{% url export_url_name %}?format=xlsx"><i
+                        class="bi bi-file-earmark-excel"></i> Excel İndir</a></li>
             {% endif %}
-            <a href="{% url 'all_notes' %}" class="btn btn-sm btn-outline-info ms-2">
-                <i class="bi bi-journal-text"></i> Tüm Notlar
-            </a>
-        </div>
+        </ul>
     </div>
 </div>
 
-<!-- Filters -->
-{% if filter_config %}
-<div class="card mb-4">
-    <div class="card-body">
-        <form method="get" class="row g-3">
-            {% for field in filter_config %}
-            <div class="col-md-3">
-                <label class="form-label">{{ field.label }}</label>
-                {% if field.type == 'text' %}
-                    <input type="text" name="{{ field.field }}" class="form-control" value="{{ field.value|default:'' }}">
-                {% elif field.type == 'select' %}
-                    <select name="{{ field.field }}" class="form-select">
-                        <option value="">Tümü</option>
-                        {% for opt_val, opt_label in field.options %}
-                            <option value="{{ opt_val }}" {% if field.value|stringformat:"s" == opt_val|stringformat:"s" %}selected{% endif %}>{{ opt_label }}</option>
-                        {% endfor %}
-                    </select>
-                {% elif field.type == 'date' %}
-                    <input type="date" name="{{ field.field }}" class="form-control" value="{{ field.value|default:'' }}">
-                {% endif %}
-            </div>
-            {% endfor %}
-            <div class="col-12 text-end">
-                <a href="{{ request.path }}" class="btn btn-secondary">Temizle</a>
-                <button type="submit" class="btn btn-primary">Filtrele</button>
-            </div>
-        </form>
+<!-- Stats Ribbon -->
+<div class="stats-ribbon">
+    <div class="stat-chip">
+        <span class="emoji">🏬</span>
+        {{ stats.total_facilities }} Birim
+    </div>
+    <div class="stat-chip">
+        <span class="emoji">👥</span>
+        {{ stats.total_workers }} Çalışan
+    </div>
+    <div
+        class="stat-chip {% if stats.training_pct >= 90 %}stat-green{% elif stats.training_pct >= 70 %}stat-orange{% else %}stat-red{% endif %}">
+        <span class="emoji">🎓</span>
+        %{{ stats.training_pct }} Eğitim
+    </div>
+    <div
+        class="stat-chip {% if stats.exam_pct >= 90 %}stat-green{% elif stats.exam_pct >= 70 %}stat-orange{% else %}stat-red{% endif %}">
+        <span class="emoji">❤️‍🩹</span>
+        %{{ stats.exam_pct }} Muayene
+    </div>
+    <div class="stat-chip">
+        <span class="emoji">🚑</span>
+        {{ stats.first_aid_count }} İlk Yardım
     </div>
 </div>
-{% endif %}
 
-<form method="post" action="{% url bulk_delete_url_name %}" id="bulkDeleteForm">
-    {% csrf_token %}
+<!-- Search & Filter Row -->
+<div class="search-filter-row">
+    <form method="get" class="search-wrapper" id="searchForm">
+        <i class="bi bi-search"></i>
+        <input type="text" name="search" class="search-input" placeholder="Ara..." value="{{ search_query }}"
+            autocomplete="off">
+        {% if hazard_filter %}
+        <input type="hidden" name="hazard_class" value="{{ hazard_filter }}">
+        {% endif %}
+    </form>
+    <button type="button" class="filter-btn {% if hazard_filter %}has-filter{% endif %}" onclick="openFilterDrawer()">
+        <i class="bi bi-funnel"></i>
+        <span class="d-none d-md-inline">Filtrele</span>
+    </button>
+</div>
 
-    <!-- Accordion List -->
-    <div class="accordion" id="workplaceAccordion">
-        {% for item in items %}
-        {% with grouped_workers=item.get_workers_by_facility %}
-        <div class="accordion-item">
-            <h2 class="accordion-header" id="heading{{ item.id }}">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ item.id }}" aria-expanded="false" aria-controls="collapse{{ item.id }}">
-                    <div class="d-flex w-100 justify-content-between align-items-center me-3">
-                        <div>
-                            <strong>{{ item.name }}</strong>
-                            <span class="badge bg-{{ item.hazard_class|lower|cut:'high:danger'|cut:'medium:warning'|cut:'low:success' }} ms-2">
-                                {{ item.get_hazard_class_display }}
-                            </span>
-                        </div>
-                        <div class="d-flex gap-3">
-                            <span class="badge bg-secondary" title="Toplam Çalışan">
-                                <i class="bi bi-people"></i> {{ item.total_workers_count }}
-                            </span>
-                            <span class="badge bg-info text-dark" title="Geçerli Eğitim">
-                                <i class="bi bi-book"></i> {{ item.valid_education_count_display }}
-                            </span>
-                            <span class="badge bg-primary" title="Geçerli Muayene">
-                                <i class="bi bi-heart-pulse"></i> {{ item.valid_examination_count_display }}
-                            </span>
-
-                            <!-- Actions -->
-                            <div class="btn-group btn-group-sm" role="group">
-                                <a href="{% url update_url_name item.id %}" class="btn btn-outline-primary" onclick="event.stopPropagation();">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <button type="button" class="btn btn-outline-info" onclick="editNote('Workplace', {{ item.id }}, '{{ item.special_note|escapejs|default:'' }}'); event.stopPropagation();">
-                                    <i class="bi bi-sticky"></i>
-                                </button>
-                            </div>
-                            <input class="form-check-input" type="checkbox" name="selected_items" value="{{ item.id }}" onclick="event.stopPropagation();">
-                        </div>
-                    </div>
-                </button>
-            </h2>
-            <div id="collapse{{ item.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ item.id }}" data-bs-parent="#workplaceAccordion">
-                <div class="accordion-body">
-
-                    {% for facility_name, workers in grouped_workers.items %}
-                        {% if workers %}
-                        <div class="mb-3">
-                            <h6 class="border-bottom pb-2">{{ facility_name }}</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Ad Soyad</th>
-                                            <th>TCKN</th>
-                                            <th>Eğitim</th>
-                                            <th>Muayene</th>
-                                            <th>İşlemler</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for worker in workers %}
-                                        <tr>
-                                            <td>{{ worker.name }}</td>
-                                            <td>{{ worker.tckn }}</td>
-                                            <td>{{ worker.education_status }}</td>
-                                            <td>{{ worker.examination_status }}</td>
-                                            <td>
-                                                <a href="{% url 'worker_update' worker.id %}" class="btn btn-sm btn-outline-secondary">
-                                                    <i class="bi bi-pencil"></i>
-                                                </a>
-                                                <a href="{% url 'examination_create' %}?worker_id={{ worker.id }}" class="btn btn-sm btn-outline-success" title="Hızlı Muayene">
-                                                    <i class="bi bi-heart-pulse"></i>
-                                                </a>
-                                                <button type="button" class="btn btn-sm btn-outline-info" onclick="editNote('Worker', {{ worker.id }}, '{{ worker.special_note|escapejs|default:'' }}')">
-                                                    <i class="bi bi-sticky"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        {% endif %}
-                    {% endfor %}
-
-                    {% if not grouped_workers %}
-                        <p class="text-muted">Bu işyerine bağlı çalışan bulunmamaktadır.</p>
-                    {% endif %}
-
-                </div>
-            </div>
-        </div>
-        {% endwith %}
-        {% endfor %}
-    </div>
-
-    <div class="mt-3">
-        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
-            <i class="bi bi-trash"></i> Seçilileri Sil
+<!-- Filter Drawer -->
+<div class="filter-drawer-backdrop" id="filterBackdrop" onclick="closeFilterDrawer()"></div>
+<div class="filter-drawer" id="filterDrawer">
+    <div class="drawer-header">
+        <h3 class="drawer-title">Filtreler</h3>
+        <button class="drawer-close" onclick="closeFilterDrawer()">
+            <i class="bi bi-x"></i>
         </button>
     </div>
-</form>
 
-<!-- Note Modal -->
-<div class="modal fade" id="noteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Özel Not Düzenle</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="noteModelName">
-                <input type="hidden" id="noteObjId">
-                <textarea id="noteText" class="form-control" rows="5"></textarea>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                <button type="button" class="btn btn-primary" onclick="saveNote()">Kaydet</button>
+    <form method="get" id="filterForm">
+        {% if search_query %}
+        <input type="hidden" name="search" value="{{ search_query }}">
+        {% endif %}
+
+        <div class="filter-group">
+            <span class="filter-label">Tehlike Sınıfı</span>
+            <div class="filter-options">
+                <button type="submit" name="hazard_class" value=""
+                    class="filter-option {% if not hazard_filter %}active{% endif %}">
+                    Tümü ({{ total_count }})
+                </button>
+                <button type="submit" name="hazard_class" value="LOW"
+                    class="filter-option low {% if hazard_filter == 'LOW' %}active{% endif %}">
+                    Az Tehlikeli ({{ low_hazard_count }})
+                </button>
+                <button type="submit" name="hazard_class" value="MEDIUM"
+                    class="filter-option medium {% if hazard_filter == 'MEDIUM' %}active{% endif %}">
+                    Tehlikeli ({{ medium_hazard_count }})
+                </button>
+                <button type="submit" name="hazard_class" value="HIGH"
+                    class="filter-option high {% if hazard_filter == 'HIGH' %}active{% endif %}">
+                    Çok Tehlikeli ({{ high_hazard_count }})
+                </button>
             </div>
         </div>
-    </div>
+
+        <div class="drawer-actions">
+            <a href="{% url 'workplace_list' %}" class="btn-clear">Temizle</a>
+            <button type="button" class="btn-apply" onclick="closeFilterDrawer()">Tamam</button>
+        </div>
+    </form>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Silme Onayı</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Seçili kayıtları silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                <button type="button" class="btn btn-danger" onclick="document.getElementById('bulkDeleteForm').submit()">Evet, Sil</button>
+<!-- Workplace Grid -->
+<div class="workplace-grid">
+    {% if items %}
+    {% for item in items %}
+    <a href="{% url 'workplace_detail' item.pk %}" class="workplace-card">
+        <div class="workplace-info">
+            <div class="workplace-name">{{ item.name }}</div>
+            <div class="workplace-meta">
+                <span
+                    class="hazard-badge {% if item.hazard_class == 'LOW' %}low{% elif item.hazard_class == 'MEDIUM' %}medium{% else %}high{% endif %}">
+                    {{ item.get_hazard_class_display }}
+                </span>
+                <span class="employee-count">
+                    <i class="bi bi-people-fill"></i> {{ item.total_workers_count }} Çalışan
+                </span>
             </div>
         </div>
+        <i class="bi bi-chevron-right card-arrow"></i>
+    </a>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state" style="grid-column: 1 / -1;">
+        <i class="bi bi-building"></i>
+        <p>Henüz işyeri bulunmuyor.</p>
     </div>
+    {% endif %}
 </div>
+
+<!-- Floating Action Button -->
+<a href="{% url create_url_name %}" class="fab">
+    <i class="bi bi-plus-lg"></i>
+</a>
 
 <script>
-var noteModal;
-document.addEventListener('DOMContentLoaded', function() {
-    noteModal = new bootstrap.Modal(document.getElementById('noteModal'));
-});
-
-function editNote(model, id, currentNote) {
-    document.getElementById('noteModelName').value = model;
-    document.getElementById('noteObjId').value = id;
-    document.getElementById('noteText').value = currentNote;
-    noteModal.show();
-}
-
-function saveNote() {
-    const model = document.getElementById('noteModelName').value;
-    const id = document.getElementById('noteObjId').value;
-    const note = document.getElementById('noteText').value;
-
-    fetch('{% url "api_update_note" %}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({
-            model: model,
-            id: id,
-            note: note
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Hata: ' + data.error);
+    document.querySelector('.search-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            document.getElementById('searchForm').submit();
         }
     });
-}
-</script>
 
+    function openFilterDrawer() {
+        document.getElementById('filterBackdrop').classList.add('show');
+        document.getElementById('filterDrawer').classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeFilterDrawer() {
+        document.getElementById('filterBackdrop').classList.remove('show');
+        document.getElementById('filterDrawer').classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeFilterDrawer();
+        }
+    });
+</script>
 {% endblock %}

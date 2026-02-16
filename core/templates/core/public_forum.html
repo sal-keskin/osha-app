@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Güvenlik Forumu - {{ facility.name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        /* ===== SHADCN/UI-INSPIRED DESIGN SYSTEM ===== */
+        :root {
+            /* Primary - Emerald */
+            --primary: #059669;
+            --primary-light: #10B981;
+            --primary-bg: #ECFDF5;
+
+            /* Background - Slate */
+            --bg: #F8FAFC;
+            --bg-card: #FFFFFF;
+
+            /* Text - Slate */
+            --text: #0F172A;
+            --text-muted: #64748B;
+            --text-light: #94A3B8;
+
+            /* Borders */
+            --border: #E2E8F0;
+            --border-hover: #CBD5E1;
+
+            /* Status Colors */
+            --danger: #E11D48;
+            --danger-bg: #FFF1F2;
+            --warning: #F59E0B;
+            --warning-bg: #FFFBEB;
+            --success: #10B981;
+            --success-bg: #ECFDF5;
+            --info: #3B82F6;
+            --info-bg: #EFF6FF;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+            /* Radius */
+            --radius: 12px;
+            --radius-sm: 8px;
+            --radius-full: 9999px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            padding-bottom: 80px;
+            /* Space for bottom nav on mobile */
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding-bottom: 0;
+            }
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 16px;
+            text-align: center;
+        }
+
+        .header-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
+            margin: 0 0 4px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .header-title i {
+            color: var(--primary);
+        }
+
+        .header-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* ===== MAIN CONTAINER ===== */
+        .main-container {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* ===== TAB NAVIGATION - Desktop (Top) ===== */
+        .tab-nav-desktop {
+            display: none;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 16px;
+        }
+
+        @media (min-width: 768px) {
+            .tab-nav-desktop {
+                display: flex;
+            }
+        }
+
+        .tab-btn-desktop {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tab-btn-desktop:hover {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .tab-btn-desktop.active {
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+
+        /* ===== TAB NAVIGATION - Mobile (Bottom, Fitts's Law) ===== */
+        .tab-nav-mobile {
+            display: flex;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -4px 6px -1px rgb(0 0 0 / 0.1);
+            z-index: 1000;
+        }
+
+        @media (min-width: 768px) {
+            .tab-nav-mobile {
+                display: none;
+            }
+        }
+
+        .tab-btn-mobile {
+            flex: 1;
+            padding: 12px 8px;
+            border: none;
+            background: transparent;
+            font-weight: 500;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.15s ease;
+        }
+
+        .tab-btn-mobile i {
+            font-size: 1.25rem;
+        }
+
+        .tab-btn-mobile.active {
+            color: var(--primary);
+        }
+
+        /* ===== TAB CONTENT ===== */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ===== CARDS (Law of Common Region) ===== */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        /* ===== PILL BADGES (Von Restorff Effect) ===== */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .badge-danger {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid #FECDD3;
+        }
+
+        .badge-warning {
+            background: var(--warning-bg);
+            color: #B45309;
+            border: 1px solid #FDE68A;
+        }
+
+        .badge-success {
+            background: var(--success-bg);
+            color: #047857;
+            border: 1px solid #A7F3D0;
+        }
+
+        .badge-info {
+            background: var(--info-bg);
+            color: #1D4ED8;
+            border: 1px solid #BFDBFE;
+        }
+
+        /* ===== NEWS CARD ===== */
+        .news-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .news-card-body {
+            padding: 16px;
+        }
+
+        .news-message {
+            font-size: 0.9375rem;
+            line-height: 1.6;
+            color: var(--text);
+            margin: 12px 0;
+        }
+
+        .news-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+            margin-top: 12px;
+        }
+
+        .news-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .news-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.15s;
+        }
+
+        .news-action:hover {
+            color: var(--primary);
+        }
+
+        /* Expert Response Block (Law of Common Region) */
+        .expert-block {
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+            padding: 12px 16px;
+        }
+
+        .expert-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        .expert-text {
+            font-size: 0.875rem;
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        /* ===== SKELETON LOADER (Doherty Threshold) ===== */
+        .skeleton {
+            background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 50%, #E2E8F0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: var(--radius-sm);
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .skeleton-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .skeleton-badge {
+            width: 80px;
+            height: 24px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-line {
+            height: 16px;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-line-short {
+            width: 60%;
+        }
+
+        .skeleton-meta {
+            height: 14px;
+            width: 40%;
+            margin-top: 16px;
+        }
+
+        /* ===== FORM STYLES ===== */
+        .form-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .form-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0 0 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.9375rem;
+            font-family: inherit;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            background: var(--bg-card);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+        }
+
+        select.form-control {
+            cursor: pointer;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.9375rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-primary:hover {
+            background: #047857;
+        }
+
+        /* Honeypot (hidden) */
+        .hp-field {
+            position: absolute;
+            left: -9999px;
+            opacity: 0;
+        }
+
+        /* ===== POLL CARD ===== */
+        .poll-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .poll-question {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 16px;
+        }
+
+        .poll-option {
+            display: block;
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+            font-size: 0.9375rem;
+            font-family: inherit;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .poll-option:hover {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .poll-option.selected {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+            box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+        }
+
+        .poll-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .btn-vote {
+            flex: 1;
+            padding: 10px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-vote:hover {
+            background: #047857;
+        }
+
+        .btn-results {
+            padding: 10px 16px;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-results:hover {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        /* Poll Results */
+        .poll-results {
+            margin-top: 8px;
+        }
+
+        .poll-result-item {
+            margin-bottom: 12px;
+        }
+
+        .poll-result-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            margin-bottom: 6px;
+        }
+
+        .poll-result-bar {
+            height: 8px;
+            background: var(--bg);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+        }
+
+        .poll-result-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: var(--radius-full);
+            transition: width 0.5s ease;
+        }
+
+        .poll-total {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .voted-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px;
+            background: var(--success-bg);
+            color: var(--success);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-top: 12px;
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            opacity: 0.5;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .empty-state p {
+            margin: 0;
+            font-size: 0.9375rem;
+        }
+
+        /* ===== ALERT ===== */
+        .alert-success {
+            background: var(--success-bg);
+            border: 1px solid #A7F3D0;
+            color: #047857;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ===== SECTION TITLE ===== */
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0 0 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title i {
+            color: var(--primary);
+        }
+
+        /* ===== COMMENT FORM (Hidden by default) ===== */
+        .comment-form {
+            display: none;
+            padding: 12px 16px;
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+        }
+
+        .comment-form.show {
+            display: block;
+        }
+
+        .comment-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.875rem;
+            resize: none;
+            margin-bottom: 8px;
+        }
+
+        .comment-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn-comment {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1 class="header-title">
+            <i class="bi bi-shield-check"></i>
+            Güvenlik Forumu
+        </h1>
+        <p class="header-subtitle">{{ facility.name }}</p>
+    </div>
+
+    <!-- Desktop Tab Navigation -->
+    <div class="tab-nav-desktop">
+        <button class="tab-btn-desktop" onclick="showTab('submit')" data-tab="submit">
+            <i class="bi bi-megaphone"></i> Sesini Duyur
+        </button>
+        <button class="tab-btn-desktop active" onclick="showTab('wall')" data-tab="wall">
+            <i class="bi bi-newspaper"></i> Haberler
+        </button>
+        <button class="tab-btn-desktop" onclick="showTab('polls')" data-tab="polls">
+            <i class="bi bi-bar-chart"></i> Anketler
+        </button>
+    </div>
+
+    <div class="main-container">
+        <!-- Tab 1: Submit Form -->
+        <div id="tab-submit" class="tab-content">
+            {% if success_message %}
+            <div class="alert-success">
+                <i class="bi bi-check-circle-fill"></i>{{ success_message }}
+            </div>
+            {% endif %}
+
+            <div class="form-card">
+                <h2 class="form-title">
+                    <i class="bi bi-send"></i> Bildirim Gönder
+                </h2>
+
+                <form method="post" action="{% url 'public_safety_submit' facility.uuid %}" id="submit-form">
+                    {% csrf_token %}
+                    <div class="hp-field" aria-hidden="true">{{ form.website }}</div>
+
+                    <div class="form-group">
+                        <label class="form-label">{{ form.topic.label }}</label>
+                        {{ form.topic }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">{{ form.message.label }}</label>
+                        {{ form.message }}
+                    </div>
+
+                    <!-- Delayed captcha - shown after 5s AND 3+ chars (bot repellent) -->
+                    <div class="form-group" id="captcha-group"
+                        style="{% if form.safety_math.errors %}display: block;{% else %}display: none;{% endif %}">
+                        <label class="form-label">
+                            <i class="bi bi-shield-lock"></i> {{ form.safety_math.label }}
+                        </label>
+                        {{ form.safety_math }}
+                        <small style="color: var(--text-muted); font-size: 0.75rem;">Bot koruması için lütfen
+                            cevaplayın</small>
+                        {% if form.safety_math.errors %}
+                        <div
+                            style="color: #E11D48; font-size: 0.8rem; margin-top: 6px; padding: 8px 12px; background: #FFF1F2; border-radius: 6px; border: 1px solid #FECDD3;">
+                            <i class="bi bi-exclamation-triangle"></i> {{ form.safety_math.errors.0 }}
+                        </div>
+                        {% endif %}
+                        <div id="captcha-error"
+                            style="display: none; color: #E11D48; font-size: 0.8rem; margin-top: 6px; padding: 8px 12px; background: #FFF1F2; border-radius: 6px; border: 1px solid #FECDD3;">
+                            <i class="bi bi-exclamation-triangle"></i> Güvenlik sorusu yanlış. Lütfen tekrar deneyin.
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="submit-btn" onclick="return validateCaptcha()">
+                        <i class="bi bi-send"></i> GÖNDER
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tab 2: News Feed -->
+        <div id="tab-wall" class="tab-content active">
+            <h2 class="section-title">
+                <i class="bi bi-newspaper"></i> Bizden Haberler
+            </h2>
+
+            <div id="wall-container">
+                <!-- Skeleton Loaders -->
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-badge"></div>
+                    <div class="skeleton skeleton-line"></div>
+                    <div class="skeleton skeleton-line skeleton-line-short"></div>
+                    <div class="skeleton skeleton-meta"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-badge"></div>
+                    <div class="skeleton skeleton-line"></div>
+                    <div class="skeleton skeleton-line skeleton-line-short"></div>
+                    <div class="skeleton skeleton-meta"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Polls -->
+        <div id="tab-polls" class="tab-content">
+            <h2 class="section-title">
+                <i class="bi bi-bar-chart"></i> Anketler
+            </h2>
+
+            {% if polls %}
+            <div id="polls-container">
+                <!-- Skeleton Loader -->
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-line"></div>
+                    <div class="skeleton skeleton-line" style="height: 44px; margin-top: 12px;"></div>
+                    <div class="skeleton skeleton-line" style="height: 44px;"></div>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-bar-chart"></i>
+                <p>Aktif anket bulunmuyor.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation (Fitts's Law) -->
+    <div class="tab-nav-mobile">
+        <button class="tab-btn-mobile" onclick="showTab('submit')" data-tab="submit">
+            <i class="bi bi-megaphone"></i>
+            Sesini Duyur
+        </button>
+        <button class="tab-btn-mobile active" onclick="showTab('wall')" data-tab="wall">
+            <i class="bi bi-newspaper"></i>
+            Haberler
+        </button>
+        <button class="tab-btn-mobile" onclick="showTab('polls')" data-tab="polls">
+            <i class="bi bi-bar-chart"></i>
+            Anketler
+        </button>
+    </div>
+
+    <script>
+        // ===== PRESERVED VARIABLES =====
+        const csrfToken = '{{ csrf_token }}';
+        const facilityUuid = '{{ facility.uuid }}';
+        const captchaAnswer = parseInt('{{ captcha_answer|default:"8" }}');
+        const captchaQuestion = '{{ captcha_question|default:"3 + 5 = ?" }}';
+
+        // ===== TAB NAVIGATION =====
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn-desktop, .tab-btn-mobile').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.querySelectorAll(`[data-tab="${tabId}"]`).forEach(b => b.classList.add('active'));
+        }
+
+        // ===== LOAD ON PAGE READY =====
+        document.addEventListener('DOMContentLoaded', function () {
+            loadWallItems();
+            loadPolls();
+            initDelayedCaptcha();
+        });
+
+        // ===== DELAYED CAPTCHA (Bot repellent) =====
+        function initDelayedCaptcha() {
+            const captchaGroup = document.getElementById('captcha-group');
+            const messageField = document.getElementById('id_message');
+            if (!captchaGroup || !messageField) return;
+
+            let timeElapsed = false;
+            let hasMinChars = false;
+
+            // Start 5-second timer
+            setTimeout(() => {
+                timeElapsed = true;
+                checkCaptchaVisibility();
+            }, 5000);
+
+            // Listen for input on message field
+            messageField.addEventListener('input', function () {
+                hasMinChars = this.value.length >= 3;
+                checkCaptchaVisibility();
+            });
+
+            function checkCaptchaVisibility() {
+                if (timeElapsed && hasMinChars) {
+                    captchaGroup.style.display = 'block';
+                    captchaGroup.style.animation = 'fadeIn 0.3s ease';
+                }
+            }
+        }
+
+        // ===== CAPTCHA VALIDATION =====
+        function validateCaptcha() {
+            const captchaGroup = document.getElementById('captcha-group');
+            const captchaInput = document.getElementById('id_safety_math');
+            const captchaError = document.getElementById('captcha-error');
+
+            // If captcha is not visible yet, show it and prevent submission
+            const computedDisplay = window.getComputedStyle(captchaGroup).display;
+            if (computedDisplay === 'none') {
+                captchaGroup.style.display = 'block';
+                captchaGroup.style.animation = 'fadeIn 0.3s ease';
+                captchaInput.focus();
+                return false;
+            }
+
+            // Check if captcha field has a value
+            const userAnswer = captchaInput.value.trim();
+            if (!userAnswer) {
+                captchaError.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Güvenlik sorusunu cevaplayın.';
+                captchaError.style.display = 'block';
+                captchaInput.style.borderColor = '#E11D48';
+                captchaInput.focus();
+                return false;
+            }
+
+            // Allow form submission - server will validate the actual answer
+            captchaError.style.display = 'none';
+            captchaInput.style.borderColor = '#10B981';
+            return true;
+        }
+
+        // ===== WALL ITEMS =====
+        function loadWallItems() {
+            const container = document.getElementById('wall-container');
+
+            fetch(`/api/public/wall/${facilityUuid}/`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.items && data.items.length > 0) {
+                        container.innerHTML = data.items.map(item => renderNewsCard(item)).join('');
+                    } else {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <i class="bi bi-newspaper"></i>
+                                <p>Henüz paylaşılan haber bulunmuyor.</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(err => {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <p>Yüklenirken hata oluştu.</p>
+                        </div>
+                    `;
+                });
+        }
+
+        function renderNewsCard(item) {
+            // Handle PENDING items differently
+            if (item.is_pending) {
+                return `
+                    <div class="news-card pending-card" id="news-${item.id}" style="opacity: 0.7; border-style: dashed;">
+                        <div class="news-card-body">
+                            <span class="badge" style="background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A;">
+                                <i class="bi bi-hourglass-split"></i> Beklemede
+                            </span>
+                            <p class="news-message" style="color: var(--text-muted); font-style: italic;">
+                                Bildiriminiz alındı ve uzman onayı bekliyor...
+                            </p>
+                            <div class="news-meta">
+                                <span>${item.created_at}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Badge styles based on topic (Von Restorff Effect)
+            const badgeStyles = {
+                'HAZARD': 'badge-danger',
+                'NEAR_MISS': 'badge-warning',
+                'SUGGESTION': 'badge-success',
+                'COMPLAINT': 'badge-info'
+            };
+
+            const badgeClass = badgeStyles[item.topic] || 'badge-info';
+
+            // Public comments block (all comments marked as Voice)
+            let commentsBlock = '';
+            if (item.public_comments && item.public_comments.length > 0) {
+                commentsBlock = item.public_comments.map(comment => `
+                    <div class="expert-block" style="${comment.is_professional ? '' : 'background: #F1F5F9; border-top-color: #CBD5E1;'}">
+                        <div class="expert-label" style="${comment.is_professional ? '' : 'color: var(--text-muted);'}">
+                            <i class="bi bi-${comment.is_professional ? 'patch-check-fill' : 'chat-dots'}"></i> 
+                            ${comment.is_professional ? 'Uzman Yanıtı' : comment.author}
+                        </div>
+                        <p class="expert-text">${comment.text}</p>
+                    </div>
+                `).join('');
+            }
+
+            return `
+                <div class="news-card" id="news-${item.id}">
+                    <div class="news-card-body">
+                        <span class="badge ${badgeClass}">${item.topic_label}</span>
+                        <p class="news-message">${item.message}</p>
+                        <div class="news-meta">
+                            <span>${item.created_at}</span>
+                            <div class="news-actions">
+                                <span class="news-action" onclick="toggleCommentForm(${item.id})">
+                                    <i class="bi bi-chat"></i> ${item.comments_count}
+                                </span>
+                                <span class="news-action" onclick="upvoteItem(${item.id}, this)">
+                                    <i class="bi bi-arrow-up-circle"></i> <span id="upvotes-${item.id}">${item.likes}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    ${commentsBlock}
+                    <div class="comment-form" id="comment-form-${item.id}">
+                        <div class="hp-field" aria-hidden="true"><input type="text" name="website_url"></div>
+                        <textarea class="comment-input" id="comment-text-${item.id}" rows="2" placeholder="Yorumunuzu yazın..."></textarea>
+                        <button class="btn-comment" onclick="submitComment(${item.id})">
+                            <i class="bi bi-send"></i> Gönder
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleCommentForm(itemId) {
+            document.getElementById('comment-form-' + itemId).classList.toggle('show');
+        }
+
+        function upvoteItem(itemId, el) {
+            // Check if already voted visually
+            if (el.classList.contains('upvoted')) {
+                return;
+            }
+
+            fetch(`/api/engagements/${itemId}/like/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('upvotes-' + itemId).textContent = data.likes;
+                        el.classList.add('upvoted');
+                        el.style.color = 'var(--primary)';
+                    } else if (data.already_voted) {
+                        el.classList.add('upvoted');
+                        el.style.color = 'var(--primary)';
+                    }
+                });
+        }
+
+        function submitComment(itemId) {
+            const text = document.getElementById('comment-text-' + itemId).value.trim();
+
+            if (!text) { alert('Lütfen bir yorum yazın.'); return; }
+
+            fetch(`/api/public/engagement/${itemId}/comment/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ text: text, captcha: captchaAnswer })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Yorumunuz gönderildi!');
+                        loadWallItems();
+                    } else {
+                        alert(data.error || 'Bir hata oluştu.');
+                    }
+                });
+        }
+
+        // ===== POLLS =====
+        function loadPolls() {
+            const container = document.getElementById('polls-container');
+            if (!container) return;
+
+            fetch(`/api/public/polls/${facilityUuid}/`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.polls && data.polls.length > 0) {
+                        container.innerHTML = data.polls.map(poll => renderPollCard(poll)).join('');
+                    } else {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <i class="bi bi-bar-chart"></i>
+                                <p>Aktif anket bulunmuyor.</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(err => {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <p>Yüklenirken hata oluştu.</p>
+                        </div>
+                    `;
+                });
+        }
+
+        function renderPollCard(poll) {
+            let optionsHtml = '';
+
+            if (poll.has_voted) {
+                optionsHtml = renderPollResultsHtml(poll, true);
+            } else {
+                optionsHtml = poll.options.map(opt =>
+                    `<button class="poll-option" data-poll="${poll.id}" data-option="${opt}">${opt}</button>`
+                ).join('');
+
+                optionsHtml += `
+                    <div class="poll-actions">
+                        <button class="btn-vote" onclick="submitVote(${poll.id})">
+                            <i class="bi bi-check2"></i> Oy Ver
+                        </button>
+                        <button class="btn-results" onclick="showPollResults(${poll.id})">
+                            <i class="bi bi-bar-chart"></i> Sonuçlar
+                        </button>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="poll-card" id="poll-${poll.id}">
+                    <div class="poll-question">${poll.question}</div>
+                    <div id="poll-options-${poll.id}">${optionsHtml}</div>
+                </div>
+            `;
+        }
+
+        function renderPollResultsHtml(poll, showVotedBadge) {
+            let html = '<div class="poll-results">';
+            for (const [opt, pct] of Object.entries(poll.percentages)) {
+                const votes = poll.votes[opt] || 0;
+                html += `
+                    <div class="poll-result-item">
+                        <div class="poll-result-header">
+                            <span>${opt}</span>
+                            <span>${votes} oy (${pct}%)</span>
+                        </div>
+                        <div class="poll-result-bar">
+                            <div class="poll-result-fill" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            html += `<div class="poll-total">Toplam ${poll.total_votes} oy</div></div>`;
+            if (showVotedBadge) {
+                html += '<div class="voted-badge"><i class="bi bi-check-circle-fill"></i> Oyunuz kaydedildi</div>';
+            }
+            return html;
+        }
+
+        function submitVote(pollId) {
+            const container = document.getElementById('poll-options-' + pollId);
+            const selectedBtn = container.querySelector('.poll-option.selected');
+
+            if (!selectedBtn) {
+                alert('Lütfen bir seçenek seçin.');
+                return;
+            }
+
+            const option = selectedBtn.dataset.option;
+
+            container.querySelectorAll('.poll-option').forEach(b => b.disabled = true);
+            container.querySelector('.btn-vote').innerHTML = '<i class="bi bi-hourglass-split"></i> Gönderiliyor...';
+
+            fetch(`/api/polls/${pollId}/vote/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ option: option, captcha: captchaAnswer })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        renderPollResults(pollId, data, true);
+                    } else {
+                        alert(data.error || 'Bir hata oluştu.');
+                        container.querySelectorAll('.poll-option').forEach(b => b.disabled = false);
+                        container.querySelector('.btn-vote').innerHTML = '<i class="bi bi-check2"></i> Oy Ver';
+                    }
+                });
+        }
+
+        function showPollResults(pollId) {
+            fetch(`/api/polls/${pollId}/results/`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        renderPollResults(pollId, data, false);
+                    }
+                });
+        }
+
+        function renderPollResults(pollId, data, showVotedBadge) {
+            const container = document.getElementById('poll-options-' + pollId);
+
+            let html = '<div class="poll-results">';
+            for (const [opt, pct] of Object.entries(data.percentages)) {
+                const votes = data.votes[opt] || 0;
+                html += `
+                    <div class="poll-result-item">
+                        <div class="poll-result-header">
+                            <span>${opt}</span>
+                            <span>${votes} oy (${pct}%)</span>
+                        </div>
+                        <div class="poll-result-bar">
+                            <div class="poll-result-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            html += `<div class="poll-total">Toplam ${data.total_votes} oy</div></div>`;
+
+            if (showVotedBadge) {
+                html += '<div class="voted-badge"><i class="bi bi-check-circle-fill"></i> Oyunuz kaydedildi</div>';
+            } else {
+                // Add back button when just viewing results (not voted)
+                html += `
+                    <button class="btn-back" onclick="reloadPolls()" style="margin-top: 12px; width: 100%; padding: 10px 16px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); border-radius: 8px; font-size: 0.875rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <i class="bi bi-arrow-left"></i> Geri Dön
+                    </button>
+                `;
+            }
+
+            container.innerHTML = html;
+
+            // Animate bars
+            setTimeout(() => {
+                const fills = container.querySelectorAll('.poll-result-fill');
+                let i = 0;
+                for (const [opt, pct] of Object.entries(data.percentages)) {
+                    fills[i].style.width = pct + '%';
+                    i++;
+                }
+            }, 50);
+        }
+
+        function reloadPolls() {
+            loadPolls();
+        }
+
+        // Poll option selection
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('poll-option')) {
+                const pollId = e.target.dataset.poll;
+                const container = document.getElementById('poll-options-' + pollId);
+                container.querySelectorAll('.poll-option').forEach(b => b.classList.remove('selected'));
+                e.target.classList.add('selected');
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,107 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .policy-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .policy-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 2.5rem;
+    }
+
+    .policy-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--foreground);
+        margin-bottom: 0.5rem;
+    }
+
+    .policy-subtitle {
+        color: var(--muted);
+        font-size: 0.875rem;
+        margin-bottom: 2rem;
+    }
+
+    .policy-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .policy-section h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--foreground);
+        margin-bottom: 0.75rem;
+    }
+
+    .policy-section p {
+        color: var(--muted);
+        line-height: 1.7;
+        font-size: 0.9375rem;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #10b981;
+        font-weight: 600;
+        text-decoration: none;
+        margin-bottom: 1.5rem;
+    }
+
+    .back-link:hover {
+        color: #059669;
+    }
+</style>
+
+<div class="policy-container">
+    <a href="{% url 'dashboard' %}" class="back-link">
+        <i class="bi bi-arrow-left"></i>
+        Panele Dön
+    </a>
+
+    <div class="policy-card">
+        <h1 class="policy-title">Kullanım Şartları</h1>
+        <p class="policy-subtitle">Son güncelleme: Ocak 2026</p>
+
+        <div class="policy-section">
+            <h3>1. Hizmet Tanımı</h3>
+            <p>Farkora, işletmelerin iş sağlığı ve güvenliği süreçlerini dijital ortamda yönetmelerine olanak tanıyan
+                bir yazılım hizmetidir. Bu hizmeti kullanarak yasal İSG yükümlülüklerinizi takip edebilir ve
+                raporlayabilirsiniz.</p>
+        </div>
+
+        <div class="policy-section">
+            <h3>2. Kullanıcı Sorumlulukları</h3>
+            <p>Sisteme girilen verilerin doğruluğundan kullanıcı sorumludur. Hesap bilgilerinizi güvende tutmak ve
+                yetkisiz erişimi önlemek sizin sorumluluğunuzdadır. Sistemi yasalara aykırı amaçlarla kullanmak
+                yasaktır.</p>
+        </div>
+
+        <div class="policy-section">
+            <h3>3. Hizmet Sürekliliği</h3>
+            <p>Farkora, hizmeti kesintisiz sunmak için azami çaba göstermektedir. Ancak bakım, güncelleme veya
+                beklenmedik teknik sorunlar nedeniyle hizmet kesintileri yaşanabilir.</p>
+        </div>
+
+        <div class="policy-section">
+            <h3>4. Fikri Mülkiyet</h3>
+            <p>Farkora yazılımı ve tüm içerikleri Farkora Yazılım A.Ş.'nin mülkiyetindedir. Yazılımın kopyalanması,
+                dağıtılması veya tersine mühendislik yapılması yasaktır.</p>
+        </div>
+
+        <div class="policy-section">
+            <h3>5. Değişiklikler</h3>
+            <p>Bu kullanım şartları önceden haber verilmeksizin değiştirilebilir. Güncel şartları takip etmek
+                kullanıcının sorumluluğundadır.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

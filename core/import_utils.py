@@ -79,18 +79,28 @@ class ImportHandler:
                                 model_data[model_field] = datetime.strptime(val, date_format).date()
 
                             elif isinstance(field_obj, models.ForeignKey):
+                                rel_model = field_obj.related_model
                                 # Try ID first
                                 if val.isdigit():
                                     try:
-                                        rel_obj = field_obj.related_model.objects.get(pk=int(val))
+                                        rel_obj = rel_model.objects.get(pk=int(val))
                                         model_data[model_field] = rel_obj
-                                    except field_obj.related_model.DoesNotExist:
+                                    except rel_model.DoesNotExist:
                                         errors.append(f"{model_field}: ID {val} ile kayıt bulunamadı.")
                                 else:
-                                    # Try Name/Search (generic fallback)
-                                    # Assuming 'name' exists or using str
-                                    # This is a basic heuristic
-                                    qs = field_obj.related_model.objects.filter(models.Q(pk__icontains=val) | models.Q(name__iexact=val) if hasattr(field_obj.related_model, 'name') else models.Q(pk=val)) # Fallback if no name
+                                    # Build filter - try name match
+                                    filter_kwargs = {}
+                                    if hasattr(rel_model, 'name'):
+                                        filter_kwargs['name__iexact'] = val
+                                    else:
+                                        errors.append(f"{model_field}: '{val}' değeri ile kayıt bulunamadı.")
+                                        continue
+                                    
+                                    # Special case: filter Facility by Workplace if already resolved
+                                    if model_field == 'facility' and 'workplace' in model_data:
+                                        filter_kwargs['workplace'] = model_data['workplace']
+                                    
+                                    qs = rel_model.objects.filter(**filter_kwargs)
                                     if qs.exists():
                                         model_data[model_field] = qs.first()
                                     else:
@@ -147,75 +157,108 @@ class ImportHandler:
 
     def execute_import(self, model_class, mapping, delimiter=';', date_format='%Y-%m-%d', encoding='utf-8-sig'):
         path = self.get_file_path()
+        if not path or not os.path.exists(path):
+            return 0  # No file to import
+        
         uppercase_names = self.session.get('import_settings', {}).get('uppercase_names', False)
         success_count = 0
 
         # Import models locally to avoid circular imports and check types
         from .models import Workplace, Facility
 
-        with open(path, 'r', encoding=encoding) as f:
-            reader = csv.DictReader(f, delimiter=delimiter)
-            for row in reader:
-                model_data = {}
-                m2m_data = {}
-                skip = False
+        try:
+            with open(path, 'r', encoding=encoding) as f:
+                reader = csv.DictReader(f, delimiter=delimiter)
+                for row in reader:
+                    model_data = {}
+                    m2m_data = {}
+                    skip = False
 
-                for model_field, csv_header in mapping.items():
-                    if not csv_header: continue
-                    val = row.get(csv_header, '').strip()
-                    field_obj = model_class._meta.get_field(model_field)
+                    for model_field, csv_header in mapping.items():
+                        if not csv_header: continue
+                        val = row.get(csv_header, '').strip()
+                        field_obj = model_class._meta.get_field(model_field)
 
-                    if val == '':
-                        if not field_obj.blank and not field_obj.null:
-                            # Special case for BooleanField with default
+                        if val == '':
+                            if not field_obj.blank and not field_obj.null:
+                                # Special case for BooleanField with default
+                                if isinstance(field_obj, models.BooleanField):
+                                    model_data[model_field] = False
+                                    continue
+                                skip = True; break
+
                             if isinstance(field_obj, models.BooleanField):
-                                model_data[model_field] = False
-                                continue
-                            skip = True; break
+                                 model_data[model_field] = False
+                                 continue
 
-                        if isinstance(field_obj, models.BooleanField):
-                             model_data[model_field] = False
-                             continue
+                            model_data[model_field] = None
+                            continue
 
-                        model_data[model_field] = None
-                        continue
-
-                    try:
-                        if isinstance(field_obj, models.DateField):
-                            model_data[model_field] = datetime.strptime(val, date_format).date()
-                        elif isinstance(field_obj, models.ForeignKey):
-                            if val.isdigit():
-                                try:
-                                    model_data[model_field] = field_obj.related_model.objects.get(pk=int(val))
-                                except: skip = True; break
+                        try:
+                            if isinstance(field_obj, models.DateField):
+                                model_data[model_field] = datetime.strptime(val, date_format).date()
+                            elif isinstance(field_obj, models.ForeignKey):
+                                rel_model = field_obj.related_model
+                                if val.isdigit():
+                                    try:
+                                        model_data[model_field] = rel_model.objects.get(pk=int(val))
+                                    except rel_model.DoesNotExist:
+                                        skip = True; break
+                                else:
+                                    # Build filter - first try name match
+                                    filter_kwargs = {}
+                                    if hasattr(rel_model, 'name'):
+                                        filter_kwargs['name__iexact'] = val
+                                    else:
+                                        # Fallback to pk if no name field
+                                        skip = True; break
+                                    
+                                    # Special case: filter Facility by Workplace if already resolved
+                                    if model_field == 'facility' and 'workplace' in model_data:
+                                        filter_kwargs['workplace'] = model_data['workplace']
+                                    
+                                    qs = rel_model.objects.filter(**filter_kwargs)
+                                    if qs.exists():
+                                        model_data[model_field] = qs.first()
+                                    else:
+                                        skip = True; break
+                            elif isinstance(field_obj, models.ManyToManyField):
+                                # Handle M2M later
+                                pass
+                            elif field_obj.choices:
+                                found_choice = False
+                                for key, label in field_obj.choices:
+                                    if str(key) == val or str(label).lower() == val.lower():
+                                        model_data[model_field] = key
+                                        found_choice = True
+                                        break
+                                if not found_choice:
+                                    skip = True; break
                             else:
-                                qs = field_obj.related_model.objects.filter(models.Q(pk__icontains=val) | models.Q(name__iexact=val) if hasattr(field_obj.related_model, 'name') else models.Q(pk=val))
-                                if qs.exists(): model_data[model_field] = qs.first()
-                                else: skip = True; break
-                        elif isinstance(field_obj, models.ManyToManyField):
-                            # Handle M2M later
-                            pass
-                        elif field_obj.choices:
-                             for key, label in field_obj.choices:
-                                if str(key) == val or str(label).lower() == val.lower():
-                                    model_data[model_field] = key; break
-                        else:
                                 if uppercase_names and isinstance(val, str):
                                     model_data[model_field] = val.replace('i', 'İ').upper()
                                 else:
                                     model_data[model_field] = val
-                    except: skip = True; break
+                        except Exception:
+                            skip = True; break
 
-                if skip: continue
+                    if skip: continue
 
-                # Check exist
-                check_data = {k: v for k, v in model_data.items() if not isinstance(model_class._meta.get_field(k), models.ManyToManyField)}
-                if not model_class.objects.filter(**check_data).exists():
-                    obj = model_class.objects.create(**check_data)
-                    success_count += 1
+                    # Check exist
+                    check_data = {k: v for k, v in model_data.items() if not isinstance(model_class._meta.get_field(k), models.ManyToManyField)}
+                    if not model_class.objects.filter(**check_data).exists():
+                        obj = model_class.objects.create(**check_data)
+                        success_count += 1
 
-                    # Auto-create Facility for Workplace
-                    if model_class == Workplace:
-                        Facility.objects.create(name="MERKEZ BİNA", workplace=obj)
+                        # Auto-create Facility for Workplace
+                        if model_class == Workplace:
+                            Facility.objects.create(name="MERKEZ BİNA", workplace=obj)
+
+        except Exception as e:
+            # Log the error but don't crash
+            import logging
+            logging.error(f"Import error: {e}")
+            return success_count
 
         return success_count
+

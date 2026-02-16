@@ -1,0 +1,197 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    .settings-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 32px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .settings-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #E5E7EB;
+    }
+
+    .back-btn {
+        color: #3B82F6;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.9rem;
+    }
+
+    .back-btn:hover {
+        color: #2563EB;
+    }
+
+    .settings-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+    }
+
+    .form-control,
+    .form-select {
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 1rem;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #3B82F6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .mb-field {
+        margin-bottom: 20px;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid #E5E7EB;
+    }
+
+    .btn-cancel {
+        background: #fff;
+        border: 1px solid #D1D5DB;
+        border-radius: 10px;
+        padding: 12px 24px;
+        font-weight: 600;
+        color: #374151;
+        text-decoration: none;
+    }
+
+    .btn-cancel:hover {
+        background: #F3F4F6;
+        color: #374151;
+    }
+
+    .btn-save {
+        background: #3B82F6;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 24px;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    .btn-save:hover {
+        background: #2563EB;
+    }
+
+    .btn-delete {
+        background: #fff;
+        border: 1px solid #EF4444;
+        color: #EF4444;
+        border-radius: 10px;
+        padding: 12px 24px;
+        font-weight: 600;
+    }
+
+    .btn-delete:hover {
+        background: #FEF2F2;
+    }
+</style>
+
+<div class="settings-card">
+    <div class="settings-header">
+        <a href="{% url 'facility_detail' facility.pk %}" class="back-btn">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <h2 class="settings-title"><i class="bi bi-gear me-2"></i>{{ title }}</h2>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-field">
+            <label class="form-label">Birim Adı</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+            <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-field">
+            <label class="form-label">İşyeri</label>
+            {{ form.workplace }}
+            {% if form.workplace.errors %}
+            <div class="text-danger small mt-1">{{ form.workplace.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-field">
+            <label class="form-label">Adres</label>
+            {{ form.address }}
+            {% if form.address.errors %}
+            <div class="text-danger small mt-1">{{ form.address.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-field">
+            <label class="form-label">Koordinatlar</label>
+            {{ form.coordinates }}
+            <div class="form-text">Örn: 39.6425, 27.9152</div>
+            {% if form.coordinates.errors %}
+            <div class="text-danger small mt-1">{{ form.coordinates.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn-delete" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                <i class="bi bi-trash"></i> Sil
+            </button>
+            <div>
+                <a href="{% url 'facility_detail' facility.pk %}" class="btn-cancel me-2">İptal</a>
+                <button type="submit" class="btn-save">Kaydet</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px;">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Birimi Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>{{ facility.name }}</strong> birimini silmek istediğinizden emin misiniz?</p>
+                <p class="text-muted small mb-0">Bu işlem geri alınamaz. Birime bağlı tüm çalışanlar ve değerlendirmeler
+                    de silinecektir.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                <form action="{% url 'facility_bulk_delete' %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="selected_items" value="{{ facility.pk }}">
+                    <button type="submit" class="btn btn-danger">Evet, Sil</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

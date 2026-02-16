@@ -2,5 +2,9 @@ Django>=4.2,<5.0
 gunicorn
 python-dotenv
 openpyxl
+pandas
 reportlab
 weasyprint
+python-dateutil
+qrcode[pil]
+

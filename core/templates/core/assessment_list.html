@@ -1,0 +1,165 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+    .page-header h2 { margin: 0; }
+    .filter-bar { background: white; padding: 1rem 1.25rem; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .filter-bar .row { align-items: center; }
+    .table-card { background: white; border-radius: 12px; padding: 0; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .table-card table { margin: 0; }
+    .table-card th { background: #f8f9fa; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-card td { vertical-align: middle; }
+    .status-badge { padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .status-badge.draft { background: #fff3cd; color: #856404; }
+    .status-badge.completed { background: #d4edda; color: #155724; }
+    .action-btns { display: flex; gap: 0.35rem; }
+    .action-btns .btn { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
+    .bulk-actions { display: none; background: #e7f1ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    .bulk-actions.show { display: flex; align-items: center; gap: 1rem; }
+    .empty-state { text-align: center; padding: 4rem 2rem; }
+    .empty-state i { font-size: 4rem; color: #adb5bd; }
+</style>
+
+<div class="page-header">
+    <h2><i class="bi bi-clipboard-check me-2"></i>Risk Değerlendirmeleri</h2>
+    <div>
+        <span class="badge bg-secondary me-2">{{ assessments.count }} kayıt</span>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+    <form method="get" class="row g-2">
+        <div class="col-md-3">
+            <input type="text" name="search" class="form-control" placeholder="Ara..." value="{{ search }}">
+        </div>
+        <div class="col-md-3">
+            <select name="status" class="form-select">
+                <option value="">Tüm Durumlar</option>
+                <option value="DRAFT" {% if status_filter == 'DRAFT' %}selected{% endif %}>Devam Ediyor</option>
+                <option value="COMPLETED" {% if status_filter == 'COMPLETED' %}selected{% endif %}>Tamamlandı</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select name="facility" class="form-select">
+                <option value="">Tüm Tesisler</option>
+                {% for f in facilities %}
+                <option value="{{ f.pk }}" {% if facility_filter == f.pk|stringformat:"i" %}selected{% endif %}>{{ f.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i> Filtrele</button>
+            <a href="{% url 'assessment_list' %}" class="btn btn-outline-secondary"><i class="bi bi-x"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Bulk Actions -->
+<div class="bulk-actions" id="bulkActions">
+    <span class="fw-bold"><span id="selectedCount">0</span> seçildi</span>
+    <form method="post" action="{% url 'assessment_bulk_delete' %}" id="bulkDeleteForm">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Seçili değerlendirmeleri silmek istediğinizden emin misiniz?')">
+            <i class="bi bi-trash me-1"></i> Seçilenleri Sil
+        </button>
+    </form>
+</div>
+
+<!-- Table -->
+<div class="table-card">
+    {% if assessments %}
+    <table class="table table-hover mb-0">
+        <thead>
+            <tr>
+                <th style="width: 40px;">
+                    <input type="checkbox" id="selectAll" onclick="toggleSelectAll()">
+                </th>
+                <th>Değerlendirme</th>
+                <th>Tesis</th>
+                <th>Araç</th>
+                <th>Durum</th>
+                <th>Tarih</th>
+                <th style="width: 150px;">İşlemler</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in assessments %}
+            <tr>
+                <td>
+                    <input type="checkbox" class="row-checkbox" value="{{ a.pk }}" name="selected_ids" form="bulkDeleteForm" onchange="updateBulkActions()">
+                </td>
+                <td>
+                    <strong>{{ a.title }}</strong>
+                    <div class="text-muted small">{{ a.progress_percentage }}% tamamlandı</div>
+                </td>
+                <td>
+                    <a href="{% url 'facility_update' a.facility.pk %}">{{ a.facility.name }}</a>
+                    <div class="text-muted small">{{ a.facility.workplace.name }}</div>
+                </td>
+                <td><span class="badge bg-light text-dark">{{ a.tool.title }}</span></td>
+                <td>
+                    <span class="status-badge {% if a.status == 'COMPLETED' %}completed{% else %}draft{% endif %}">
+                        {% if a.status == 'COMPLETED' %}Tamamlandı{% else %}Devam Ediyor{% endif %}
+                    </span>
+                </td>
+                <td>
+                    <small>{{ a.created_at|date:"d.m.Y" }}</small>
+                    <div class="text-muted" style="font-size: 0.7rem;">{{ a.updated_at|date:"d.m.Y H:i" }}</div>
+                </td>
+                <td>
+                    <div class="action-btns">
+                        <a href="{% url 'assessment_session_run' a.pk %}" class="btn btn-outline-primary btn-sm" title="Devam Et">
+                            <i class="bi bi-play"></i>
+                        </a>
+                        <a href="{% url 'assessment_status' a.pk %}" class="btn btn-outline-info btn-sm" title="Durum">
+                            <i class="bi bi-speedometer2"></i>
+                        </a>
+                        <a href="{% url 'assessment_report' a.pk %}" class="btn btn-outline-success btn-sm" title="Rapor">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </a>
+                        <form method="post" action="{% url 'assessment_delete' a.pk %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Sil" onclick="return confirm('Bu değerlendirmeyi silmek istediğinizden emin misiniz?')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-clipboard-x"></i>
+        <h4 class="mt-3">Risk değerlendirmesi bulunamadı</h4>
+        <p class="text-muted">Yeni bir değerlendirme başlatmak için bir tesis seçin.</p>
+        <a href="{% url 'facility_list' %}" class="btn btn-primary"><i class="bi bi-building me-1"></i> Tesislere Git</a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleSelectAll() {
+    var checkboxes = document.querySelectorAll('.row-checkbox');
+    var selectAll = document.getElementById('selectAll');
+    checkboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
+    updateBulkActions();
+}
+
+function updateBulkActions() {
+    var checkboxes = document.querySelectorAll('.row-checkbox:checked');
+    var bulkActions = document.getElementById('bulkActions');
+    var selectedCount = document.getElementById('selectedCount');
+    
+    if (checkboxes.length > 0) {
+        bulkActions.classList.add('show');
+        selectedCount.textContent = checkboxes.length;
+    } else {
+        bulkActions.classList.remove('show');
+    }
+}
+</script>
+{% endblock %}

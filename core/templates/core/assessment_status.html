@@ -1,0 +1,97 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    .status-container { max-width: 1000px; margin: 0 auto; }
+    .status-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; }
+    .status-header h1 { margin: 0; font-size: 1.75rem; }
+    .status-header .subtitle { opacity: 0.9; margin-top: 0.5rem; }
+    .progress-section { margin-bottom: 2rem; }
+    .progress-card { background: white; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .progress-card .title { font-weight: 500; margin-bottom: 0.75rem; display: flex; justify-content: space-between; }
+    .progress-card .progress { height: 8px; border-radius: 4px; }
+    .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .summary-card { background: white; border-radius: 12px; padding: 1.5rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .summary-card .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .summary-card .value { font-size: 2rem; font-weight: 700; }
+    .summary-card .label { color: #6c757d; font-size: 0.9rem; }
+    .summary-card.high .icon, .summary-card.high .value { color: #dc3545; }
+    .summary-card.medium .icon, .summary-card.medium .value { color: #fd7e14; }
+    .summary-card.low .icon, .summary-card.low .value { color: #28a745; }
+    .summary-card.measures .icon, .summary-card.measures .value { color: #667eea; }
+    .nav-buttons { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem; }
+    .nav-buttons .btn { min-width: 180px; padding: 1rem 1.5rem; }
+</style>
+
+<div class="status-container">
+    <div class="status-header">
+        <h1><i class="bi bi-speedometer2 me-2"></i>Değerlendirme Durumu</h1>
+        <div class="subtitle">{{ session.title }} • {{ facility.name }}</div>
+    </div>
+
+    <!-- Overall Progress -->
+    <div class="progress-card" style="border-left: 4px solid #667eea;">
+        <div class="title">
+            <span><i class="bi bi-pie-chart me-2"></i>Genel İlerleme</span>
+            <span>{{ total_progress }}%</span>
+        </div>
+        <div class="progress">
+            <div class="progress-bar bg-primary" style="width: {{ total_progress }}%"></div>
+        </div>
+    </div>
+
+    <!-- Category Progress -->
+    <h4 class="mb-3"><i class="bi bi-list-check me-2"></i>Modül İlerlemesi</h4>
+    <div class="progress-section">
+        {% for cat in category_progress %}
+        <div class="progress-card">
+            <div class="title">
+                <span>{{ cat.title }}</span>
+                <span>{{ cat.answered }} / {{ cat.total }}</span>
+            </div>
+            <div class="progress">
+                <div class="progress-bar {% if cat.progress == 100 %}bg-success{% elif cat.progress > 50 %}bg-primary{% else %}bg-warning{% endif %}" style="width: {{ cat.progress }}%"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Risk Summary -->
+    <h4 class="mb-3"><i class="bi bi-exclamation-triangle me-2"></i>Risk Özeti</h4>
+    <div class="summary-cards">
+        <div class="summary-card high">
+            <div class="icon"><i class="bi bi-exclamation-circle-fill"></i></div>
+            <div class="value">{{ high_priority }}</div>
+            <div class="label">Yüksek Öncelik</div>
+        </div>
+        <div class="summary-card medium">
+            <div class="icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <div class="value">{{ medium_priority }}</div>
+            <div class="label">Orta Öncelik</div>
+        </div>
+        <div class="summary-card low">
+            <div class="icon"><i class="bi bi-info-circle-fill"></i></div>
+            <div class="value">{{ low_priority }}</div>
+            <div class="label">Düşük Öncelik</div>
+        </div>
+        <div class="summary-card measures">
+            <div class="icon"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="value">{{ risks_with_measures }}/{{ total_risks }}</div>
+            <div class="label">Önlem Tanımlı</div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-buttons">
+        <a href="{% url 'assessment_session_run' session.pk %}" class="btn btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i> Değerlendirme
+        </a>
+        <a href="{% url 'action_plan_list' session.pk %}" class="btn btn-outline-warning">
+            <i class="bi bi-clipboard-check me-1"></i> Eylem Planı
+        </a>
+        <a href="{% url 'assessment_report' session.pk %}" class="btn btn-primary btn-lg">
+            <i class="bi bi-file-earmark-text me-1"></i> Raporlama
+        </a>
+    </div>
+</div>
+{% endblock %}

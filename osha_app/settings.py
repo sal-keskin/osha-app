@@ -26,6 +26,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', "django-insecure-22zfh8*cc0(qv207l2d$q1ku-yu#tl4xz&7d^pi@q-4yd2s+2@")
 
+# Field encryption key for KVKK compliance (field-level encryption)
+# IMPORTANT: Keep this key secure. Losing it means losing access to encrypted data.
+FIELD_ENCRYPTION_KEY = os.getenv('FIELD_ENCRYPTION_KEY', '7e47mBW3lXfqOLQVZfpR722SdF5zxaQcwsegIlsPGPw=')
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', '0') == '1'
 
@@ -43,6 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    'encrypted_model_fields',
     'core',
 ]
 
@@ -123,7 +128,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / 'static'
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # For collectstatic in production
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',  # Project-level static files (favicon, etc.)
+    BASE_DIR / 'core' / 'static',  # App-level static files
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

@@ -1,11 +1,25 @@
 {% extends 'core/base.html' %}
 
 {% block content %}
+{% if summary.error and summary.total is not defined %}
+<div class="row mb-4">
+    <div class="col">
+        <h2>{{ title }} - Hata</h2>
+    </div>
+</div>
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle-fill"></i> Bir hata oluştu: {{ summary.error }}
+</div>
+<div class="d-flex justify-content-start">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Geri Dön</a>
+</div>
+{% else %}
 <div class="row mb-4">
     <div class="col">
         <h2>{{ title }} - Adım 4: Önizleme ve Doğrulama</h2>
         <div class="progress" style="height: 2px;">
-            <div class="progress-bar" role="progressbar" style="width: 90%;" aria-valuenow="90" aria-valuemin="0" aria-valuemax="100"></div>
+            <div class="progress-bar" role="progressbar" style="width: 90%;" aria-valuenow="90" aria-valuemin="0"
+                aria-valuemax="100"></div>
         </div>
     </div>
 </div>
@@ -39,7 +53,8 @@
 
 {% if summary.error > 0 %}
 <div class="alert alert-warning">
-    <i class="bi bi-exclamation-triangle"></i> Bazı satırlarda hatalar bulundu. Sadece geçerli satırlar içe aktarılacaktır.
+    <i class="bi bi-exclamation-triangle"></i> Bazı satırlarda hatalar bulundu. Sadece geçerli satırlar içe
+    aktarılacaktır.
 </div>
 {% endif %}
 
@@ -68,17 +83,17 @@
                         </td>
                         <td>
                             {% if row.status == 'Valid' %}
-                                <small>
+                            <small>
                                 {% for k, v in row.data.items %}
-                                    <b>{{ k }}:</b> {{ v }}<br>
+                                <b>{{ k }}:</b> {{ v }}<br>
                                 {% endfor %}
-                                </small>
+                            </small>
                             {% else %}
-                                <ul class="mb-0 text-danger ps-3">
-                                    {% for err in row.errors %}
-                                    <li>{{ err }}</li>
-                                    {% endfor %}
-                                </ul>
+                            <ul class="mb-0 text-danger ps-3">
+                                {% for err in row.errors %}
+                                <li>{{ err }}</li>
+                                {% endfor %}
+                            </ul>
                             {% endif %}
                         </td>
                     </tr>
@@ -94,10 +109,12 @@
     <div class="d-flex justify-content-between">
         <a href="javascript:history.back()" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Geri</a>
         {% if summary.valid > 0 %}
-        <button type="submit" class="btn btn-success btn-lg"><i class="bi bi-check-lg"></i> {{ summary.valid }} Kaydı İçe Aktar</button>
+        <button type="submit" class="btn btn-success btn-lg"><i class="bi bi-check-lg"></i> {{ summary.valid }} Kaydı
+            İçe Aktar</button>
         {% else %}
         <button type="button" class="btn btn-secondary btn-lg" disabled>Aktarılacak Kayıt Yok</button>
         {% endif %}
     </div>
 </form>
+{% endif %}
 {% endblock %}

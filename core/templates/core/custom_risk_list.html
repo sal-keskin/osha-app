@@ -1,0 +1,131 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    .custom-risks-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .back-link {
+        color: #6c757d;
+        text-decoration: none;
+    }
+
+    .back-link:hover {
+        color: #495057;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: #dee2e6;
+    }
+
+    .risk-card {
+        transition: all 0.2s;
+    }
+
+    .risk-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .status-badge.yes {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-badge.no {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .status-badge.unanswered {
+        background: #e9ecef;
+        color: #495057;
+    }
+</style>
+
+<div class="custom-risks-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{% url 'assessment_session_run' session.pk %}" class="back-link"><i
+                    class="bi bi-arrow-left me-1"></i> Değerlendirmeye Dön</a>
+            <h2 class="mt-2 mb-0"><i class="bi bi-plus-circle me-2"></i>Ek Riskler</h2>
+            <p class="text-muted">{{ session.title }} - {{ facility.name }}</p>
+        </div>
+        <a href="{% url 'custom_risk_create' session.pk %}" class="btn btn-primary btn-lg">
+            <i class="bi bi-plus-lg me-1"></i> Ek Risk Ekle
+        </a>
+    </div>
+
+    <div class="alert alert-info mb-4">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>Bilgi:</strong> Standart değerlendirme sorularında yer almayan, sahaya özgü riskleri buraya
+        ekleyebilirsiniz.
+    </div>
+
+    {% if custom_risks %}
+    <div class="row g-3">
+        {% for risk in custom_risks %}
+        <div class="col-12">
+            <div class="card risk-card">
+                <div class="card-body d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="status-badge {{ risk.status_class }}">
+                                {% if risk.is_acceptable %}
+                                <i class="bi bi-check-lg"></i> Kabul Edilebilir
+                                {% elif risk.is_acceptable == False %}
+                                <i class="bi bi-x-lg"></i> Risk Mevcut
+                                {% else %}
+                                <i class="bi bi-question-lg"></i> Değerlendirilmedi
+                                {% endif %}
+                            </span>
+                            <small class="text-muted">Ω.{{ forloop.counter }}</small>
+                        </div>
+                        <h5 class="card-title mb-1">{{ risk.description }}</h5>
+                        {% if risk.evidence %}
+                        <p class="text-muted small mb-0">{{ risk.evidence|truncatechars:100 }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-2 ms-3">
+                        <a href="{% url 'custom_risk_update' session.pk risk.pk %}"
+                            class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'custom_risk_delete' session.pk risk.pk %}"
+                            class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body empty-state">
+            <i class="bi bi-shield-plus"></i>
+            <h4 class="mt-3">Henüz Ek Risk Eklenmedi</h4>
+            <p class="text-muted mb-4">Sahaya özgü tespit ettiğiniz riskleri buraya ekleyebilirsiniz.</p>
+            <a href="{% url 'custom_risk_create' session.pk %}" class="btn btn-primary btn-lg">
+                <i class="bi bi-plus-lg me-1"></i> İlk Ek Riski Ekle
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,6 +1,31 @@
 {% extends 'core/base.html' %}
 
 {% block content %}
+<style>
+    /* FORCE visibility - this rule beats base.html specificity */
+    .card.border-info .topic-label-custom {
+        background-color: var(--card-bg) !important;
+        color: var(--foreground) !important;
+        border: 1px solid var(--border-color) !important;
+        border-left: 0 !important;
+        border-right: 0 !important;
+        flex: 1 1 auto !important;
+        display: flex !important;
+        align-items: center !important;
+        padding: 0.375rem 0.75rem !important;
+        cursor: pointer;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    /* Ensure the collapse is visible when shown */
+    .collapse.show {
+        display: block !important;
+        height: auto !important;
+        visibility: visible !important;
+    }
+</style>
+
 <div class="row mb-3">
     <div class="col">
         <h2>{{ title }}</h2>
@@ -9,121 +34,259 @@
 
 <div class="card">
     <div class="card-body">
-        <form method="post">
+        <form method="post" id="education-form">
             {% csrf_token %}
-            {% for field in form %}
-                <div class="mb-3">
-                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
 
-                    {% if field.name == 'workers' %}
-                        <div class="card p-2" style="max-height: 300px; overflow-y: auto;">
-                             <div id="workers-checkbox-container">
-                                {{ field }}
-                             </div>
-                             <div id="no-workers-msg" class="text-muted small text-center {% if field.value %}d-none{% endif %}">
-                                Lütfen önce bir işyeri seçiniz.
-                             </div>
-                        </div>
-                    {% else %}
-                        {{ field }}
-                    {% endif %}
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="id_date" class="form-label">Tarih</label>
+                        {{ form.date }}
+                        {% if form.date.errors %}
+                        <div class="text-danger small">{{ form.date.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="id_workplace" class="form-label">İşyeri</label>
+                        {{ form.workplace }}
+                        {% if form.workplace.errors %}
+                        <div class="text-danger small">{{ form.workplace.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
 
-                    {% if field.errors %}
-                        <div class="text-danger small mt-1">
-                            {{ field.errors.0 }}
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="id_topic" class="form-label">Eğitim Başlığı <small
+                                class="text-muted">(opsiyonel)</small></label>
+                        {{ form.topic }}
+                        {% if form.topic.errors %}
+                        <div class="text-danger small">{{ form.topic.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="id_duration" class="form-label">Toplam Süre (Saat)</label>
+                        {{ form.duration }}
+                        {% if form.duration.errors %}
+                        <div class="text-danger small">{{ form.duration.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- IBYS Fields formatted safely with short lines params -->
+            <div class="row mb-3">
+                {% with yeri=form.egitim_yeri.value yontem=form.egitim_yontemi.value %}
+                <div class="col-md-6">
+                    <label class="form-label">Eğitim Yeri <span class="badge bg-info">İBYS</span></label>
+                    <div class="d-flex gap-4">
+                        <div class="form-check">
+                            {% if yeri == 1 or yeri == '1' or not yeri %}
+                            <input type="radio" name="egitim_yeri" value="1" id="id_egitim_yeri_1"
+                                class="form-check-input" checked>
+                            {% else %}
+                            <input type="radio" name="egitim_yeri" value="1" id="id_egitim_yeri_1"
+                                class="form-check-input">
+                            {% endif %}
+                            <label class="form-check-label" for="id_egitim_yeri_1">İş Yerinde</label>
                         </div>
-                    {% endif %}
-                    {% if field.help_text %}
-                        <div class="form-text">{{ field.help_text }}</div>
+                        <div class="form-check">
+                            {% if yeri == 0 or yeri == '0' %}
+                            <input type="radio" name="egitim_yeri" value="0" id="id_egitim_yeri_0"
+                                class="form-check-input" checked>
+                            {% else %}
+                            <input type="radio" name="egitim_yeri" value="0" id="id_egitim_yeri_0"
+                                class="form-check-input">
+                            {% endif %}
+                            <label class="form-check-label" for="id_egitim_yeri_0">İş Yeri Dışında</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Eğitim Yöntemi <span class="badge bg-info">İBYS</span></label>
+                    <div class="d-flex gap-4">
+                        <div class="form-check">
+                            {% if yontem == 1 or yontem == '1' or not yontem %}
+                            <input type="radio" name="egitim_yontemi" value="1" id="id_egitim_yontemi_1"
+                                class="form-check-input" checked>
+                            {% else %}
+                            <input type="radio" name="egitim_yontemi" value="1" id="id_egitim_yontemi_1"
+                                class="form-check-input">
+                            {% endif %}
+                            <label class="form-check-label" for="id_egitim_yontemi_1">Yüz Yüze Eğitim</label>
+                        </div>
+                        <div class="form-check">
+                            {% if yontem == 0 or yontem == '0' %}
+                            <input type="radio" name="egitim_yontemi" value="0" id="id_egitim_yontemi_0"
+                                class="form-check-input" checked>
+                            {% else %}
+                            <input type="radio" name="egitim_yontemi" value="0" id="id_egitim_yontemi_0"
+                                class="form-check-input">
+                            {% endif %}
+                            <label class="form-check-label" for="id_egitim_yontemi_0">Uzaktan Eğitim</label>
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="id_specialist" class="form-label">İş Güvenliği Uzmanı</label>
+                        {{ form.specialist }}
+                        {% if form.specialist.errors %}
+                        <div class="text-danger small">{{ form.specialist.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="id_medic" class="form-label">İşyeri Hekimi / Sağlık Personeli</label>
+                        {{ form.medic }}
+                        {% if form.medic.errors %}
+                        <div class="text-danger small">{{ form.medic.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3 border-info">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <span style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#topicsCollapse"
+                        aria-expanded="true">
+                        <i class="bi bi-book"></i> Eğitim Konuları (İBYS) <i class="bi bi-chevron-down ms-2"
+                            id="topicsChevron"></i>
+                    </span>
+                    <div class="d-flex gap-2 align-items-center">
+                        <input type="number" id="bulk-duration" class="form-control form-control-sm"
+                            style="width: 80px;" value="30" min="1">
+                        <button type="button" class="btn btn-sm btn-light" onclick="applyDurationToAll()">
+                            <i class="bi bi-clock"></i> Tümüne Uygula
+                        </button>
+                    </div>
+                </div>
+                <div class="collapse show" id="topicsCollapse">
+                    <div class="card-body">
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <div class="row" id="topics-container">
+                                {% for code, label in education_subjects %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="input-group input-group-sm">
+                                        <div class="input-group-text">
+                                            {% if code in selected_topics %}
+                                            <input type="checkbox" name="topic_codes[]" value="{{ code }}"
+                                                class="form-check-input topic-checkbox" id="topic_{{ code }}" checked>
+                                            {% else %}
+                                            <input type="checkbox" name="topic_codes[]" value="{{ code }}"
+                                                class="form-check-input topic-checkbox" id="topic_{{ code }}">
+                                            {% endif %}
+                                        </div>
+                                        <div class="topic-label-custom text-truncate"
+                                            onclick="document.getElementById('topic_{{ code }}').click()">
+                                            {{ label }}
+                                        </div>
+                                        <input type="number" name="topic_duration_{{ code }}"
+                                            class="form-control topic-duration" style="max-width: 70px;" min="1"
+                                            value="30" placeholder="dk" data-topic-code="{{ code }}">
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Katılımcılar</label>
+                <div class="card p-2" style="max-height: 300px; overflow-y: auto;">
+                    <div id="workers-checkbox-container">{{ form.workers }}</div>
+                    <div id="no-workers-msg"
+                        class="text-muted small text-center {% if form.workers.value or has_workplace %}d-none{% endif %}">
+                        Lütfen önce bir işyeri seçiniz.
+                    </div>
+                </div>
+                {% if form.workers.errors %}
+                <div class="text-danger small">{{ form.workers.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <div>
+                    {% if education %}
+                    <a href="{% url 'education_participation_form' education.pk %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-file-earmark-pdf"></i> Katılım Formu İndir
+                    </a>
                     {% endif %}
                 </div>
-            {% endfor %}
-
-            <div class="d-flex justify-content-end">
-                <a href="javascript:history.back()" class="btn btn-secondary me-2">İptal</a>
-                <button type="submit" class="btn btn-primary">Kaydet</button>
+                <div>
+                    <a href="javascript:history.back()" class="btn btn-secondary me-2">İptal</a>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
             </div>
+
         </form>
     </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const workplaceSelect = document.getElementById('id_workplace');
-    const workersContainer = document.getElementById('workers-checkbox-container');
-    const noWorkersMsg = document.getElementById('no-workers-msg');
-    const existingWorkerIds = new Set();
-
-    // Store initially selected workers (for Edit mode)
-    document.querySelectorAll('#workers-checkbox-container input[type="checkbox"]:checked').forEach(cb => {
-        existingWorkerIds.add(cb.value);
-    });
-
-    if (workplaceSelect) {
-        workplaceSelect.addEventListener('change', function() {
-            const workplaceId = this.value;
-            if (workplaceId) {
-                fetchWorkers(workplaceId, false);
-            } else {
-                workersContainer.innerHTML = '';
-                noWorkersMsg.classList.remove('d-none');
-            }
+    var topicDurations = {{ topic_durations| safe }};
+    document.addEventListener('DOMContentLoaded', function () {
+        Object.keys(topicDurations).forEach(function (code) {
+            var inp = document.querySelector('input[data-topic-code="' + code + '"]');
+            if (inp) inp.value = topicDurations[code];
         });
-
-        // Initial load logic handles generic rendering, but we might want to refresh lists
-        // OR simply rely on Django rendering the checkboxes for the existing selection.
-        // However, if we change workplace, we need AJAX.
+    });
+    function applyDurationToAll() {
+        var dur = document.getElementById('bulk-duration').value;
+        document.querySelectorAll('.topic-checkbox:checked').forEach(function (cb) {
+            var inp = document.querySelector('input[name="topic_duration_' + cb.value + '"]');
+            if (inp) inp.value = dur;
+        });
     }
+    document.addEventListener('DOMContentLoaded', function () {
+        var tc = document.getElementById('topicsCollapse'), ch = document.getElementById('topicsChevron');
+        if (tc && ch) {
+            tc.addEventListener('hide.bs.collapse', function () { ch.style.transform = 'rotate(-90deg)'; });
+            tc.addEventListener('show.bs.collapse', function () { ch.style.transform = 'rotate(0deg)'; });
+        }
+    });
+    document.addEventListener('DOMContentLoaded', function () {
+        var ws = document.getElementById('id_workplace'), wc = document.getElementById('workers-checkbox-container'), nm = document.getElementById('no-workers-msg');
 
-    function fetchWorkers(workplaceId, isInitialLoad) {
-        // Show loading
-        workersContainer.innerHTML = '<div class="text-center py-2"><span class="spinner-border text-primary" role="status"></span></div>';
-        noWorkersMsg.classList.add('d-none');
+        // Initial fetch if workplace selected on load (for edit form)
+        if (ws && ws.value) {
+            // Optional: trigger change
+        }
 
-        fetch(`{% url 'get_workers_json' %}?workplace_id=${workplaceId}`)
-            .then(response => response.json())
-            .then(data => {
-                workersContainer.innerHTML = '';
-                if (data.workers.length > 0) {
-                    noWorkersMsg.classList.add('d-none');
-                    data.workers.forEach(worker => {
-                        const div = document.createElement('div');
-                        div.className = 'form-check';
-
-                        const input = document.createElement('input');
-                        input.type = 'checkbox';
-                        input.className = 'form-check-input';
-                        input.name = 'workers';
-                        input.value = worker.id;
-                        input.id = 'id_workers_' + worker.id;
-
-                        // Logic:
-                        // If it's a NEW selection (user changed workplace), check ALL.
-                        // If it's a RELOAD (edit mode initial), Django rendered it, but we are re-rendering via JS.
-                        // So we must respect 'existingWorkerIds' ONLY if the workplace hasn't changed from saved value.
-                        // BUT simplifies: User wants "default all selected".
-
-                        // IMPLEMENTATION:
-                        // Since this function is called on 'change', we assume user wants to select workers for THIS workplace.
-                        // Default behavior requested: "In default all selected"
-                        input.checked = true;
-
-                        const label = document.createElement('label');
-                        label.className = 'form-check-label';
-                        label.htmlFor = 'id_workers_' + worker.id;
-                        label.textContent = `${worker.name} (${worker.tckn})`;
-
-                        div.appendChild(input);
-                        div.appendChild(label);
-                        workersContainer.appendChild(div);
-                    });
-                } else {
-                    noWorkersMsg.textContent = 'Bu işyerinde çalışan bulunamadı.';
-                    noWorkersMsg.classList.remove('d-none');
-                }
-            })
-            .catch(error => console.error('Error:', error));
-    }
-});
+        if (ws) {
+            ws.addEventListener('change', function () {
+                var wid = this.value;
+                if (wid) {
+                    wc.innerHTML = '<div class="text-center py-2"><span class="spinner-border text-primary"></span></div>';
+                    nm.classList.add('d-none');
+                    fetch('{% url "get_workers_json" %}?workplace_id=' + wid).then(function (r) { return r.json(); }).then(function (d) {
+                        wc.innerHTML = '';
+                        if (d.workers.length > 0) {
+                            nm.classList.add('d-none');
+                            d.workers.forEach(function (w) {
+                                var dv = document.createElement('div'); dv.className = 'form-check';
+                                var ip = document.createElement('input'); ip.type = 'checkbox'; ip.className = 'form-check-input'; ip.name = 'workers'; ip.value = w.id; ip.id = 'id_workers_' + w.id; ip.checked = true;
+                                var lb = document.createElement('label'); lb.className = 'form-check-label'; lb.htmlFor = 'id_workers_' + w.id; lb.textContent = w.name + ' (' + w.tckn + ')';
+                                dv.appendChild(ip); dv.appendChild(lb); wc.appendChild(dv);
+                            });
+                        } else { nm.textContent = 'Bu işyerinde çalışan bulunamadı.'; nm.classList.remove('d-none'); }
+                    }).catch(function (e) { console.error(e); });
+                } else { wc.innerHTML = ''; nm.classList.remove('d-none'); }
+            });
+        }
+    });
 </script>
 {% endblock %}

@@ -1,74 +1,418 @@
 {% extends 'core/base.html' %}
 
 {% block content %}
-<div class="row mb-3">
-    <div class="col">
-        <h2>{{ title }}</h2>
-    </div>
-</div>
+<style>
+    .workplace-form-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 32px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        max-width: 700px;
+        margin: 0 auto;
+    }
 
-<div class="card mb-4">
-    <div class="card-body">
-        <form method="post">
-            {% csrf_token %}
-            {% for field in form %}
-                <div class="mb-3">
-                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.errors %}
-                        <div class="text-danger small mt-1">
-                            {{ field.errors.0 }}
-                        </div>
-                    {% endif %}
-                    {% if field.help_text %}
-                        <div class="form-text">{{ field.help_text }}</div>
-                    {% endif %}
-                </div>
-            {% endfor %}
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+    }
 
-            {% if formset %}
-                <hr class="my-4">
-                <h5>Hızlı Birim Ekleme (Opsiyonel)</h5>
-                <p class="text-muted small">Eğer boş bırakırsanız otomatik olarak "MERKEZ BİNA" oluşturulacaktır.</p>
-                {{ formset.management_form }}
-                <div id="facilities-formset">
-                    {% for form in formset %}
-                        <div class="card mb-3 facility-form bg-light">
-                            <div class="card-body">
-                                <h6 class="card-title">Birim {{ forloop.counter }}</h6>
-                                <div class="row">
-                                    {% for field in form %}
-                                        {% if not field.is_hidden %}
-                                            <div class="col-md-6 mb-2">
-                                                <label class="form-label small">{{ field.label }}</label>
-                                                {{ field }}
-                                                {% if field.errors %}
-                                                    <div class="text-danger small">{{ field.errors.0 }}</div>
-                                                {% endif %}
-                                            </div>
-                                        {% else %}
-                                            {{ field }}
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
+    .form-label.required::after {
+        content: " *";
+        color: #EF4444;
+    }
+
+    .form-control,
+    .form-select {
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        padding: 14px 16px;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #3B82F6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-control::placeholder {
+        color: #9CA3AF;
+    }
+
+    /* NACE Search Section */
+    .nace-section {
+        margin-bottom: 24px;
+    }
+
+    .nace-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 4px;
+    }
+
+    .nace-label.required::after {
+        content: " *";
+        color: #EF4444;
+    }
+
+    .nace-hint {
+        font-size: 0.85rem;
+        color: #6B7280;
+        margin-bottom: 8px;
+    }
+
+    .nace-search-input {
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        padding: 14px 16px;
+        padding-right: 44px;
+        width: 100%;
+        font-size: 1rem;
+        background: #fff;
+    }
+
+    .nace-search-input:focus {
+        border-color: #3B82F6;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .nace-search-wrapper {
+        position: relative;
+        margin-bottom: 0;
+    }
+
+    .nace-search-wrapper i {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9CA3AF;
+    }
+
+    /* Dropdown Results */
+    .nace-dropdown {
+        display: none;
+        border: 1px solid #E5E7EB;
+        border-top: none;
+        border-radius: 0 0 12px 12px;
+        background: #fff;
+        max-height: 300px;
+        overflow-y: auto;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .nace-dropdown.show {
+        display: block;
+    }
+
+    .nace-result-header {
+        background: #3B82F6;
+        color: #fff;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .nace-result-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #F3F4F6;
+        transition: background 0.2s;
+    }
+
+    .nace-result-item:hover {
+        background: #F3F4F6;
+    }
+
+    .nace-result-item:last-child {
+        border-bottom: none;
+    }
+
+    .nace-result-code {
+        font-weight: 700;
+        color: #3B82F6;
+    }
+
+    .nace-result-desc {
+        color: #374151;
+        margin-left: 8px;
+    }
+
+    /* Selected State (Green Box) */
+    .nace-selected {
+        background: #D1FAE5;
+        border: 1px solid #6EE7B7;
+        border-radius: 12px;
+        padding: 12px 16px;
+        display: none;
+    }
+
+    .nace-selected.show {
+        display: block;
+    }
+
+    .nace-selected-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .nace-selected-code {
+        font-weight: 700;
+        color: #065F46;
+    }
+
+    .nace-selected-text {
+        color: #047857;
+        margin-left: 8px;
+    }
+
+    .nace-change-btn {
+        color: #3B82F6;
+        text-decoration: underline;
+        cursor: pointer;
+        font-weight: 500;
+        white-space: nowrap;
+        margin-left: 12px;
+    }
+
+    /* Hazard Class Styling */
+    .hazard-select.low {
+        background: #D1FAE5 !important;
+        color: #065F46 !important;
+        border-color: #6EE7B7 !important;
+    }
+
+    .hazard-select.medium {
+        background: #FEF3C7 !important;
+        color: #92400E !important;
+        border-color: #FCD34D !important;
+    }
+
+    .hazard-select.high {
+        background: #FEE2E2 !important;
+        color: #991B1B !important;
+        border-color: #FCA5A5 !important;
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid #E5E7EB;
+    }
+
+    .btn-cancel {
+        background: #fff;
+        border: 1px solid #D1D5DB;
+        border-radius: 10px;
+        padding: 12px 24px;
+        font-weight: 600;
+        color: #374151;
+        text-decoration: none;
+    }
+
+    .btn-cancel:hover {
+        background: #F3F4F6;
+        color: #374151;
+    }
+
+    .btn-submit {
+        background: #3B82F6;
+        border: 2px solid #3B82F6;
+        border-radius: 10px;
+        padding: 12px 24px;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    .btn-submit:hover {
+        background: #2563EB;
+        border-color: #2563EB;
+    }
+
+    .mb-field {
+        margin-bottom: 20px;
+    }
+
+    /* Danger Class Hint */
+    .danger-hint {
+        margin-top: 8px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        display: none;
+    }
+
+    .danger-hint.show {
+        display: block;
+    }
+
+    .danger-hint.low {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .danger-hint.medium {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+
+    .danger-hint.high {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+</style>
+
+<div class="workplace-form-card">
+    <form method="post" id="workplaceForm">
+        {% csrf_token %}
+
+        <!-- İş Yeri Unvanı -->
+        <div class="mb-field">
+            <label class="form-label required">{{ form.name.label }}</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+            <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
             {% endif %}
+        </div>
 
-            <div class="d-flex justify-content-end">
-                <a href="javascript:history.back()" class="btn btn-secondary me-2">İptal</a>
-                <button type="submit" class="btn btn-primary">Kaydet</button>
+        <!-- Adres -->
+        <div class="mb-field">
+            <label class="form-label required">{{ form.address.label }}</label>
+            {{ form.address }}
+            {% if form.address.errors %}
+            <div class="text-danger small mt-1">{{ form.address.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- SGK Sicil No / DETSİS No -->
+        <div class="mb-field">
+            <label class="form-label">{{ form.detsis_number.label }}</label>
+            {{ form.detsis_number }}
+            {% if form.detsis_number.errors %}
+            <div class="text-danger small mt-1">{{ form.detsis_number.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Faaliyet Alanı / NACE Kodu -->
+        <div class="nace-section">
+            <div class="nace-label required">Faaliyet Alanı / NACE Kodu</div>
+            <div class="nace-hint">Firmanızın yaptığı işi yazın (örn: ekmek, inşaat, metal)</div>
+
+            <div id="naceSearchContainer">
+                <div class="nace-search-wrapper">
+                    <input type="text" id="naceSearchInput" class="nace-search-input"
+                        placeholder="Ara: ekmek imalatı, kaynak, tekstil..." autocomplete="off">
+                    <i class="bi bi-search"></i>
+                </div>
+                <div id="naceDropdown" class="nace-dropdown"></div>
             </div>
-        </form>
+
+            <div id="naceSelected" class="nace-selected">
+                <div class="nace-selected-content">
+                    <span>
+                        <span class="nace-selected-code" id="naceCodeDisplay"></span>
+                        <span class="nace-selected-text" id="naceDescDisplay"></span>
+                    </span>
+                    <span class="nace-change-btn" onclick="clearNaceSelection()">Değiştir</span>
+                </div>
+            </div>
+
+            <!-- Hidden fields for actual values -->
+            <input type="hidden" name="nace_code" id="id_nace_code" value="{{ form.nace_code.value|default:'' }}">
+            <input type="hidden" name="activity_description" id="id_activity_description"
+                value="{{ form.activity_description.value|default:'' }}">
+
+            <!-- Danger class hint -->
+            <div id="dangerHint" class="danger-hint">
+                <i class="bi bi-info-circle"></i> Önerilen tehlike sınıfı: <strong id="dangerHintText"></strong>
+            </div>
+        </div>
+
+        <!-- Faaliyet Tanımı (read-only, shown when selected) -->
+        <div class="mb-field" id="activityDescField" style="display: none;">
+            <label class="form-label">Faaliyet Tanımı</label>
+            <textarea class="form-control" id="activityDescDisplay" rows="2" readonly></textarea>
+        </div>
+
+        <!-- Tehlike Sınıfı -->
+        <div class="mb-field">
+            <label class="form-label required">{{ form.hazard_class.label }}</label>
+            {{ form.hazard_class }}
+            {% if form.hazard_class.errors %}
+            <div class="text-danger small mt-1">{{ form.hazard_class.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- İşveren Vekili -->
+        <div class="mb-field">
+            <label class="form-label required">{{ form.employer_representative.label }}</label>
+            {{ form.employer_representative }}
+            {% if form.employer_representative.errors %}
+            <div class="text-danger small mt-1">{{ form.employer_representative.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- İletişim Numarası -->
+        <div class="mb-field">
+            <label class="form-label">{{ form.phone_number.label }}</label>
+            {{ form.phone_number }}
+            {% if form.phone_number.errors %}
+            <div class="text-danger small mt-1">{{ form.phone_number.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-actions">
+            {% if workplace %}
+            <button type="button" class="btn btn-outline-danger me-auto" data-bs-toggle="modal"
+                data-bs-target="#deleteModal">
+                <i class="bi bi-trash"></i> Sil
+            </button>
+            {% endif %}
+            <a href="{% url 'workplace_list' %}" class="btn-cancel">İptal</a>
+            <button type="submit" class="btn-submit">{% if workplace %}Kaydet{% else %}İş Yeri Ekle{% endif %}</button>
+        </div>
+    </form>
+</div>
+
+<!-- Delete Confirmation Modal -->
+{% if workplace %}
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px;">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle"></i> İşyeri Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>{{ workplace.name }}</strong> işyerini silmek istediğinizden emin misiniz?</p>
+                <p class="text-muted small mb-0">Bu işlem geri alınamaz. İşyerine bağlı tüm birimler ve çalışanlar da
+                    silinecektir.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                <form action="{% url 'workplace_bulk_delete' %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="selected_items" value="{{ workplace.pk }}">
+                    <button type="submit" class="btn btn-danger">Evet, Sil</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
+{% endif %}
 
 {% if facilities %}
-<div class="card">
+<div class="card mt-4" style="max-width: 700px; margin: 20px auto;">
     <div class="card-header">
-        <h5 class="mb-0">Bağlı Birimler (Facilities)</h5>
+        <h5 class="mb-0">Bağlı Birimler</h5>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -85,15 +429,17 @@
                     {% for facility in facilities %}
                     <tr>
                         <td>
-                            <button class="btn btn-sm btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFacility{{ facility.id }}" aria-expanded="false">
+                            <button class="btn btn-sm btn-link text-decoration-none p-0" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#collapseFacility{{ facility.id }}"
+                                aria-expanded="false">
                                 <i class="bi bi-plus-circle fs-5"></i>
                             </button>
                         </td>
                         <td>{{ facility.name }}</td>
                         <td>{{ facility.worker_set.count }}</td>
                         <td>
-                            <a href="{% url 'facility_update' facility.id %}" class="btn btn-sm btn-outline-secondary">
-                                <i class="bi bi-pencil"></i>
+                            <a href="{% url 'facility_detail' facility.id %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-eye"></i>
                             </a>
                         </td>
                     </tr>
@@ -121,8 +467,12 @@
                                             <td>{{ worker.examination_status }}</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="{% url 'worker_update' worker.id %}" class="btn btn-outline-primary">Düzenle</a>
-                                                    <a href="{% url 'examination_create' %}?worker_id={{ worker.id }}" class="btn btn-outline-success">Muayene Ekle</a>
+                                                    <a href="{% url 'worker_update' worker.id %}"
+                                                        class="btn btn-outline-primary">Düzenle</a>
+                                                    {% if user.profile.has_medical_access %}
+                                                    <a href="{% url 'examination_create' %}?worker_id={{ worker.id }}"
+                                                        class="btn btn-outline-success">Muayene Ekle</a>
+                                                    {% endif %}
                                                 </div>
                                             </td>
                                         </tr>
@@ -144,9 +494,150 @@
 {% endif %}
 
 <script>
-    // Toggle icon functionality
+    let searchTimeout;
+    const naceSearchInput = document.getElementById('naceSearchInput');
+    const naceDropdown = document.getElementById('naceDropdown');
+    const naceSelected = document.getElementById('naceSelected');
+    const naceSearchContainer = document.getElementById('naceSearchContainer');
+    const dangerHint = document.getElementById('dangerHint');
+    const dangerHintText = document.getElementById('dangerHintText');
+    const activityDescField = document.getElementById('activityDescField');
+
+    // NACE Search
+    naceSearchInput.addEventListener('input', function () {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+
+        if (query.length < 2) {
+            naceDropdown.classList.remove('show');
+            return;
+        }
+
+        searchTimeout = setTimeout(() => {
+            fetch(`/api/search_nace/?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.results && data.results.length > 0) {
+                        let html = `<div class="nace-result-header">${data.count} sonuç bulundu</div>`;
+                        data.results.forEach(item => {
+                            html += `
+                            <div class="nace-result-item" 
+                                 onclick="selectNace('${item.nace_code}', '${item.description.replace(/'/g, "\\'")}', '${item.danger_class}')">
+                                <span class="nace-result-code">${item.nace_code}</span>
+                                <span class="nace-result-desc">${item.description}</span>
+                            </div>
+                        `;
+                        });
+                        naceDropdown.innerHTML = html;
+                        naceDropdown.classList.add('show');
+                    } else {
+                        naceDropdown.innerHTML = '<div class="nace-result-header">Sonuç bulunamadı</div>';
+                        naceDropdown.classList.add('show');
+                    }
+                })
+                .catch(err => {
+                    console.error('NACE search error:', err);
+                });
+        }, 300);
+    });
+
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.nace-section')) {
+            naceDropdown.classList.remove('show');
+        }
+    });
+
+    function selectNace(code, description, dangerClass) {
+        // Set hidden field values
+        document.getElementById('id_nace_code').value = code;
+        document.getElementById('id_activity_description').value = description;
+
+        // Update display
+        document.getElementById('naceCodeDisplay').textContent = code;
+        document.getElementById('naceDescDisplay').textContent = description;
+
+        // Show selected state, hide search
+        naceSearchContainer.style.display = 'none';
+        naceSelected.classList.add('show');
+
+        // Show activity description field
+        document.getElementById('activityDescDisplay').value = description;
+        activityDescField.style.display = 'block';
+
+        // Show danger class hint
+        dangerHintText.textContent = dangerClass;
+        dangerHint.classList.remove('low', 'medium', 'high');
+        if (dangerClass === 'Az Tehlikeli') {
+            dangerHint.classList.add('low');
+        } else if (dangerClass === 'Tehlikeli') {
+            dangerHint.classList.add('medium');
+        } else if (dangerClass === 'Çok Tehlikeli') {
+            dangerHint.classList.add('high');
+        }
+        dangerHint.classList.add('show');
+
+        // Hide dropdown
+        naceDropdown.classList.remove('show');
+    }
+
+    function clearNaceSelection() {
+        // Clear values
+        document.getElementById('id_nace_code').value = '';
+        document.getElementById('id_activity_description').value = '';
+        naceSearchInput.value = '';
+
+        // Hide selected state, show search
+        naceSelected.classList.remove('show');
+        naceSearchContainer.style.display = 'block';
+
+        // Hide activity description and danger hint
+        activityDescField.style.display = 'none';
+        dangerHint.classList.remove('show');
+
+        // Focus search input
+        naceSearchInput.focus();
+    }
+
+    // Check if there's already a NACE code set (edit mode)
+    document.addEventListener('DOMContentLoaded', function () {
+        const existingNace = document.getElementById('id_nace_code').value;
+        const existingDesc = document.getElementById('id_activity_description').value;
+
+        if (existingNace) {
+            document.getElementById('naceCodeDisplay').textContent = existingNace;
+            document.getElementById('naceDescDisplay').textContent = existingDesc;
+            document.getElementById('activityDescDisplay').value = existingDesc;
+            naceSearchContainer.style.display = 'none';
+            naceSelected.classList.add('show');
+            activityDescField.style.display = 'block';
+        }
+
+        // Hazard class styling
+        updateHazardStyle();
+    });
+
+    // Hazard class styling
+    function updateHazardStyle() {
+        const select = document.querySelector('.hazard-select');
+        if (select) {
+            select.classList.remove('low', 'medium', 'high');
+            const value = select.value;
+            if (value === 'LOW') {
+                select.classList.add('low');
+            } else if (value === 'MEDIUM') {
+                select.classList.add('medium');
+            } else if (value === 'HIGH') {
+                select.classList.add('high');
+            }
+        }
+    }
+
+    document.querySelector('.hazard-select')?.addEventListener('change', updateHazardStyle);
+
+    // Toggle icon functionality for facilities
     document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const icon = this.querySelector('i');
             if (icon.classList.contains('bi-plus-circle')) {
                 icon.classList.replace('bi-plus-circle', 'bi-dash-circle');
