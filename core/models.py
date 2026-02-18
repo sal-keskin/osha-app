@@ -810,6 +810,63 @@ class AssessmentCustomRisk(models.Model):
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, null=True, blank=True, verbose_name="Öncelik")
     scoring_method = models.CharField(max_length=10, choices=SCORING_METHOD_CHOICES, default='KINNEY', verbose_name="Puanlama Yöntemi")
 
+    # Library & classification fields
+    source_library_id = models.IntegerField(null=True, blank=True, verbose_name="Kütüphane ID")
+    category = models.CharField(max_length=500, blank=True, default='', verbose_name="Kategori")
+    sub_category = models.CharField(max_length=500, blank=True, default='', verbose_name="Üst Grup")
+    hazard_source = models.CharField(max_length=500, blank=True, default='', verbose_name="Tehlike Kaynağı")
+    legal_basis = models.TextField(blank=True, default='', verbose_name="İlgili Mevzuat")
+    affected_persons = models.CharField(max_length=500, blank=True, default='', verbose_name="Etkilenecek Kişiler")
+    measure = models.TextField(blank=True, default='', verbose_name="Alınması Gereken Önlem")
+
+    # Fine-Kinney scoring
+    kinney_probability = models.FloatField(null=True, blank=True, verbose_name="Olasılık (P)")
+    kinney_frequency = models.FloatField(null=True, blank=True, verbose_name="Frekans (F)")
+    kinney_severity = models.IntegerField(null=True, blank=True, verbose_name="Şiddet (S)")
+    kinney_score = models.IntegerField(null=True, blank=True, verbose_name="Kinney Skoru")
+
+    # L-Matrix scoring
+    matrix_probability = models.IntegerField(null=True, blank=True, verbose_name="Matris Olasılık (1-5)")
+    matrix_severity = models.IntegerField(null=True, blank=True, verbose_name="Matris Şiddet (1-5)")
+    matrix_score = models.IntegerField(null=True, blank=True, verbose_name="Matris Skoru")
+
+    # DÖF (Corrective Action) fields
+    mitigation_strategy = models.CharField(max_length=50, blank=True, default='', verbose_name="Kontrol Stratejisi")
+    estimated_budget = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Tahmini Bütçe")
+    responsible_person = models.CharField(max_length=255, blank=True, default='', verbose_name="Sorumlu Kişi")
+    due_date = models.DateField(null=True, blank=True, verbose_name="Termin Tarihi")
+
+    def save(self, *args, **kwargs):
+        # Auto-calculate scores
+        if self.kinney_probability and self.kinney_frequency and self.kinney_severity:
+            self.kinney_score = int(self.kinney_probability * self.kinney_frequency * self.kinney_severity)
+        else:
+            self.kinney_score = None
+        if self.matrix_probability and self.matrix_severity:
+            self.matrix_score = self.matrix_probability * self.matrix_severity
+        else:
+            self.matrix_score = None
+        super().save(*args, **kwargs)
+
+    @property
+    def risk_level(self):
+        """Return (css_class, label) based on score and method"""
+        if self.scoring_method == 'MATRIX' and self.matrix_score:
+            s = self.matrix_score
+            if s >= 20: return ('intolerable', 'Tolerans gösterilemez')
+            if s >= 12: return ('important', 'Önemli')
+            if s >= 6:  return ('possible', 'Orta')
+            if s >= 3:  return ('trivial', 'Düşük')
+            return ('trivial', 'Önemsiz')
+        elif self.kinney_score:
+            s = self.kinney_score
+            if s >= 400: return ('intolerable', 'Tolerans gösterilemez')
+            if s >= 200: return ('substantial', 'Esaslı')
+            if s >= 70:  return ('important', 'Önemli')
+            if s >= 20:  return ('possible', 'Olası')
+            return ('trivial', 'Önemsiz')
+        return (None, None)
+
     def __str__(self):
         return f"{self.session.title} - Custom Risk: {self.description[:30]}"
     

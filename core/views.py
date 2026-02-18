@@ -1786,6 +1786,23 @@ def user_bulk_delete(request):
     return generic_bulk_delete_view(request, User, 'user_list')
 
 @login_required
+def api_delete_user(request, pk):
+    """Delete a single user via AJAX (admin only)"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'error': 'POST required'}, status=405)
+    if not request.user.is_superuser:
+        return JsonResponse({'status': 'error', 'error': 'Yetkiniz yok.'}, status=403)
+    if request.user.pk == pk:
+        return JsonResponse({'status': 'error', 'error': 'Kendinizi silemezsiniz.'}, status=400)
+    try:
+        user = User.objects.get(pk=pk)
+        username = user.get_full_name() or user.username
+        user.delete()
+        return JsonResponse({'status': 'success', 'message': f'{username} silindi.'})
+    except User.DoesNotExist:
+        return JsonResponse({'status': 'error', 'error': 'Kullanıcı bulunamadı.'}, status=404)
+
+@login_required
 def log_list(request):
     filter_config = [
         {'field': 'user', 'label': 'Kullanıcı', 'type': 'select'},
@@ -2582,8 +2599,8 @@ def get_action_plan_context(session):
             'type': 'custom',
             'title': cr.description[:60] + '...' if len(cr.description) > 60 else cr.description,
             'full_title': cr.description,
-            'priority': cr.risk_priority,
-            'status': cr.action_plan_status,
+            'priority': cr.priority,
+            'status': 'no_measures' if not cr.custom_measures.exists() else 'complete',
             'measures_count': cr.custom_measures.count(),
         })
     
@@ -2633,7 +2650,7 @@ def action_plan_edit(request, session_pk, risk_type, risk_id):
         risk_title = custom_risk.description
         risk_info = custom_risk.evidence or ''
         measures = custom_risk.custom_measures.all()
-        priority = custom_risk.risk_priority
+        priority = custom_risk.priority
         risk_obj = custom_risk
         original_notes = custom_risk.notes
     
@@ -2684,7 +2701,7 @@ def action_plan_priority_update(request, session_pk, risk_type, risk_id):
             answer.save()
         else:
             custom_risk = get_object_or_404(AssessmentCustomRisk, pk=risk_id, session=session)
-            custom_risk.risk_priority = priority
+            custom_risk.priority = priority
             custom_risk.save()
         
         return JsonResponse({'success': True})
@@ -2816,13 +2833,13 @@ def assessment_status(request, session_pk):
     
     # Risk summary
     high_priority = session.answers.filter(response='NO', risk_priority='HIGH').count()
-    high_priority += session.custom_risks.filter(is_acceptable=False, risk_priority='HIGH').count()
+    high_priority += session.custom_risks.filter(is_acceptable=False, priority='HIGH').count()
     
     medium_priority = session.answers.filter(response='NO', risk_priority='MEDIUM').count()
-    medium_priority += session.custom_risks.filter(is_acceptable=False, risk_priority='MEDIUM').count()
+    medium_priority += session.custom_risks.filter(is_acceptable=False, priority='MEDIUM').count()
     
     low_priority = session.answers.filter(response='NO', risk_priority='LOW').count()
-    low_priority += session.custom_risks.filter(is_acceptable=False, risk_priority='LOW').count()
+    low_priority += session.custom_risks.filter(is_acceptable=False, priority='LOW').count()
     
     # Measures defined
     total_risks = session.answers.filter(response='NO').count() + session.custom_risks.filter(is_acceptable=False).count()
@@ -2929,7 +2946,7 @@ def export_action_plan_excel(request, session_pk):
                 ws.cell(row=row, column=1, value=f"Ω{risk_num}")
                 ws.cell(row=row, column=2, value=cr.description)
                 ws.cell(row=row, column=3, value='Ek Risk')
-                ws.cell(row=row, column=4, value=cr.get_risk_priority_display() if cr.risk_priority else '-')
+                ws.cell(row=row, column=4, value=cr.get_priority_display() if cr.priority else '-')
                 ws.cell(row=row, column=5, value=measure.description)
                 ws.cell(row=row, column=6, value=measure.responsible_person)
                 ws.cell(row=row, column=7, value=measure.budget)
@@ -2940,7 +2957,7 @@ def export_action_plan_excel(request, session_pk):
             ws.cell(row=row, column=1, value=f"Ω{risk_num}")
             ws.cell(row=row, column=2, value=cr.description)
             ws.cell(row=row, column=3, value='Ek Risk')
-            ws.cell(row=row, column=4, value=cr.get_risk_priority_display() if cr.risk_priority else '-')
+            ws.cell(row=row, column=4, value=cr.get_priority_display() if cr.priority else '-')
             ws.cell(row=row, column=5, value='Önlem tanımlanmadı')
             row += 1
         risk_num += 1
@@ -2958,299 +2975,508 @@ def export_action_plan_excel(request, session_pk):
 
 @login_required
 def export_report_word(request, session_pk):
-    """Export full report as Word document"""
+    """Export full report as Word document with cover page, risk tables, DÖF, per-page signatures"""
     try:
         from docx import Document
-        from docx.shared import Pt, Inches
+        from docx.shared import Pt, Inches, Cm, RGBColor
         from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.enum.table import WD_TABLE_ALIGNMENT
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement
     except ImportError:
-        return HttpResponse("Error: python-docx library is not installed. Please run: pip install python-docx", status=500)
-    
+        return HttpResponse("Error: python-docx library is not installed.", status=500)
+
+    from core.export_helpers import (
+        get_cover_page_data, get_methodology_text, build_risk_data,
+        get_team_signatures, get_risk_level_label
+    )
+
+    def set_cell_shading(cell, color_hex):
+        shading = OxmlElement('w:shd')
+        shading.set(qn('w:fill'), color_hex)
+        shading.set(qn('w:val'), 'clear')
+        cell._tc.get_or_add_tcPr().append(shading)
+
+    def style_header_row(row, bg='2563EB'):
+        for cell in row.cells:
+            set_cell_shading(cell, bg)
+            for p in cell.paragraphs:
+                for r in p.runs:
+                    r.font.bold = True
+                    r.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+                    r.font.size = Pt(8)
+
+    def set_cell(cell, text, size=8, bold=False):
+        cell.text = str(text) if text else '-'
+        for p in cell.paragraphs:
+            for r in p.runs:
+                r.font.size = Pt(size)
+                r.font.bold = bold
+
+    def add_footer_signatures(section, signatures):
+        """Add structured team signatures to the section footer using paragraphs"""
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+
+        footer = section.footer
+        footer.is_linked_to_previous = False
+
+        # Add a thin border line first
+        border_p = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
+        border_p.text = ''
+        pPr = border_p._p.get_or_add_pPr()
+        pBdr = OxmlElement('w:pBdr')
+        top_bdr = OxmlElement('w:top')
+        top_bdr.set(qn('w:val'), 'single')
+        top_bdr.set(qn('w:sz'), '4')
+        top_bdr.set(qn('w:color'), 'CCCCCC')
+        pBdr.append(top_bdr)
+        pPr.append(pBdr)
+
+        # Names line — all names separated by enough spacing
+        names_p = footer.add_paragraph()
+        names_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for i, sig in enumerate(signatures):
+            name = sig['name'] or '_______________'
+            if i > 0:
+                spacer = names_p.add_run('                              ')
+                spacer.font.size = Pt(7)
+            run = names_p.add_run(name)
+            run.font.size = Pt(7)
+            run.font.bold = True
+            run.font.color.rgb = RGBColor(0x33, 0x33, 0x33)
+
+        # Roles line — matching positions
+        roles_p = footer.add_paragraph()
+        roles_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for i, sig in enumerate(signatures):
+            if i > 0:
+                spacer = roles_p.add_run('                              ')
+                spacer.font.size = Pt(6)
+            run = roles_p.add_run(sig['role'])
+            run.font.size = Pt(6)
+            run.font.color.rgb = RGBColor(0x88, 0x88, 0x88)
+
     try:
         session = get_object_or_404(AssessmentSession, pk=session_pk)
-        
-        doc = Document()
-        
-        # Title
-        title = doc.add_heading('Risk Değerlendirme Raporu', 0)
-        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        
-        # Info
-        doc.add_paragraph(f"Tesis: {session.facility.name}")
-        doc.add_paragraph(f"Değerlendirme Aracı: {session.tool.title}")
-        doc.add_paragraph(f"Tarih: {session.created_at.strftime('%d.%m.%Y')}")
-        
-        # Participants
-        if session.participants:
-            doc.add_paragraph(f"Katılımcılar: {session.participants}")
-        
-        doc.add_paragraph()
-        
-        # Methodology Section
-        doc.add_heading('Metodoloji', level=1)
-        methodology = f"""Bu değerlendirme, "{session.tool.title}" metodolojisi kullanılarak gerçekleştirilmiştir. 
-Değerlendirme, 6331 sayılı İş Sağlığı ve Güvenliği Kanunu ve ilgili yönetmelikler çerçevesinde tehlikeleri tespit etmek, 
-riskleri değerlendirmek ve gerekli önlemleri tanımlamak amacıyla yapılmıştır.
+        cover = get_cover_page_data(session)
+        risk_data = build_risk_data(session)
+        signatures = get_team_signatures(session)
 
-Değerlendirme kapsamında işyerindeki tüm faaliyetler, çalışma alanları ve süreçler incelenmiştir. 
-Tespit edilen riskler öncelik sırasına göre sınıflandırılmış ve her biri için uygun kontrol önlemleri belirlenmiştir."""
-        doc.add_paragraph(methodology)
-        
-        # Integrated Checklist (Denetim Listesi)
-        doc.add_heading('Denetim Listesi', level=1)
-        doc.add_paragraph("Tüm değerlendirme soruları ve cevapları:")
-        
-        # Get all questions for this tool
-        questions = RiskQuestion.objects.filter(topic__category__tool=session.tool).select_related('topic__category')
-        
-        # Create checklist table
-        checklist_table = doc.add_table(rows=1, cols=3)
-        checklist_table.style = 'Table Grid'
-        header_cells = checklist_table.rows[0].cells
-        header_cells[0].text = 'Kategori'
-        header_cells[1].text = 'Soru'
-        header_cells[2].text = 'Durum'
-        
-        # Set header style
-        for cell in header_cells:
-            for paragraph in cell.paragraphs:
-                for run in paragraph.runs:
-                    run.font.size = Pt(8)
-                    run.font.bold = True
-        
-        # Add questions
-        for q in questions:
-            answer = session.answers.filter(question=q).first()
-            if answer and answer.response:
-                if answer.response == 'YES':
-                    status = '✔ Evet'
-                elif answer.response == 'NO':
-                    status = '❌ Hayır'
-                elif answer.response == 'NA':
-                    status = '— İlgili Değil'
-                else:
-                    status = answer.get_response_display()
-            else:
-                status = '⚪ Boş'
-            
-            row_cells = checklist_table.add_row().cells
-            row_cells[0].text = q.topic.category.title[:30]
-            row_cells[1].text = q.content[:100]
-            row_cells[2].text = status
-            
-            # Small font for table rows
-            for cell in row_cells:
-                for paragraph in cell.paragraphs:
-                    for run in paragraph.runs:
-                        run.font.size = Pt(8)
-        
+        doc = Document()
+        style = doc.styles['Normal']
+        style.font.name = 'Calibri'
+        style.font.size = Pt(10)
+
+        # ═══ PAGE 1: COVER PAGE ═══
+        section = doc.sections[0]
+        add_footer_signatures(section, signatures)
+
+        # Title
+        title = doc.add_heading('RİSK DEĞERLENDİRME RAPORU', 0)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         doc.add_paragraph()
-        
-        # Executive Summary
+        doc.add_paragraph()
+
+        # Cover info table
+        cover_rows = [
+            ('İşyeri Unvanı', cover['workplace_name']),
+            ('Bina / Birim', cover['facility_name']),
+            ('Adres', cover['address']),
+            ('NACE Kodu', cover['nace_code']),
+            ('Tehlike Sınıfı', cover['hazard_class']),
+            ('Faaliyet', cover['activity']),
+            ('Puanlama Yöntemi', cover['scoring_label']),
+            ('Değerlendirme Tarihi', cover['assessment_date']),
+            ('Geçerlilik Tarihi', f"{cover['validity_date']}  ({cover['validity_years']} yıl)"),
+            ('Durum', cover['status']),
+            ('Katılımcılar', cover['participants']),
+        ]
+        info_table = doc.add_table(rows=len(cover_rows), cols=2)
+        info_table.style = 'Table Grid'
+        for i, (label, value) in enumerate(cover_rows):
+            set_cell(info_table.rows[i].cells[0], label, size=10, bold=True)
+            set_cell(info_table.rows[i].cells[1], value, size=10)
+            set_cell_shading(info_table.rows[i].cells[0], 'EFF6FF')
+
+        doc.add_paragraph()
+
+        # Team Members table on cover
+        doc.add_heading('Değerlendirme Ekibi', level=2)
+        team_table = doc.add_table(rows=1, cols=3)
+        team_table.style = 'Table Grid'
+        for i, h in enumerate(['Rol', 'Ad Soyad', 'İmza']):
+            team_table.rows[0].cells[i].text = h
+        style_header_row(team_table.rows[0], '1E3A8A')
+        for sig in signatures:
+            row = team_table.add_row()
+            set_cell(row.cells[0], sig['role'], size=9, bold=True)
+            set_cell(row.cells[1], sig['name'] or '_______________', size=9)
+            set_cell(row.cells[2], '', size=9)
+
+        # ═══ PAGE 2+: METHODOLOGY ═══
+        doc.add_page_break()
+        doc.add_heading('1. Metodoloji', level=1)
+        doc.add_paragraph(get_methodology_text(cover['is_kinney']))
+        doc.add_paragraph()
+
+        # ═══ RISK TABLE ═══
+        doc.add_heading('2. Tespit Edilen Riskler ve Puanlama', level=1)
+        risks = risk_data['risks']
+        is_kinney = risk_data['is_kinney']
+
+        if not risks:
+            doc.add_paragraph('Henüz risk eklenmemiştir.')
+        else:
+            if is_kinney:
+                headers = ['No', 'Kategori', 'Risk Tanımı', 'Mevzuat', 'P', 'F', 'S', 'Skor', 'Seviye']
+            else:
+                headers = ['No', 'Kategori', 'Risk Tanımı', 'Mevzuat', 'P', 'S', 'Skor', 'Seviye']
+            col_count = len(headers)
+
+            risk_table = doc.add_table(rows=1, cols=col_count)
+            risk_table.style = 'Table Grid'
+            for i, h in enumerate(headers):
+                risk_table.rows[0].cells[i].text = h
+            style_header_row(risk_table.rows[0])
+
+            for r in risks:
+                row = risk_table.add_row()
+                if is_kinney:
+                    vals = [r['no'], r['category'], r['description'][:70], r['legal_basis'][:50],
+                            r['p'] or '-', r['f'] or '-', r['s'] or '-',
+                            r['score'] if r['score'] else '-', r['level']]
+                else:
+                    vals = [r['no'], r['category'], r['description'][:70], r['legal_basis'][:50],
+                            r['p'] or '-', r['s'] or '-',
+                            r['score'] if r['score'] else '-', r['level']]
+                for i, v in enumerate(vals):
+                    set_cell(row.cells[i], v)
+                # Color-code level cell
+                level_cell = row.cells[col_count - 1]
+                if r['score']:
+                    set_cell_shading(level_cell, r['level_color'].replace('#', ''))
+                    if r['level_text_color'] == '#FFFFFF':
+                        for p in level_cell.paragraphs:
+                            for run in p.runs:
+                                run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+
+        doc.add_paragraph()
+
+        # ═══ DÖF TABLE ═══
+        doc.add_heading('3. Düzeltici Faaliyet Planı (DÖF)', level=1)
+        if not risks:
+            doc.add_paragraph('Henüz risk eklenmemiştir.')
+        else:
+            dof_headers = ['No', 'Risk Tanımı', 'Alınması Gereken Önlem', 'Kontrol Stratejisi', 'Bütçe (₺)', 'Sorumlu', 'Termin']
+            dof_table = doc.add_table(rows=1, cols=7)
+            dof_table.style = 'Table Grid'
+            for i, h in enumerate(dof_headers):
+                dof_table.rows[0].cells[i].text = h
+            style_header_row(dof_table.rows[0], '1E40AF')
+
+            for r in risks:
+                row = dof_table.add_row()
+                vals = [r['no'], r['description'][:50], r['measure'], r['strategy'],
+                        r['budget'], r['responsible'], r['due_date']]
+                for i, v in enumerate(vals):
+                    set_cell(row.cells[i], v)
+
+        doc.add_paragraph()
+
+        # ═══ SUMMARY ═══
+        doc.add_heading('4. Risk Dağılımı Özeti', level=1)
+        if risk_data['summary']:
+            s_table = doc.add_table(rows=1, cols=2)
+            s_table.style = 'Table Grid'
+            s_table.rows[0].cells[0].text = 'Risk Seviyesi'
+            s_table.rows[0].cells[1].text = 'Adet'
+            style_header_row(s_table.rows[0], '6B7280')
+            for s in risk_data['summary']:
+                row = s_table.add_row()
+                set_cell(row.cells[0], s['level'], size=9, bold=True)
+                set_cell(row.cells[1], str(s['count']), size=9)
+            row = s_table.add_row()
+            set_cell(row.cells[0], 'TOPLAM', size=9, bold=True)
+            set_cell(row.cells[1], str(risk_data['total']), size=9, bold=True)
+            set_cell_shading(row.cells[0], 'F1F5F9')
+            set_cell_shading(row.cells[1], 'F1F5F9')
+
+        # Executive summary
         if session.final_comments:
-            doc.add_heading('Yönetici Özeti', level=1)
+            doc.add_paragraph()
+            doc.add_heading('5. Yönetici Özeti', level=1)
             doc.add_paragraph(session.final_comments)
-        
-        # Risk Identification
-        doc.add_heading('Tespit Edilen Riskler', level=1)
-        
-        risk_num = 1
-        for answer in session.answers.filter(response='NO').select_related('question__topic__category'):
-            doc.add_heading(f"Risk {risk_num}: {answer.question.content[:80]}", level=2)
-            doc.add_paragraph(f"Kategori: {answer.question.topic.category.title}")
-            doc.add_paragraph(f"Konu: {answer.question.topic.title}")
-            if answer.risk_priority:
-                doc.add_paragraph(f"Öncelik: {answer.get_risk_priority_display()}")
-            
-            if hasattr(answer, 'measures'):
-                measures = answer.measures.all()
-                if measures.exists():
-                    doc.add_paragraph("Önlemler:")
-                    for m in measures:
-                        if m.description:
-                            doc.add_paragraph(f"• {m.description}", style='List Bullet')
-                        if m.responsible_person:
-                            doc.add_paragraph(f"  Sorumlu: {m.responsible_person}")
-                        if m.planning_end_date:
-                            doc.add_paragraph(f"  Hedef Tarih: {m.planning_end_date.strftime('%d.%m.%Y')}")
-            
-            risk_num += 1
-        
-        # Custom risks
-        for cr in session.custom_risks.filter(is_acceptable=False):
-            doc.add_heading(f"Ek Risk Ω{risk_num}: {cr.description[:80]}", level=2)
-            if cr.risk_priority:
-                doc.add_paragraph(f"Öncelik: {cr.get_risk_priority_display()}")
-            
-            if hasattr(cr, 'custom_measures'):
-                measures = cr.custom_measures.all()
-                if measures.exists():
-                    doc.add_paragraph("Önlemler:")
-                    for m in measures:
-                        if m.description:
-                            doc.add_paragraph(f"• {m.description}", style='List Bullet')
-            
-            risk_num += 1
-        
-        # Signature Section
+
+        # ═══ SIGNATURE PAGE ═══
         doc.add_page_break()
         doc.add_heading('İmza Sirküleri', level=1)
-        doc.add_paragraph("Bu risk değerlendirme raporu aşağıdaki kişiler tarafından onaylanmıştır.")
+        doc.add_paragraph("Bu rapor aşağıdaki kişiler tarafından onaylanmıştır.")
         doc.add_paragraph()
-        
-        # Add team members if they exist
-        team_members = session.team_members.all()
-        if team_members.exists():
-            for member in team_members:
-                p = doc.add_paragraph()
-                p.add_run(f"\n{member.get_role_display()}: {member.name}").bold = True
-                if member.title:
-                    p.add_run(f" ({member.title})")
-                p.add_run("\n\nİmza: _______________________      Tarih: _______________\n")
-        else:
-            # Default signature blocks
-            for role in ['İşveren / Vekili', 'İSG Uzmanı', 'İş Yeri Hekimi', 'Çalışan Temsilcisi']:
-                p = doc.add_paragraph()
-                p.add_run(f"\n{role}:").bold = True
-                p.add_run(" _______________________\n")
-                p.add_run("\nİmza: _______________________      Tarih: _______________\n")
-        
+        for sig in signatures:
+            p = doc.add_paragraph()
+            p.add_run(f"\n{sig['role']}: {sig['name'] or '_______________'}").bold = True
+            if sig['title']:
+                p.add_run(f" ({sig['title']})")
+            p.add_run("\n\nİmza: _______________________      Tarih: _______________\n")
+
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
         response['Content-Disposition'] = f'attachment; filename="rapor_{session.pk}.docx"'
         doc.save(response)
         return response
-        
+
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return HttpResponse(f"Error generating Word document: {str(e)}", status=500)
+
 
 
 @login_required
 def export_report_pdf(request, session_pk):
-    """Export risk overview as PDF using WeasyPrint"""
-    import os
-    from django.conf import settings
-    
+    """Export risk report as PDF with cover page, risk tables, DÖF, per-page signatures"""
+    from core.export_helpers import (
+        get_cover_page_data, get_methodology_text, build_risk_data,
+        get_team_signatures, get_level_color, get_level_text_color
+    )
+
     try:
         session = get_object_or_404(AssessmentSession, pk=session_pk)
-        
-        # Font path for Turkish character support
-        font_path = os.path.join(settings.BASE_DIR, 'static', 'fonts', 'Roboto-Regular.ttf')
-        
-        # Build rows
-        rows_html = ""
-        risk_num = 1
-        
-        for answer in session.answers.filter(response='NO').select_related('question'):
-            priority_text = answer.get_risk_priority_display() if answer.risk_priority else "-"
-            measures_count = answer.measures.count()
-            rows_html += f"""
-                <tr>
-                    <td>R{risk_num}</td>
-                    <td>{answer.question.content}</td>
-                    <td>{priority_text}</td>
-                    <td>{measures_count}</td>
-                </tr>
-            """
-            risk_num += 1
-        
-        for cr in session.custom_risks.filter(is_acceptable=False):
-            priority_text = cr.get_risk_priority_display() if cr.risk_priority else "-"
-            measures_count = cr.custom_measures.count()
-            rows_html += f"""
-                <tr>
-                    <td>Ω{risk_num}</td>
-                    <td>{cr.description}</td>
-                    <td>{priority_text}</td>
-                    <td>{measures_count}</td>
-                </tr>
-            """
-            risk_num += 1
-        
-        # Signature blocks
-        signature_html = ""
-        team_members = session.team_members.all()
-        if team_members.exists():
-            signature_html = "<h2>İmza Sirküleri</h2><table class='sig-table'>"
-            for member in team_members:
-                signature_html += f"""
-                    <tr>
-                        <td style="width:50%; padding-top:30px; border-bottom:1px solid #333;">
-                            {member.name}<br><small>{member.get_role_display()}</small>
-                        </td>
-                        <td style="width:50%; padding-top:30px; border-bottom:1px solid #333;">
-                            İmza: _______________________
-                        </td>
-                    </tr>
-                """
-            signature_html += "</table>"
+        cover = get_cover_page_data(session)
+        risk_data = build_risk_data(session)
+        signatures = get_team_signatures(session)
+
+        # Build structured signature footer HTML (running footer element)
+        sig_footer_cells = ''
+        for sig in signatures:
+            name = sig['name'] or '_______________'
+            sig_footer_cells += f"<td style='text-align:center; padding:0 8px;'><strong>{name}</strong><br/><span style='font-size:6pt; color:#888;'>{sig['role']}</span></td>"
+
+        # Risk scoring columns
+        is_kinney = risk_data['is_kinney']
+        if is_kinney:
+            score_headers = '<th>P</th><th>F</th><th>S</th>'
         else:
-            signature_html = """
-            <h2>İmza Sirküleri</h2>
-            <table class="sig-table">
-                <tr><td>İşveren / Vekili</td><td>İmza: _______________________</td></tr>
-                <tr><td>İSG Uzmanı</td><td>İmza: _______________________</td></tr>
-                <tr><td>İş Yeri Hekimi</td><td>İmza: _______________________</td></tr>
-                <tr><td>Çalışan Temsilcisi</td><td>İmza: _______________________</td></tr>
-            </table>
-            """
-        
-        # Participants section
-        participants_html = ""
-        if session.participants:
-            participants_html = f"<p><strong>Katılımcılar:</strong> {session.participants}</p>"
-        
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <style>
-                @font-face {{
-                    font-family: 'TurkishFont';
-                    src: url('file://{font_path}');
-                }}
-                @page {{ size: A4; margin: 2cm; }}
-                body {{ font-family: 'TurkishFont', sans-serif; font-size: 12px; }}
-                h1 {{ color: #333; font-size: 22px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }}
-                h2 {{ color: #667eea; font-size: 16px; margin-top: 25px; }}
-                table {{ width: 100%; border-collapse: collapse; margin: 15px 0; }}
-                th, td {{ border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 10px; }}
-                th {{ background-color: #667eea; color: white; }}
-                .sig-table td {{ border: none; padding-top: 30px; }}
-            </style>
-        </head>
-        <body>
-            <h1>Risk Değerlendirme Özeti</h1>
-            <p><strong>Tesis:</strong> {session.facility.name}</p>
-            <p><strong>Araç:</strong> {session.tool.title}</p>
-            <p><strong>Tarih:</strong> {session.created_at.strftime('%d.%m.%Y')}</p>
-            {participants_html}
-            
-            <h2>Tespit Edilen Riskler</h2>
-            <table>
-                <tr><th>No</th><th>Risk Tanımı</th><th>Öncelik</th><th>Önlem Sayısı</th></tr>
-                {rows_html}
-            </table>
-            
-            {signature_html}
-        </body>
-        </html>
-        """
-        
-        # Generate PDF with WeasyPrint
+            score_headers = '<th>P</th><th>S</th>'
+
+        # Build risk rows
+        risk_rows = ''
+        for r in risk_data['risks']:
+            if is_kinney:
+                score_cells = f"<td class='center'>{r['p'] or '-'}</td><td class='center'>{r['f'] or '-'}</td><td class='center'>{r['s'] or '-'}</td>"
+            else:
+                score_cells = f"<td class='center'>{r['p'] or '-'}</td><td class='center'>{r['s'] or '-'}</td>"
+            risk_rows += f"""<tr>
+                <td class='center'>{r['no']}</td>
+                <td>{r['category']}</td>
+                <td class='desc'>{r['description']}</td>
+                <td class='small'>{r['legal_basis'][:80]}</td>
+                {score_cells}
+                <td class='center bold'>{r['score'] if r['score'] else '-'}</td>
+                <td class='level' style='background:{r['level_color']}; color:{r['level_text_color']};'>{r['level']}</td>
+            </tr>"""
+
+        # Build DÖF rows
+        dof_rows = ''
+        for r in risk_data['risks']:
+            dof_rows += f"""<tr>
+                <td class='center'>{r['no']}</td>
+                <td class='desc'>{r['description'][:60]}</td>
+                <td>{r['measure']}</td>
+                <td>{r['strategy']}</td>
+                <td class='center'>{r['budget']}</td>
+                <td>{r['responsible']}</td>
+                <td class='center'>{r['due_date']}</td>
+            </tr>"""
+
+        # Build summary rows
+        summary_rows = ''
+        for s in risk_data['summary']:
+            summary_rows += f"<tr><td style='background:{s['color']}; color:{s['text_color']};'>{s['level']}</td><td class='center'>{s['count']}</td></tr>"
+        summary_rows += f"<tr class='total'><td><strong>TOPLAM</strong></td><td class='center'><strong>{risk_data['total']}</strong></td></tr>"
+
+        # Team table on cover
+        team_rows = ''
+        for sig in signatures:
+            team_rows += f"<tr><td><strong>{sig['role']}</strong></td><td>{sig['name'] or '_______________'}</td><td></td></tr>"
+
+        # Signature page
+        sig_blocks = ''
+        for sig in signatures:
+            title_part = f" ({sig['title']})" if sig['title'] else ''
+            sig_blocks += f"""<div class='sig-block'>
+                <p><strong>{sig['role']}: {sig['name'] or '_______________'}</strong>{title_part}</p>
+                <p>İmza: _______________________&nbsp;&nbsp;&nbsp;&nbsp;Tarih: _______________</p>
+            </div>"""
+
+        # Pre-build conditional sections (Python 3.9 compat - can't nest f-strings with same quotes)
+        risks_list = risk_data['risks']
+        risk_table_html = '<p>Henüz risk eklenmemiştir.</p>' if not risks_list else f"""
+<table class="risk">
+    <thead><tr><th>No</th><th>Kategori</th><th>Risk Tanımı</th><th>Mevzuat</th>{score_headers}<th>Skor</th><th>Seviye</th></tr></thead>
+    <tbody>{risk_rows}</tbody>
+</table>"""
+
+        dof_table_html = '<p>Henüz risk eklenmemiştir.</p>' if not risks_list else f"""
+<table class="dof">
+    <thead><tr><th>No</th><th>Risk Tanımı</th><th>Alınması Gereken Önlem</th><th>Kontrol Stratejisi</th><th>Bütçe (₺)</th><th>Sorumlu</th><th>Termin</th></tr></thead>
+    <tbody>{dof_rows}</tbody>
+</table>"""
+
+        exec_summary_html = f'<h2>5. Yönetici Özeti</h2><p>{session.final_comments}</p>' if session.final_comments else ''
+
+        html_content = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+    @page {{
+        size: A4 landscape;
+        margin: 15mm 15mm 35mm 15mm;
+        @bottom-right {{
+            content: "Sayfa " counter(page) " / " counter(pages);
+            font-size: 7pt;
+            color: #999;
+        }}
+    }}
+    .page-footer {{
+        position: running(pageFooter);
+    }}
+    @page {{
+        @bottom-center {{
+            content: element(pageFooter);
+        }}
+    }}
+    .footer-sig-table {{
+        width: 100%;
+        border-collapse: collapse;
+        border-top: 1px solid #ccc;
+        padding-top: 4px;
+        font-size: 7.5pt;
+        color: #444;
+    }}
+    .footer-sig-table td {{
+        text-align: center;
+        padding: 2px 20px;
+        vertical-align: top;
+    }}
+    .footer-sig-table strong {{
+        font-size: 7.5pt;
+        display: block;
+        margin-bottom: 1px;
+    }}
+    @page cover {{ size: A4 portrait; margin: 20mm; }}
+    body {{ font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 9pt; color: #1F2937; }}
+
+    .cover-page {{ page: cover; page-break-after: always; text-align: center; padding-top: 60px; }}
+    .cover-page h1 {{ font-size: 28pt; color: #1E3A8A; margin-bottom: 40px; letter-spacing: 1px; }}
+
+    .info-table {{ width: 80%; margin: 20px auto; border-collapse: collapse; text-align: left; }}
+    .info-table td {{ padding: 10px 14px; border: 1px solid #D1D5DB; font-size: 11pt; }}
+    .info-table td:first-child {{ background: #EFF6FF; font-weight: bold; width: 40%; color: #1E3A8A; }}
+
+    .team-table {{ width: 80%; margin: 20px auto; border-collapse: collapse; }}
+    .team-table th {{ background: #1E3A8A; color: white; padding: 8px 12px; font-size: 10pt; }}
+    .team-table td {{ padding: 8px 12px; border: 1px solid #D1D5DB; font-size: 10pt; }}
+
+    h2 {{ color: #1E3A8A; border-bottom: 2px solid #2563EB; padding-bottom: 4px; margin-top: 18px; font-size: 13pt; }}
+    table.risk {{ width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 8pt; }}
+    table.risk th {{ background: #2563EB; color: white; padding: 5px 4px; font-weight: 600; }}
+    table.risk td {{ padding: 4px; border: 1px solid #D1D5DB; vertical-align: top; }}
+    table.risk tr:nth-child(even) {{ background: #F8FAFC; }}
+    .center {{ text-align: center; }}
+    .bold {{ font-weight: 700; }}
+    .desc {{ max-width: 200px; word-wrap: break-word; }}
+    .small {{ font-size: 7pt; max-width: 120px; word-wrap: break-word; }}
+    .level {{ font-weight: 700; text-align: center; border-radius: 3px; font-size: 7.5pt; }}
+
+    table.dof {{ width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 8pt; }}
+    table.dof th {{ background: #1E40AF; color: white; padding: 5px 4px; font-weight: 600; }}
+    table.dof td {{ padding: 4px; border: 1px solid #D1D5DB; vertical-align: top; }}
+    table.dof tr:nth-child(even) {{ background: #F0F4FF; }}
+
+    table.summary {{ width: 350px; border-collapse: collapse; margin: 8px 0; font-size: 9pt; }}
+    table.summary th {{ background: #6B7280; color: white; padding: 6px 10px; }}
+    table.summary td {{ padding: 6px 10px; border: 1px solid #D1D5DB; }}
+    table.summary .total {{ background: #F1F5F9; }}
+
+    .methodology {{ font-size: 9.5pt; line-height: 1.6; white-space: pre-line; }}
+    .sig-section {{ page-break-before: always; }}
+    .sig-block {{ margin: 25px 0; padding: 12px 0; border-bottom: 1px dashed #ccc; }}
+</style></head><body>
+
+<!-- RUNNING FOOTER (appears on every page) -->
+<div class="page-footer">
+    <table class="footer-sig-table"><tr>{sig_footer_cells}</tr></table>
+</div>
+
+<!-- COVER PAGE -->
+<div class="cover-page">
+    <h1>RİSK DEĞERLENDİRME RAPORU</h1>
+    <table class="info-table">
+        <tr><td>İşyeri Unvanı</td><td>{cover['workplace_name']}</td></tr>
+        <tr><td>Bina / Birim</td><td>{cover['facility_name']}</td></tr>
+        <tr><td>Adres</td><td>{cover['address']}</td></tr>
+        <tr><td>NACE Kodu</td><td>{cover['nace_code']}</td></tr>
+        <tr><td>Tehlike Sınıfı</td><td>{cover['hazard_class']}</td></tr>
+        <tr><td>Faaliyet</td><td>{cover['activity']}</td></tr>
+        <tr><td>Puanlama Yöntemi</td><td>{cover['scoring_label']}</td></tr>
+        <tr><td>Değerlendirme Tarihi</td><td>{cover['assessment_date']}</td></tr>
+        <tr><td>Geçerlilik Tarihi</td><td>{cover['validity_date']}  ({cover['validity_years']} yıl)</td></tr>
+        <tr><td>Durum</td><td>{cover['status']}</td></tr>
+        <tr><td>Katılımcılar</td><td>{cover['participants']}</td></tr>
+    </table>
+    <h2 style="width:80%; margin:20px auto; text-align:left;">Değerlendirme Ekibi</h2>
+    <table class="team-table">
+        <tr><th>Rol</th><th>Ad Soyad</th><th>İmza</th></tr>
+        {team_rows}
+    </table>
+</div>
+
+<!-- METHODOLOGY -->
+<h2>1. Metodoloji</h2>
+<div class="methodology">{get_methodology_text(cover['is_kinney'])}</div>
+
+<!-- RISK TABLE -->
+<h2>2. Tespit Edilen Riskler ve Puanlama</h2>
+{risk_table_html}
+
+<!-- DÖF TABLE -->
+<h2>3. Düzeltici Faaliyet Planı (DÖF)</h2>
+{dof_table_html}
+
+<!-- SUMMARY -->
+<h2>4. Risk Dağılımı Özeti</h2>
+<table class="summary">
+    <thead><tr><th>Risk Seviyesi</th><th>Adet</th></tr></thead>
+    <tbody>{summary_rows}</tbody>
+</table>
+
+{exec_summary_html}
+
+<!-- SIGNATURE PAGE -->
+<div class="sig-section">
+    <h2>İmza Sirküleri</h2>
+    <p>Bu rapor aşağıdaki kişiler tarafından onaylanmıştır.</p>
+    {sig_blocks}
+</div>
+
+</body></html>"""
+
         try:
             from weasyprint import HTML
-            pdf_file = HTML(string=html_content).write_pdf()
-            response = HttpResponse(pdf_file, content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="risk_ozet_{session.pk}.pdf"'
-            return response
-        except ImportError:
-            return HttpResponse("Error: WeasyPrint is not installed. Please run: pip install weasyprint", status=500)
+            pdf = HTML(string=html_content).write_pdf()
         except Exception as e:
             return HttpResponse(f"WeasyPrint error: {str(e)}", status=500)
-                
+
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="rapor_{session.pk}.pdf"'
+        return response
+
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
+
 
 
 @login_required
@@ -3327,7 +3553,7 @@ def export_full_checklist_pdf(request, session_pk):
         </head>
         <body>
             <h1>Denetim Listesi (Full Checklist)</h1>
-            <p><strong>Tesis:</strong> {session.facility.name} | <strong>Araç:</strong> {session.tool.title} | <strong>Tarih:</strong> {session.created_at.strftime('%d.%m.%Y')}</p>
+            <p><strong>Tesis:</strong> {session.facility.name} | <strong>Araç:</strong> {session.tool.title if session.tool else 'Kütüphane'} | <strong>Tarih:</strong> {session.created_at.strftime('%d.%m.%Y')}</p>
             
             <table>
                 <tr><th>No</th><th>Kategori</th><th>Soru</th><th>Durum</th><th>Notlar</th></tr>
@@ -3871,7 +4097,7 @@ def api_update_fast_risk(request, session_pk, risk_pk):
     if 'description' in data:
         custom_risk.description = data['description']
     if 'priority' in data:
-        custom_risk.risk_priority = data['priority']
+        custom_risk.priority = data['priority']
     if 'category' in data:
         custom_risk.category = data['category']
     if 'measure' in data:
@@ -4080,8 +4306,10 @@ def api_create_control_record(request, session_pk, risk_pk):
 
 from .forms import PublicEngagementForm
 from .models import SafetyEngagement, SafetyPoll
+from django_ratelimit.decorators import ratelimit
 
 
+@ratelimit(key='ip', rate='30/m', method='GET', block=True)
 def public_safety_forum(request, facility_uuid):
     """Public forum view accessible via QR code - NO LOGIN REQUIRED"""
     facility = get_object_or_404(Facility, uuid=facility_uuid)
@@ -4121,6 +4349,7 @@ def public_safety_forum(request, facility_uuid):
     return render(request, 'core/public_forum.html', context)
 
 
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def public_safety_submit(request, facility_uuid):
     """Handle public form submission with honeypot + math captcha"""
     if request.method != 'POST':
@@ -4178,6 +4407,7 @@ def public_safety_submit(request, facility_uuid):
     return render(request, 'core/public_forum.html', context)
 
 
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def public_poll_vote(request, facility_uuid, poll_id):
     """Handle poll voting with cookie-based duplicate prevention"""
     if request.method != 'POST':
@@ -4251,11 +4481,13 @@ def facility_engagements(request, pk):
     facility = get_object_or_404(Facility, pk=pk)
     
     engagements = SafetyEngagement.objects.filter(facility=facility).order_by('-created_at')
+    polls = SafetyPoll.objects.filter(facility=facility).order_by('-created_at')
     
     context = {
         'facility': facility,
         'workplace': facility.workplace,
         'engagements': engagements,
+        'polls': polls,
     }
     return render(request, 'core/facility_engagements.html', context)
 
@@ -4393,6 +4625,34 @@ def api_poll_results(request, poll_id):
     })
 
 
+@login_required
+def api_poll_close(request, poll_id):
+    """Close (deactivate) a poll"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    
+    poll = get_object_or_404(SafetyPoll, pk=poll_id)
+    poll.is_active = not poll.is_active
+    poll.save()
+    
+    return JsonResponse({
+        'success': True,
+        'is_active': poll.is_active
+    })
+
+
+@login_required
+def api_poll_delete(request, poll_id):
+    """Delete a poll"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    
+    poll = get_object_or_404(SafetyPoll, pk=poll_id)
+    poll.delete()
+    
+    return JsonResponse({'success': True})
+
+
 
 @login_required
 def add_engagement_comment(request, engagement_pk):
@@ -4470,6 +4730,7 @@ def api_engagement_like(request, engagement_pk):
     return response
 
 
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def add_public_comment(request, engagement_pk):
     """Public API to add anonymous comment with honeypot + captcha"""
     if request.method != 'POST':
@@ -4517,6 +4778,7 @@ def add_public_comment(request, engagement_pk):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
 
+@ratelimit(key='ip', rate='30/m', method='GET', block=True)
 def api_wall_items(request, facility_uuid):
     """JSON API endpoint for wall items - for client-side rendering"""
     facility = get_object_or_404(Facility, uuid=facility_uuid)
@@ -4579,6 +4841,7 @@ def api_wall_items(request, facility_uuid):
     return JsonResponse({'items': items_data})
 
 
+@ratelimit(key='ip', rate='30/m', method='GET', block=True)
 def api_public_polls(request, facility_uuid):
     """JSON API endpoint for polls - for client-side rendering"""
     facility = get_object_or_404(Facility, uuid=facility_uuid)

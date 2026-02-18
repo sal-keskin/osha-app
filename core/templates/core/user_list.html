@@ -476,7 +476,11 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer" style="border-top: 1px solid var(--border-color);">
+            <div class="modal-footer d-flex" style="border-top: 1px solid var(--border-color);">
+                <button type="button" class="btn btn-outline-danger btn-sm me-auto" id="btnDeleteUser"
+                    onclick="deleteUser()">
+                    <i class="bi bi-trash-fill"></i> Kullanıcıyı Sil
+                </button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
                 <button type="button" class="btn btn-primary" onclick="submitEditForm()">Kaydet</button>
             </div>
@@ -648,7 +652,35 @@
         document.getElementById('editActive').checked = (active === 'true');
         document.getElementById('editMfa').checked = (mfa === 'true');
 
+        // Hide delete button if editing self
+        const deleteBtn = document.getElementById('btnDeleteUser');
+        if (deleteBtn) {
+            deleteBtn.style.display = (id === '{{ request.user.pk }}') ? 'none' : '';
+        }
+
         editModalBS.show();
+    }
+
+    function deleteUser() {
+        const id = document.getElementById('editUserId').value;
+        const name = document.getElementById('editName').value;
+        if (!confirm(`"${name}" kullanıcısını silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz!`)) return;
+
+        fetch(`/settings/users/${id}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (editModalBS) editModalBS.hide();
+                    showToast(data.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast('Hata: ' + data.error, 'error');
+                }
+            })
+            .catch(err => showToast('Bir hata oluştu: ' + err, 'error'));
     }
 
     function submitEditForm() {

@@ -8,3 +8,7 @@ weasyprint
 python-dateutil
 qrcode[pil]
 
+psycopg2-binary
+django-ratelimit
+django-encrypted-model-fields
+python-docx

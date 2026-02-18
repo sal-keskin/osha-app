@@ -23,12 +23,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', "django-insecure-22zfh8*cc0(qv207l2d$q1ku-yu#tl4xz&7d^pi@q-4yd2s+2@")
+# SECURITY: Keys must be set in .env — no hardcoded fallbacks!
+SECRET_KEY = os.environ['SECRET_KEY']
 
 # Field encryption key for KVKK compliance (field-level encryption)
-# IMPORTANT: Keep this key secure. Losing it means losing access to encrypted data.
-FIELD_ENCRYPTION_KEY = os.getenv('FIELD_ENCRYPTION_KEY', '7e47mBW3lXfqOLQVZfpR722SdF5zxaQcwsegIlsPGPw=')
+# CRITICAL: Losing this key = losing access to all encrypted worker data.
+FIELD_ENCRYPTION_KEY = os.environ['FIELD_ENCRYPTION_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', '0') == '1'
@@ -87,8 +87,12 @@ WSGI_APPLICATION = "osha_app.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.sqlite3"),
+        "NAME": os.getenv("DB_NAME", str(BASE_DIR / "db.sqlite3")),
+        "USER": os.getenv("DB_USER", ""),
+        "PASSWORD": os.getenv("DB_PASSWORD", ""),
+        "HOST": os.getenv("DB_HOST", ""),
+        "PORT": os.getenv("DB_PORT", ""),
     }
 }
 
@@ -138,3 +142,37 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Authentication
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+
+
+# ═══════════════════════════════════════════════════════════════
+# PRODUCTION SECURITY SETTINGS (only active when DEBUG=False)
+# ═══════════════════════════════════════════════════════════════
+
+if not DEBUG:
+    # Force HTTPS
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+    # HSTS — tell browsers to always use HTTPS (1 year)
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+    # Secure cookies — only sent over HTTPS
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+    # Prevent clickjacking, XSS, MIME sniffing
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+
+    # Session hardening
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_AGE = 28800  # 8 hours
+    SESSION_EXPIRE_AT_BROWSER_CLOSE = True

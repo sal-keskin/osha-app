@@ -163,6 +163,7 @@ urlpatterns = [
     path('settings/users/new/', views.user_create, name='user_create'),
     path('settings/users/<int:pk>/edit/', views.user_update, name='user_update'),
     path('settings/users/delete/', views.user_bulk_delete, name='user_bulk_delete'),
+    path('settings/users/<int:pk>/delete/', views.api_delete_user, name='api_delete_user'),
     path('settings/users/<int:pk>/update_profile/', views.user_update_profile_ajax, name='user_update_profile_ajax'),
     path('settings/assignments/create/', views.workplace_assignment_create, name='workplace_assignment_create'),
     path('settings/assignments/<int:pk>/update/', views.api_update_assignment, name='api_update_assignment'),
@@ -187,6 +188,8 @@ urlpatterns = [
     path('api/engagements/<int:engagement_pk>/like/', views.api_engagement_like, name='api_engagement_like'),
     path('api/polls/<int:poll_id>/vote/', views.api_poll_vote, name='api_poll_vote'),
     path('api/polls/<int:poll_id>/results/', views.api_poll_results, name='api_poll_results'),
+    path('api/polls/<int:poll_id>/close/', views.api_poll_close, name='api_poll_close'),
+    path('api/polls/<int:poll_id>/delete/', views.api_poll_delete, name='api_poll_delete'),
     
     # Public anonymous comment API
     path('api/public/engagement/<int:engagement_pk>/comment/', views.add_public_comment, name='add_public_comment'),

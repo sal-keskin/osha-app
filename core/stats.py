@@ -34,8 +34,8 @@ def get_user_scoped_stats(user):
             examined_workers = scoped_workers.filter(examination__isnull=False).distinct().count()
             exam_pct = int((examined_workers / total_workers * 100))
             
-            # First Aid
-            first_aid_count = scoped_workers.filter(first_aid_certificate=True).count()
+            # First Aid (EncryptedBooleanField — must count in Python, not SQL)
+            first_aid_count = sum(1 for w in scoped_workers if w.first_aid_certificate)
         else:
             training_pct = 0
             exam_pct = 0
