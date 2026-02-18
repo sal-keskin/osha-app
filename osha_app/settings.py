@@ -153,20 +153,21 @@ LOGIN_REDIRECT_URL = '/'
 # ═══════════════════════════════════════════════════════════════
 
 if not DEBUG:
-    # Force HTTPS
-    SECURE_SSL_REDIRECT = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    # HTTPS settings — disable with SECURE_SSL_REDIRECT=0 in .env if no SSL cert
+    if os.getenv('SECURE_SSL_REDIRECT', '1') == '1':
+        SECURE_SSL_REDIRECT = True
+        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-    # HSTS — tell browsers to always use HTTPS (1 year)
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+        # HSTS — tell browsers to always use HTTPS (1 year)
+        SECURE_HSTS_SECONDS = 31536000
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+        SECURE_HSTS_PRELOAD = True
 
-    # Secure cookies — only sent over HTTPS
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+        # Secure cookies — only sent over HTTPS
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
 
-    # Prevent clickjacking, XSS, MIME sniffing
+    # Always-on security (works without HTTPS too)
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
